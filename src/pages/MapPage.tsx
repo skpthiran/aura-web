@@ -34,7 +34,9 @@ export default function MapPage() {
       style: MAPTILER_STYLE,
       center: [79.8612, 6.9271], // Initialize at Colombo fallback
       zoom: 13,
-      attributionControl: false
+      attributionControl: false,
+      fadeDuration: 0,
+      renderWorldCopies: false
     })
 
     mapRef.current = map

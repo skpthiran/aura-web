@@ -58,8 +58,10 @@ export default function CreatePage() {
           container: mapPickerRef.current,
           style: MAPTILER_STYLE,
           center: [centerLng, centerLat],
-          zoom: 14,
-          attributionControl: false
+          zoom: 13,
+          attributionControl: false,
+          fadeDuration: 0,
+          renderWorldCopies: false
         })
         
         mapPickerInstance.current = map
