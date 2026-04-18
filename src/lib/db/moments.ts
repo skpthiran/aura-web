@@ -31,7 +31,6 @@ export async function createMoment(payload: {
   lat: number
   lng: number
   capacity_limit: number
-  expires_at: string
   moment_type: 'moment' | 'event'
   tags?: string[]
 }): Promise<Moment> {
@@ -46,7 +45,6 @@ export async function createMoment(payload: {
       description: payload.description,
       location: `POINT(${payload.lng} ${payload.lat})`,
       capacity_limit: payload.capacity_limit,
-      expires_at: payload.expires_at,
       moment_type: payload.moment_type,
       tags: payload.tags ?? []
     })

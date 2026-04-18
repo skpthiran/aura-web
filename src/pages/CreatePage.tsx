@@ -27,7 +27,6 @@ export default function CreatePage() {
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [capacity, setCapacity] = useState(50)
-  const [durationHours, setDurationHours] = useState(MOMENT_EXPIRY_HOURS)
   const [tags, setTags] = useState<string[]>([])
   const [tagInput, setTagInput] = useState('')
   const [loading, setLoading] = useState(false)
@@ -118,17 +117,12 @@ export default function CreatePage() {
     setError(null)
     
     try {
-      const expiresAt = new Date(
-        Date.now() + durationHours * 60 * 60 * 1000
-      ).toISOString()
-      
       await createMoment({
         title: title.trim(),
         description: description.trim() || undefined,
         lat: effectiveLat,
         lng: effectiveLng,
         capacity_limit: capacity,
-        expires_at: expiresAt,
         moment_type: momentType as 'moment' | 'event',
         tags
       })
@@ -287,46 +281,21 @@ export default function CreatePage() {
                   </div>
                 </div>
 
-                {/* Parameters Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-12 pb-8 hairline-b">
-                  {/* Capacity Slider */}
-                  <div className="space-y-6">
-                    <div className="flex justify-between items-end">
-                      <label className="micro-caps text-marble/40 text-[10px] tracking-[0.3em]">CAPACITY LIMIT</label>
-                      <span className="text-xl font-serif text-marble">{capacity}</span>
-                    </div>
-                    <input
-                      type="range"
-                      min="2"
-                      max={MAX_MOMENT_CAPACITY}
-                      step="1"
-                      value={capacity}
-                      onChange={(e) => setCapacity(parseInt(e.target.value))}
-                      className="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-gold"
-                    />
+                {/* Capacity Parameter */}
+                <div className="space-y-6 pb-8 hairline-b">
+                  <div className="flex justify-between items-end">
+                    <label className="micro-caps text-marble/40 text-[10px] tracking-[0.3em]">CAPACITY LIMIT</label>
+                    <span className="text-xl font-serif text-marble">{capacity}</span>
                   </div>
-
-                  {/* Duration Selector */}
-                  <div className="space-y-6">
-                    <label className="micro-caps text-marble/40 text-[10px] tracking-[0.3em]">TEMPORAL DURATION</label>
-                    <div className="flex gap-2">
-                      {[2, 4, 6].map((hours) => (
-                        <button
-                          key={hours}
-                          type="button"
-                          onClick={() => setDurationHours(hours)}
-                          className={cn(
-                            "flex-1 py-3 rounded-xl micro-caps text-[10px] font-bold tracking-[0.2em] transition-all border",
-                            durationHours === hours
-                              ? "bg-gold text-void border-gold"
-                              : "bg-void/50 text-marble/40 border-white/10 hover:border-white/20"
-                          )}
-                        >
-                          {hours}H
-                        </button>
-                      ))}
-                    </div>
-                  </div>
+                  <input
+                    type="range"
+                    min="2"
+                    max={MAX_MOMENT_CAPACITY}
+                    step="1"
+                    value={capacity}
+                    onChange={(e) => setCapacity(parseInt(e.target.value))}
+                    className="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-gold"
+                  />
                 </div>
 
                 {/* Location Picker */}
