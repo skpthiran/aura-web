@@ -1,0 +1,13 @@
+# dependencies
+node_modules/
+
+# build
+dist/
+
+# environment variables
+.env
+.env.local
+*.local
+
+# other
+.DS_Store
