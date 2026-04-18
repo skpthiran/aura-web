@@ -7,7 +7,10 @@ export async function getProfile(userId: string): Promise<Profile | null> {
     .select('*')
     .eq('id', userId)
     .single()
-  if (error) throw error
+  if (error) {
+    if (error.code === 'PGRST116') return null // no row found
+    throw error
+  }
   return data as Profile
 }
 

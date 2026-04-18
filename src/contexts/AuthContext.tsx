@@ -32,11 +32,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (session?.user) {
         getProfile(session.user.id)
           .then(p => { if (mounted) setProfile(p) })
-          .catch(console.error)
+          .catch(() => {})
           .finally(() => { if (mounted) setLoading(false) })
       } else {
-        setLoading(false)
+        if (mounted) setLoading(false)
       }
+    }).catch(() => {
+      if (mounted) setLoading(false)
     })
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -48,13 +50,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           try {
             const p = await getProfile(session.user.id)
             if (mounted) setProfile(p)
-          } catch (e) {
-            console.error(e)
+          } catch {
+            // profile may not exist yet, that's ok
+          } finally {
+            if (mounted) setLoading(false)
           }
         } else {
-          if (mounted) setProfile(null)
+          if (mounted) {
+            setProfile(null)
+            setLoading(false)
+          }
         }
-        if (mounted) setLoading(false)
       }
     )
 
