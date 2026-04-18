@@ -1,8 +1,9 @@
 import { useState } from "react";
-import { Outlet, NavLink, Link, useLocation } from "react-router-dom";
+import { Outlet, NavLink, Link, useLocation, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "motion/react";
-import { Compass, Map as MapIcon, Plus, Landmark, MessageSquareText, Bell, User, Shield, Settings, LogOut } from "lucide-react";
+import { Compass, Map as MapIcon, Plus, Landmark, MessageSquareText, Bell, User, Shield, Settings, LogOut, Loader2 } from "lucide-react";
 import { cn } from "../lib/utils";
+import { useAuth } from "../contexts/AuthContext";
 
 const NAV_ITEMS = [
   { path: "/app/today", label: "Pulse", icon: Compass },
@@ -15,7 +16,26 @@ const NAV_ITEMS = [
 
 export default function AppLayout() {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { user, profile, signOut } = useAuth();
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
+  const [isSigningOut, setIsSigningOut] = useState(false);
+
+  const handleSignOut = async () => {
+    try {
+      setIsSigningOut(true);
+      await signOut();
+      navigate("/");
+    } catch (error) {
+      console.error("Sign out failed:", error);
+    } finally {
+      setIsSigningOut(false);
+      setIsProfileMenuOpen(false);
+    }
+  };
+
+  const displayName = profile?.full_name || profile?.username || user?.email?.split("@")[0] || "Wanderer";
+  const userTier = "Luminous Tier"; // Placeholder for now
 
   return (
     <div className="min-h-screen bg-void text-marble flex flex-col md:flex-row overflow-hidden relative selection:bg-gold/20">
@@ -100,10 +120,14 @@ export default function AppLayout() {
             )}
           >
             <div className="absolute inset-0 bg-gold/10 opacity-0 group-hover:opacity-100 transition-opacity z-10" />
-            <img src="https://picsum.photos/seed/user1/100/100" alt="Avatar" className={cn(
-              "w-full h-full object-cover transition-all duration-500 relative z-0",
-               isProfileMenuOpen ? "grayscale-0 opacity-100" : "grayscale opacity-80 group-hover:grayscale-0 group-hover:opacity-100"
-            )} referrerPolicy="no-referrer" />
+            {profile?.avatar_url ? (
+              <img src={profile.avatar_url} alt="Avatar" className={cn(
+                "w-full h-full object-cover transition-all duration-500 relative z-0",
+                 isProfileMenuOpen ? "grayscale-0 opacity-100" : "grayscale opacity-80 group-hover:grayscale-0 group-hover:opacity-100"
+              )} referrerPolicy="no-referrer" />
+            ) : (
+              <User className="w-5 h-5 text-marble/20" />
+            )}
           </button>
           
           {/* Luxury Hover Capsule: Avatar */}
@@ -167,10 +191,14 @@ export default function AppLayout() {
           )}
         >
           <div className="absolute inset-0 bg-gold/10 opacity-0 group-hover:opacity-100 transition-opacity z-10" />
-          <img src="https://picsum.photos/seed/user1/100/100" alt="Avatar" className={cn(
-            "w-full h-full object-cover transition-all duration-500",
-             isProfileMenuOpen ? "grayscale-0 opacity-100 scale-110" : "grayscale opacity-80 group-hover:grayscale-0 group-hover:opacity-100 group-hover:scale-110"
-          )} referrerPolicy="no-referrer" />
+          {profile?.avatar_url ? (
+            <img src={profile.avatar_url} alt="Avatar" className={cn(
+              "w-full h-full object-cover transition-all duration-500",
+               isProfileMenuOpen ? "grayscale-0 opacity-100 scale-110" : "grayscale opacity-80 group-hover:grayscale-0 group-hover:opacity-100 group-hover:scale-110"
+            )} referrerPolicy="no-referrer" />
+          ) : (
+            <User className="w-5 h-5 text-marble/40" />
+          )}
         </button>
       </nav>
 
@@ -196,8 +224,8 @@ export default function AppLayout() {
               className="hidden md:block fixed z-[70] left-[110px] bottom-10 w-64 bg-card/95 backdrop-blur-3xl hairline-all shadow-[0_20px_40px_rgba(0,0,0,0.8)] rounded-sm overflow-hidden pointer-events-auto"
             >
               <div className="p-6 border-b border-white/5 bg-void/50">
-                <p className="font-serif text-xl text-marble">Aria Vance</p>
-                <p className="font-mono text-[10px] text-gold-pale uppercase mt-1 tracking-widest">Luminous Tier</p>
+                <p className="font-serif text-xl text-marble truncate">{displayName}</p>
+                <p className="font-mono text-[10px] text-gold-pale uppercase mt-1 tracking-widest">{userTier}</p>
               </div>
               <div className="p-2 flex flex-col gap-1">
                 <Link to="/app/profile" onClick={() => setIsProfileMenuOpen(false)} className="flex items-center gap-3 px-4 py-3 hover:bg-white/5 rounded-sm transition-colors text-marble/60 hover:text-marble group">
@@ -211,8 +239,13 @@ export default function AppLayout() {
                 </Link>
               </div>
               <div className="p-2 border-t border-white/5 bg-void/30">
-                <button onClick={() => setIsProfileMenuOpen(false)} className="w-full flex items-center gap-3 px-4 py-3 hover:bg-crimson/10 rounded-sm transition-colors text-crimson hover:text-crimson-bright group">
-                  <LogOut className="w-4 h-4" /> <span className="text-sm font-medium tracking-wide">Sever Connection</span>
+                <button 
+                  onClick={handleSignOut} 
+                  disabled={isSigningOut}
+                  className="w-full flex items-center gap-3 px-4 py-3 hover:bg-crimson/10 rounded-sm transition-colors text-crimson hover:text-crimson-bright group disabled:opacity-50"
+                >
+                  {isSigningOut ? <Loader2 className="w-4 h-4 animate-spin" /> : <LogOut className="w-4 h-4" />}
+                  <span className="text-sm font-medium tracking-wide">Sever Connection</span>
                 </button>
               </div>
             </motion.div>
@@ -227,12 +260,16 @@ export default function AppLayout() {
             >
               <div className="w-12 h-1 bg-white/10 rounded-full mx-auto my-4" />
               <div className="p-6 pt-2 border-b border-white/5 flex items-center gap-4 bg-void/50">
-                <div className="w-16 h-16 rounded-full hairline-all overflow-hidden shrink-0">
-                   <img src="https://picsum.photos/seed/user1/100/100" alt="Avatar" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                <div className="w-16 h-16 rounded-full hairline-all overflow-hidden shrink-0 flex items-center justify-center bg-deep">
+                   {profile?.avatar_url ? (
+                     <img src={profile.avatar_url} alt="Avatar" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                   ) : (
+                     <User className="w-8 h-8 text-marble/20" />
+                   )}
                 </div>
                 <div>
-                  <p className="font-serif text-3xl text-marble -mt-1">Aria Vance</p>
-                  <p className="font-mono text-[10px] text-gold-pale uppercase mt-1 tracking-widest">Luminous Tier</p>
+                  <p className="font-serif text-3xl text-marble -mt-1 truncate max-w-[200px]">{displayName}</p>
+                  <p className="font-mono text-[10px] text-gold-pale uppercase mt-1 tracking-widest">{userTier}</p>
                 </div>
               </div>
               <div className="p-4 flex flex-col space-y-2">
@@ -248,8 +285,14 @@ export default function AppLayout() {
                   <div className="w-10 h-10 rounded-full bg-void hairline-all flex items-center justify-center text-gold"><Settings className="w-4 h-4" /></div>
                   <span className="text-sm font-medium">Configurations</span>
                 </Link>
-                <button onClick={() => setIsProfileMenuOpen(false)} className="flex items-center gap-4 px-4 py-4 hover:bg-crimson/10 rounded-2xl transition-colors text-crimson mt-2 border-t border-white/5">
-                  <div className="w-10 h-10 rounded-full bg-void hairline-all border-crimson/30 flex items-center justify-center text-crimson"><LogOut className="w-4 h-4" /></div>
+                <button 
+                  onClick={handleSignOut} 
+                  disabled={isSigningOut}
+                  className="flex items-center gap-4 px-4 py-4 hover:bg-crimson/10 rounded-2xl transition-colors text-crimson mt-2 border-t border-white/5 disabled:opacity-50"
+                >
+                  <div className="w-10 h-10 rounded-full bg-void hairline-all border-crimson/30 flex items-center justify-center text-crimson">
+                    {isSigningOut ? <Loader2 className="w-4 h-4 animate-spin" /> : <LogOut className="w-4 h-4" />}
+                  </div>
                   <span className="text-sm font-medium">Sever Connection</span>
                 </button>
               </div>

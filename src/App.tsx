@@ -10,6 +10,7 @@ import EventsPage from "./pages/EventsPage";
 import ChatPage from "./pages/ChatPage";
 import ProfilePage from "./pages/ProfilePage";
 import SignalsPage from "./pages/SignalsPage";
+import { ProtectedRoute } from "./components/ProtectedRoute";
 
 export default function App() {
   return (
@@ -22,7 +23,14 @@ export default function App() {
         </Route>
 
         {/* Authenticated Routes */}
-        <Route path="/app" element={<AppLayout />}>
+        <Route 
+          path="/app" 
+          element={
+            <ProtectedRoute>
+              <AppLayout />
+            </ProtectedRoute>
+          }
+        >
           <Route index element={<Navigate to="/app/today" replace />} />
           <Route path="today" element={<TodayPage />} />
           <Route path="map" element={<MapPage />} />
