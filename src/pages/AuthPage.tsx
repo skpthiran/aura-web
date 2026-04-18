@@ -8,59 +8,35 @@ export default function AuthPage() {
   const navigate = useNavigate();
   const { signIn, signUp } = useAuth();
   
-  const [isLogin, setIsLogin] = useState(true);
+  const [mode, setMode] = useState<'signin' | 'signup'>('signin');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
+  const [success, setSuccess] = useState<string | null>(null);
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [username, setUsername] = useState("");
+  const [fullName, setFullName] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    setSuccess(null);
     setLoading(true);
 
-    let timedOut = false;
-    const timeoutId = setTimeout(() => {
-      timedOut = true;
-      setLoading(false);
-      setError("Connection timeout. Please try again.");
-    }, 10000);
-
     try {
-      if (isLogin) {
-        console.log('Attempting sign in...');
+      if (mode === 'signin') {
         await signIn(email, password);
-        if (timedOut) return;
-        clearTimeout(timeoutId);
-        console.log('Sign in result received');
-        console.log('Navigating to app...');
-        navigate("/app/today");
+        navigate('/app/today');
       } else {
-        if (!username) throw new Error("A pseudonym is required for the initiation.");
-        console.log('Attempting sign up...');
-        await signUp(email, password, username);
-        if (timedOut) return;
-        clearTimeout(timeoutId);
-        console.log('Sign up result received');
-        setSuccess(true);
+        await signUp(email, password, fullName);
+        setSuccess('Check your email to confirm your account.');
       }
     } catch (err: unknown) {
-      if (timedOut) return;
-      clearTimeout(timeoutId);
-      console.log('Auth error caught:', err);
-      setError(err instanceof Error ? err.message : "An unexpected spectral error occurred.");
-      setLoading(false);
+      setError(err instanceof Error ? err.message : 'Something went wrong');
     } finally {
-      // If we haven't timed out, and we are not in the success track, ensure loading is off
-      if (!timedOut) {
-        setLoading(false);
-      }
+      setLoading(false);
     }
   };
-
 
   return (
     <div className="flex-1 flex items-center justify-center p-6 mt-16 lg:mt-0 relative w-full h-[calc(100vh-100px)]">
@@ -85,10 +61,10 @@ export default function AuthPage() {
 
           <div className="relative z-10">
             <h2 className="font-serif text-4xl text-marble mb-4">
-              {isLogin ? "Step into the collective ritual." : "Begin your transformation."}
+              {mode === 'signin' ? "Step into the collective ritual." : "Begin your transformation."}
             </h2>
             <p className="text-marble/50 text-sm max-w-sm">
-              {isLogin 
+              {mode === 'signin' 
                 ? "Your identity encrypts your presence. Connect with the city's pulse securely."
                 : "A new presence is felt. Register your frequency to join the global resonance."}
             </p>
@@ -98,9 +74,9 @@ export default function AuthPage() {
         {/* Right Side - Form */}
         <div className="w-full md:w-1/2 p-8 md:p-16 flex flex-col justify-center">
           <div className="mb-10 text-center md:text-left">
-            <h1 className="font-serif text-3xl mb-2">{isLogin ? "Identify Yourself" : "Initiate Frequency"}</h1>
+            <h1 className="font-serif text-3xl mb-2">{mode === 'signin' ? "Identify Yourself" : "Initiate Frequency"}</h1>
             <p className="text-sm text-marble/50">
-              {isLogin ? "Enter your credentials to access the forum." : "Create your digital signature to enter the city."}
+              {mode === 'signin' ? "Enter your credentials to access the forum." : "Create your digital signature to enter the city."}
             </p>
           </div>
 
@@ -115,10 +91,10 @@ export default function AuthPage() {
               </div>
               <h3 className="font-serif text-xl mb-2 text-gold-pale">Check Your Transmission</h3>
               <p className="text-sm text-marble/60 mb-6 font-mono tracking-tighter">
-                A verification link has been sent to your terminal (email). Confirm to materialize.
+                {success}
               </p>
               <button 
-                onClick={() => setSuccess(false)}
+                onClick={() => setSuccess(null)}
                 className="text-xs uppercase tracking-widest text-gold hover:text-gold-pale transition-colors font-medium"
               >
                 Back to Entrance
@@ -141,7 +117,7 @@ export default function AuthPage() {
               </AnimatePresence>
 
               <div className="space-y-4">
-                {!isLogin && (
+                {mode === 'signup' && (
                   <motion.div
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -150,8 +126,8 @@ export default function AuthPage() {
                     <input 
                       type="text" 
                       required
-                      value={username}
-                      onChange={(e) => setUsername(e.target.value)}
+                      value={fullName}
+                      onChange={(e) => setFullName(e.target.value)}
                       autoComplete="off"
                       className="w-full bg-void/50 border border-white/10 rounded-xl px-4 py-3 text-marble outline-none focus:border-gold/50 focus:bg-void transition-colors"
                       placeholder="e.g. wanderer_01"
@@ -183,7 +159,7 @@ export default function AuthPage() {
                 </div>
               </div>
 
-              {isLogin && (
+              {mode === 'signin' && (
                 <div className="flex items-center justify-between mt-2">
                   <label className="flex items-center gap-2 cursor-pointer">
                     <input type="checkbox" className="w-4 h-4 rounded border-white/20 bg-void text-gold focus:ring-gold/20" />
@@ -202,7 +178,7 @@ export default function AuthPage() {
                   <Loader2 className="w-4 h-4 animate-spin" />
                 ) : (
                   <>
-                    {isLogin ? "Enter" : "Initialize"}
+                    {mode === 'signin' ? "Enter" : "Initialize"}
                     <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                   </>
                 )}
@@ -210,16 +186,16 @@ export default function AuthPage() {
 
               <div className="mt-8 text-center border-t border-white/5 pt-6">
                 <p className="text-xs text-marble/50 font-mono tracking-tighter">
-                  {isLogin ? "New to the city? " : "Already registered? "}
+                  {mode === 'signin' ? "New to the city? " : "Already registered? "}
                   <button 
                     type="button" 
                     onClick={() => {
-                      setIsLogin(!isLogin);
+                      setMode(mode === 'signin' ? 'signup' : 'signin');
                       setError(null);
                     }}
                     className="text-gold hover:text-gold-pale uppercase tracking-widest font-medium ml-1 transition-colors"
                   >
-                    {isLogin ? "Initiate" : "Identify"}
+                    {mode === 'signin' ? "Initiate" : "Identify"}
                   </button>
                 </p>
               </div>
@@ -230,3 +206,4 @@ export default function AuthPage() {
     </div>
   );
 }
+
