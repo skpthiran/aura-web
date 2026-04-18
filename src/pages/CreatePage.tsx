@@ -48,41 +48,63 @@ export default function CreatePage() {
 
   useEffect(() => {
     if (step === 2 && mapPickerRef.current && !mapPickerInstance.current) {
-      const centerLat = location?.latitude ?? 1.3521 // default center
-      const centerLng = location?.longitude ?? 103.8198
-
-      const map = new MapLibreMap({
-        container: mapPickerRef.current,
-        style: MAPTILER_STYLE,
-        center: [centerLng, centerLat],
-        zoom: 13,
-      })
-
-      const marker = new Marker({
-        draggable: true,
-        color: "#D4AF37", // Aura Gold
-      })
-        .setLngLat([centerLng, centerLat])
-        .addTo(map)
-
-      marker.on('dragend', () => {
-        const lngLat = marker.getLngLat()
-        setCustomLat(lngLat.lat)
-        setCustomLng(lngLat.lng)
-      })
-
-      map.on('click', (e) => {
-        marker.setLngLat(e.lngLat)
-        setCustomLat(e.lngLat.lat)
-        setCustomLng(e.lngLat.lng)
-      })
-
-      mapPickerInstance.current = map
-      pickerMarkerRef.current = marker
+      const timer = setTimeout(() => {
+        if (!mapPickerRef.current) return
+        
+        const centerLat = location?.latitude ?? 6.9271
+        const centerLng = location?.longitude ?? 79.8612
+        
+        const map = new MapLibreMap({
+          container: mapPickerRef.current,
+          style: MAPTILER_STYLE,
+          center: [centerLng, centerLat],
+          zoom: 14,
+          attributionControl: false
+        })
+        
+        mapPickerInstance.current = map
+        
+        // Force resize after style loads
+        map.on('load', () => {
+          map.resize()
+          
+          const el = document.createElement('div')
+          el.style.cssText = `
+            width: 20px;
+            height: 20px;
+            background: #d4af37;
+            border: 2px solid white;
+            border-radius: 50%;
+            box-shadow: 0 0 0 4px rgba(212,175,55,0.3);
+            cursor: grab;
+          `
+          
+          const marker = new Marker({ element: el, draggable: true })
+            .setLngLat([centerLng, centerLat])
+            .addTo(map)
+          
+          pickerMarkerRef.current = marker
+          
+          marker.on('dragend', () => {
+            const lngLat = marker.getLngLat()
+            setCustomLat(lngLat.lat)
+            setCustomLng(lngLat.lng)
+          })
+          
+          map.on('click', (e) => {
+            marker.setLngLat([e.lngLat.lng, e.lngLat.lat])
+            setCustomLat(e.lngLat.lat)
+            setCustomLng(e.lngLat.lng)
+          })
+        })
+      }, 300)
 
       return () => {
-        map.remove()
-        mapPickerInstance.current = null
+        clearTimeout(timer)
+        if (mapPickerInstance.current) {
+          mapPickerInstance.current.remove()
+          mapPickerInstance.current = null
+        }
         pickerMarkerRef.current = null
       }
     }
@@ -308,7 +330,10 @@ export default function CreatePage() {
                 {/* Location Picker */}
                 <div className="space-y-6 pb-8 hairline-b">
                   <label className="micro-caps text-marble/40 text-[10px] tracking-[0.3em]">GEOSPATIAL ANCHOR</label>
-                  <div className="relative rounded-2xl overflow-hidden border border-white/10 bg-void/50 h-[300px] group">
+                  <div 
+                    className="relative rounded-2xl overflow-hidden border border-white/10 bg-void/50 group"
+                    style={{ height: '280px' }}
+                  >
                     <div ref={mapPickerRef} className="w-full h-full" />
                     
                     {/* Coordinate Overlay */}
