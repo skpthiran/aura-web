@@ -1,5 +1,5 @@
 export const APP_NAME = 'Aura'
-export const DEFAULT_RADIUS_METERS = 2000
+export const DEFAULT_RADIUS_METERS = 5000
 export const MAX_MOMENT_CAPACITY = 500
 export const MOMENT_EXPIRY_HOURS = 6
 export const LOCATION_POLL_INTERVAL_MS = 30000
