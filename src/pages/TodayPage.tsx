@@ -32,20 +32,20 @@ const MomentCard: React.FC<MomentCardProps> = ({ moment, featured, isJoined, isJ
       className="relative overflow-hidden rounded-2xl cursor-pointer group"
       style={{ minHeight: featured ? '480px' : '280px' }}
     >
-      {/* Background image from Unsplash based on title */}
+      {/* Background image from Picsum based on ID */}
       <img 
-        src={`https://source.unsplash.com/800x600/?${encodeURIComponent(moment.title)},night,city`}
+        src={`https://picsum.photos/seed/${moment.id}/800/600`}
         className="absolute inset-0 w-full h-full object-cover 
           group-hover:scale-105 transition-transform duration-700"
         alt={moment.title}
       />
       
       {/* Dark gradient overlay */}
-      <div className="absolute inset-0 bg-gradient-to-t from-void 
-        via-void/40 to-transparent" />
+      <div className="absolute inset-0 bg-gradient-to-t from-black 
+        via-black/50 to-transparent z-10" />
       
       {/* Top left: type badge + location */}
-      <div className="absolute top-4 left-4 flex items-center gap-2">
+      <div className="absolute top-4 left-4 flex items-center gap-2 z-20">
         <div className="w-2 h-2 rounded-full bg-crimson-bright animate-pulse" />
         <span className="micro-caps text-xs text-marble/70">
           {moment.moment_type.toUpperCase()} · {distanceDisplay}
@@ -53,12 +53,12 @@ const MomentCard: React.FC<MomentCardProps> = ({ moment, featured, isJoined, isJ
       </div>
       
       {/* Top right: live indicator dot */}
-      <div className="absolute top-4 right-4">
+      <div className="absolute top-4 right-4 z-20">
         <div className="w-2 h-2 rounded-full bg-crimson-bright" />
       </div>
       
       {/* Bottom content */}
-      <div className="absolute bottom-0 left-0 right-0 p-5">
+      <div className="absolute bottom-0 left-0 right-0 p-5 z-20">
         <h3 className={cn(
           "font-serif text-marble mb-3",
           featured ? "text-4xl" : "text-2xl"
