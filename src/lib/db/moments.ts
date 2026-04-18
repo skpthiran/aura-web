@@ -4,12 +4,12 @@ import { Moment } from '../../types'
 export async function getNearbyMoments(
   lat: number,
   lng: number,
-  radiusMeters: number = 2000
+  radiusMeters: number = 5000
 ): Promise<Moment[]> {
   const { data, error } = await supabase.rpc('nearby_moments', {
-    lat,
-    lng,
-    radius_meters: radiusMeters
+    p_lat: lat,
+    p_lng: lng,
+    p_radius: radiusMeters
   })
   if (error) throw error
   return data as Moment[]
