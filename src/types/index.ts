@@ -50,3 +50,16 @@ export interface UserLocation {
   accuracy: number
   timestamp: number
 }
+
+export interface ChatMessage {
+  id: string
+  moment_id: string
+  user_id: string
+  content: string
+  created_at: string
+  profiles?: {
+    username: string | null
+    full_name: string | null
+    avatar_url: string | null
+  }
+}
