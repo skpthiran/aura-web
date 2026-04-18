@@ -13,6 +13,7 @@ import { Moment } from '../types'
 export default function MapPage() {
   const { location, error: locationError } = useUserLocation()
   const { moments, loading: momentsLoading, refetch: refetchMoments } = useNearbyMoments(location)
+
   const [selectedMoment, setSelectedMoment] = useState<Moment | null>(null)
   const [isJoining, setIsJoining] = useState(false)
   const [hasJoined, setHasJoined] = useState(false)
