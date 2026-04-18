@@ -14,11 +14,13 @@ export function useNearbyMoments(location: UserLocation | null) {
     setLoading(true)
     setError(null)
     try {
+      console.log('Fetching moments for location:', location)
       const data = await getNearbyMoments(
         location.latitude,
         location.longitude,
         DEFAULT_RADIUS_METERS
       )
+      console.log('Moments returned:', data)
       setMoments(data)
     } catch (err) {
       console.error('Error fetching moments:', err)
