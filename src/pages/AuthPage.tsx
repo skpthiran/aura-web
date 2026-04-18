@@ -22,21 +22,45 @@ export default function AuthPage() {
     setError(null);
     setLoading(true);
 
+    let timedOut = false;
+    const timeoutId = setTimeout(() => {
+      timedOut = true;
+      setLoading(false);
+      setError("Connection timeout. Please try again.");
+    }, 10000);
+
     try {
       if (isLogin) {
+        console.log('Attempting sign in...');
         await signIn(email, password);
+        if (timedOut) return;
+        clearTimeout(timeoutId);
+        console.log('Sign in result received');
+        console.log('Navigating to app...');
         navigate("/app/today");
       } else {
         if (!username) throw new Error("A pseudonym is required for the initiation.");
+        console.log('Attempting sign up...');
         await signUp(email, password, username);
+        if (timedOut) return;
+        clearTimeout(timeoutId);
+        console.log('Sign up result received');
         setSuccess(true);
       }
     } catch (err: unknown) {
+      if (timedOut) return;
+      clearTimeout(timeoutId);
+      console.log('Auth error caught:', err);
       setError(err instanceof Error ? err.message : "An unexpected spectral error occurred.");
-    } finally {
       setLoading(false);
+    } finally {
+      // If we haven't timed out, and we are not in the success track, ensure loading is off
+      if (!timedOut) {
+        setLoading(false);
+      }
     }
   };
+
 
   return (
     <div className="flex-1 flex items-center justify-center p-6 mt-16 lg:mt-0 relative w-full h-[calc(100vh-100px)]">
