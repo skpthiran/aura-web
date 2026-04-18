@@ -107,51 +107,53 @@ export default function CreatePage() {
               className="space-y-6"
             >
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Moment Card */}
-                <button
-                  onClick={() => setMomentType('moment')}
-                  className={cn(
-                    "flex flex-col text-left p-6 rounded-2xl transition-all duration-300 border backdrop-blur-sm",
-                    momentType === 'moment' 
-                      ? "border-crimson/30 bg-crimson/5 shadow-[0_0_30px_rgba(220,20,60,0.1)]" 
-                      : "border-white/5 bg-white/[0.02] hover:bg-white/[0.05]"
-                  )}
+                {/* Ignite Moment Card */}
+                <div 
+                  onClick={() => {
+                    setMomentType('moment')
+                    setStep(2)
+                  }}
+                  className="group relative bg-obsidian border border-white/10 p-8 cursor-pointer overflow-hidden transition-all hover:border-crimson/40 hover:shadow-[0_0_40px_rgba(220,20,60,0.1)]"
                 >
-                  <Zap className={cn("w-8 h-8 mb-4", momentType === 'moment' ? "text-crimson" : "text-gold/60")} />
-                  <h3 className="font-serif text-2xl text-marble mb-1">Moment</h3>
-                  <p className="micro-caps text-[10px] text-marble/40 mb-3 tracking-[0.2em]">SPONTANEOUS · EPHEMERAL</p>
-                  <p className="text-sm text-marble/50 leading-relaxed font-light">
-                    A real-time pulse. Appears on the map now, vanishes when the energy fades.
+                  <div className="flex justify-between items-start mb-8">
+                    <Zap className="w-8 h-8 text-crimson" />
+                    <span className="micro-caps text-[10px] text-marble/20 tracking-[0.3em]">PROTOCOL 01</span>
+                  </div>
+                  
+                  <h3 className="font-serif text-3xl text-marble mb-3">Ignite Moment</h3>
+                  <p className="text-sm text-marble/40 leading-relaxed font-light mb-8">
+                    EPHEMERAL BROADCAST. Visible to recipients in radius for 6 hours. Zero trace after dissipation.
                   </p>
-                </button>
 
-                {/* Event Card */}
-                <button
-                  onClick={() => setMomentType('event')}
-                  className={cn(
-                    "flex flex-col text-left p-6 rounded-2xl transition-all duration-300 border backdrop-blur-sm",
-                    momentType === 'event' 
-                      ? "border-gold/30 bg-gold/5 shadow-[0_0_30px_rgba(212,175,55,0.1)]" 
-                      : "border-white/5 bg-white/[0.02] hover:bg-white/[0.05]"
-                  )}
+                  <div className="flex items-center gap-2 micro-caps text-[10px] text-gold group-hover:gap-4 transition-all">
+                    INITIALIZE <ArrowRight className="w-3 h-3" />
+                  </div>
+                </div>
+
+                {/* Establish Event Card */}
+                <div 
+                  onClick={() => {
+                    setMomentType('event')
+                    setStep(2)
+                  }}
+                  className="group relative bg-obsidian border border-white/10 p-8 cursor-pointer overflow-hidden transition-all hover:border-gold/40 hover:shadow-[0_0_40px_rgba(212,175,55,0.1)]"
                 >
-                  <Calendar className={cn("w-8 h-8 mb-4", momentType === 'event' ? "text-gold" : "text-gold/60")} />
-                  <h3 className="font-serif text-2xl text-marble mb-1">Event</h3>
-                  <p className="micro-caps text-[10px] text-marble/40 mb-3 tracking-[0.2em]">PLANNED · STRUCTURED</p>
-                  <p className="text-sm text-marble/50 leading-relaxed font-light">
-                    A scheduled gathering. Visible in advance, archived after completion.
+                  <div className="flex justify-between items-start mb-8">
+                    <Calendar className="w-8 h-8 text-gold" />
+                    <span className="micro-caps text-[10px] text-marble/20 tracking-[0.3em]">PROTOCOL 02</span>
+                  </div>
+                  
+                  <h3 className="font-serif text-3xl text-marble mb-3">Establish Event</h3>
+                  <p className="text-sm text-marble/40 leading-relaxed font-light mb-8">
+                    STRUCTURED GATHERING. Persists in discovery feed. Ideal for curated collectives and summits.
                   </p>
-                </button>
+
+                  <div className="flex items-center gap-2 micro-caps text-[10px] text-gold group-hover:gap-4 transition-all">
+                    INITIALIZE <ArrowRight className="w-3 h-3" />
+                  </div>
+                </div>
               </div>
 
-              <button
-                disabled={!momentType}
-                onClick={() => setStep(2)}
-                className="w-full bg-marble text-void py-4 rounded-xl micro-caps tracking-[0.2em] font-bold text-xs disabled:opacity-30 transition-all hover:bg-gold-pale flex items-center justify-center gap-2 group mt-8"
-              >
-                Continue
-                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-              </button>
             </motion.div>
           ) : (
             <motion.div
@@ -169,104 +171,115 @@ export default function CreatePage() {
                 </div>
               )}
 
-              {/* Title Input */}
-              <div className="space-y-2">
-                <label className="micro-caps text-gold/60 text-[10px] tracking-[0.2em]">Signal Title</label>
-                <div className="relative">
-                  <input
-                    type="text"
-                    required
-                    maxLength={80}
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                    placeholder="What's the vibe?"
-                    className="w-full bg-void border-b border-white/10 py-3 px-1 text-marble text-lg outline-none focus:border-gold/50 transition-colors"
-                  />
-                  <span className="absolute right-0 bottom-3 text-[10px] font-mono text-marble/30">
-                    {title.length} / 80
-                  </span>
-                </div>
-              </div>
-
-              {/* Description Input */}
-              <div className="space-y-2">
-                <label className="micro-caps text-gold/60 text-[10px] tracking-[0.2em]">Description</label>
-                <div className="relative">
-                  <textarea
-                    rows={3}
-                    maxLength={500}
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    placeholder="Set the tone..."
-                    className="w-full bg-void border border-white/5 rounded-xl p-4 text-marble text-sm outline-none focus:border-gold/30 transition-colors resize-none mb-2"
-                  />
-                  <span className="absolute right-4 bottom-6 text-[10px] font-mono text-marble/30">
-                    {description.length} / 500
-                  </span>
-                </div>
-              </div>
-
-              {/* Location Feedback */}
-              <div className="space-y-2">
-                <label className="micro-caps text-gold/60 text-[10px] tracking-[0.2em]">Presence Status</label>
-                <div className="glass-panel p-4 flex items-center gap-4">
-                  <div className={cn(
-                    "w-10 h-10 rounded-full flex items-center justify-center bg-void border",
-                    location ? "border-gold/20" : "border-crimson/20"
-                  )}>
-                    <MapPin className={cn("w-5 h-5", location ? "text-gold" : "text-crimson")} />
+              {/* Configuration Fields */}
+              <div className="space-y-12">
+                {/* Title Input */}
+                <div className="space-y-4 pb-8 hairline-b">
+                  <label className="micro-caps text-marble/40 text-[10px] tracking-[0.3em]">SIGNAL IDENTIFIER</label>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      required
+                      maxLength={80}
+                      value={title}
+                      onChange={(e) => setTitle(e.target.value)}
+                      placeholder="ENTER SIGNAL TITLE..."
+                      className="w-full bg-void/50 border border-white/10 rounded-xl py-4 px-6 text-marble text-lg outline-none focus:border-gold/50 transition-all placeholder:text-marble/20"
+                    />
+                    <span className="absolute right-6 top-1/2 -translate-y-1/2 text-[10px] font-mono text-marble/20">
+                      {title.length} / 80
+                    </span>
                   </div>
-                  <div>
-                    <p className={cn("text-sm font-medium", location ? "text-marble" : "text-crimson")}>
-                      {location ? "Using your current position" : "Location unavailable"}
-                    </p>
-                    {location && (
-                      <p className="text-[10px] font-mono text-marble/40 mt-0.5">
-                        LAT: {location.latitude.toFixed(4)} · LNG: {location.longitude.toFixed(4)}
+                </div>
+
+                {/* Description Input */}
+                <div className="space-y-4 pb-8 hairline-b">
+                  <label className="micro-caps text-marble/40 text-[10px] tracking-[0.3em]">CONTEXT & INTENT</label>
+                  <div className="relative">
+                    <textarea
+                      rows={4}
+                      maxLength={500}
+                      value={description}
+                      onChange={(e) => setDescription(e.target.value)}
+                      placeholder="ESTABLISH THE TONE..."
+                      className="w-full bg-void/50 border border-white/10 rounded-xl p-6 text-marble text-sm outline-none focus:border-gold/30 transition-all resize-none placeholder:text-marble/20"
+                    />
+                    <span className="absolute right-6 bottom-6 text-[10px] font-mono text-marble/20">
+                      {description.length} / 500
+                    </span>
+                  </div>
+                </div>
+
+                {/* Parameters Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-12 pb-8 hairline-b">
+                  {/* Capacity Slider */}
+                  <div className="space-y-6">
+                    <div className="flex justify-between items-end">
+                      <label className="micro-caps text-marble/40 text-[10px] tracking-[0.3em]">CAPACITY LIMIT</label>
+                      <span className="text-xl font-serif text-marble">{capacity}</span>
+                    </div>
+                    <input
+                      type="range"
+                      min="2"
+                      max={MAX_MOMENT_CAPACITY}
+                      step="1"
+                      value={capacity}
+                      onChange={(e) => setCapacity(parseInt(e.target.value))}
+                      className="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-gold"
+                    />
+                  </div>
+
+                  {/* Duration Selector */}
+                  <div className="space-y-6">
+                    <label className="micro-caps text-marble/40 text-[10px] tracking-[0.3em]">TEMPORAL DURATION</label>
+                    <div className="flex gap-2">
+                      {[2, 4, 6].map((hours) => (
+                        <button
+                          key={hours}
+                          type="button"
+                          onClick={() => setDurationHours(hours)}
+                          className={cn(
+                            "flex-1 py-3 rounded-xl micro-caps text-[10px] font-bold tracking-[0.2em] transition-all border",
+                            durationHours === hours
+                              ? "bg-gold text-void border-gold"
+                              : "bg-void/50 text-marble/40 border-white/10 hover:border-white/20"
+                          )}
+                        >
+                          {hours}H
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Location Feedback */}
+                <div className="space-y-6 pb-8 hairline-b">
+                  <label className="micro-caps text-marble/40 text-[10px] tracking-[0.3em]">GEOSPATIAL ANCHOR</label>
+                  <div className="glass-panel p-6 flex items-center gap-6 rounded-xl border-white/5">
+                    <div className={cn(
+                      "w-12 h-12 rounded-full flex items-center justify-center bg-void border",
+                      location ? "border-gold/20 shadow-[0_0_20px_rgba(212,175,55,0.1)]" : "border-crimson/20"
+                    )}>
+                      <MapPin className={cn("w-5 h-5", location ? "text-gold" : "text-crimson")} />
+                    </div>
+                    <div>
+                      <p className={cn("text-sm font-medium micro-caps tracking-widest", location ? "text-marble" : "text-crimson")}>
+                        {location ? "LOCALIZATION SUCCESSFUL" : "COORDINATES REQUIRED"}
                       </p>
-                    )}
+                      {location ? (
+                        <p className="text-[10px] font-mono text-marble/30 mt-1">
+                          LAT: {location.latitude.toFixed(6)} · LNG: {location.longitude.toFixed(6)}
+                        </p>
+                      ) : (
+                        <p className="text-[10px] font-mono text-crimson-bright/40 mt-1 uppercase tracking-tighter">
+                          Enable sensor access to proceed
+                        </p>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
 
-              {/* Capacity Slider */}
-              <div className="space-y-4">
-                <div className="flex justify-between items-end">
-                  <label className="micro-caps text-gold/60 text-[10px] tracking-[0.2em]">Max Participants</label>
-                  <span className="text-xl font-serif text-marble">{capacity}</span>
-                </div>
-                <input
-                  type="range"
-                  min="2"
-                  max={MAX_MOMENT_CAPACITY}
-                  step="1"
-                  value={capacity}
-                  onChange={(e) => setCapacity(parseInt(e.target.value))}
-                  className="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-gold"
-                />
-              </div>
-
-              {/* Duration Selector */}
-              <div className="space-y-4">
-                <label className="micro-caps text-gold/60 text-[10px] tracking-[0.2em]">Signal Duration</label>
-                <div className="flex gap-3">
-                  {[2, 4, 6].map((hours) => (
-                    <button
-                      key={hours}
-                      type="button"
-                      onClick={() => setDurationHours(hours)}
-                      className={cn(
-                        "flex-1 py-3 rounded-lg micro-caps text-[11px] font-bold tracking-[0.15em] transition-all",
-                        durationHours === hours
-                          ? "bg-gold text-void shadow-[0_0_20px_rgba(212,175,55,0.2)]"
-                          : "glass-panel text-marble/60 hover:text-marble hover:bg-white/5"
-                      )}
-                    >
-                      {hours}H
-                    </button>
-                  ))}
-                </div>
-              </div>
 
               {/* Tags System */}
               <div className="space-y-4">

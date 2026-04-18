@@ -29,10 +29,11 @@ export function useNearbyMoments(location: UserLocation | null) {
   }, [location])
 
   useEffect(() => {
+    if (!location) return
     fetchMoments()
     const interval = setInterval(fetchMoments, 30000)
     return () => clearInterval(interval)
-  }, [fetchMoments])
+  }, [fetchMoments, location])
 
   return { moments, loading, error, refetch: fetchMoments }
 }

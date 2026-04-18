@@ -171,12 +171,7 @@ export default function TodayPage() {
           </div>
         )}
 
-        {/* Error state */}
-        {error && (
-          <div className="mb-6 px-4 py-3 bg-crimson/10 border border-crimson/20 rounded-xl text-crimson text-sm">
-            {error}
-          </div>
-        )}
+
 
         {/* Loading state */}
         {loading && (

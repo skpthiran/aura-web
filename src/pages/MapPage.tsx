@@ -82,49 +82,52 @@ export default function MapPage() {
     }
   }, [location])
 
-  // Sync Moment Markers
+  // Sync Moment Markers - ROBUST VERSION
   useEffect(() => {
     if (!mapRef.current) return
+    const map = mapRef.current
 
-    // Clear existing markers
-    momentMarkersRef.current.forEach(m => m.remove())
-    momentMarkersRef.current = []
+    const syncMarkers = () => {
+      // Clear old
+      momentMarkersRef.current.forEach(m => m.remove())
+      momentMarkersRef.current = []
 
-    // Add new markers
-    moments.forEach(moment => {
-      const el = document.createElement('div')
-      el.className = 'moment-marker relative group cursor-pointer'
-      
-      const isEvent = moment.moment_type === 'event'
-      const color = isEvent ? 'rgba(212,175,55,0.9)' : 'rgba(139,0,0,0.9)'
-      const borderColor = isEvent ? '#d4af37' : '#ff0800'
-      const icon = isEvent ? 
-        `<svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="6"></circle><circle cx="12" cy="12" r="2"></circle></svg>` : 
-        `<svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"></path></svg>`
+      // Add new
+      moments.forEach(m => {
+        const el = document.createElement('div')
+        el.className = 'flex items-center justify-center cursor-pointer group'
+        el.id = `marker-${m.id}`
+        
+        const isEvent = m.moment_type === 'event'
+        el.innerHTML = `
+          <div class="relative w-10 h-10 flex items-center justify-center bg-obsidian rounded-sm border border-white/20 shadow-2xl transition-all group-hover:scale-110 group-hover:border-gold/50">
+            <div class="absolute inset-0 bg-gold/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+            <span class="text-lg relative z-10">${isEvent ? '📅' : '⚡'}</span>
+            <div class="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-gold rounded-full opacity-50 group-hover:opacity-100 glow-sm"></div>
+          </div>
+        `
 
-      el.style.width = '48px'
-      el.style.height = '48px'
-      el.style.backgroundColor = color
-      el.style.border = `1px solid ${borderColor}`
-      el.style.borderRadius = '4px'
-      el.style.display = 'flex'
-      el.style.alignItems = 'center'
-      el.style.justifyContent = 'center'
-      el.style.boxShadow = `0 0 15px ${color}`
-      el.innerHTML = icon
+        el.addEventListener('click', () => {
+          setSelectedMoment(m)
+          setHasJoined(false)
+        })
 
-      el.addEventListener('click', () => {
-        setSelectedMoment(moment)
-        setHasJoined(false)
+        const marker = new Marker({ element: el })
+          .setLngLat([m.lng, m.lat])
+          .addTo(map)
+        
+        momentMarkersRef.current.push(marker)
       })
+    }
 
-      const marker = new Marker({ element: el })
-        .setLngLat([moment.lng, moment.lat])
-        .addTo(mapRef.current!)
-      
-      momentMarkersRef.current.push(marker)
-    })
+    // Handle style loading races
+    if (map.isStyleLoaded()) {
+      syncMarkers()
+    } else {
+      map.once('load', syncMarkers)
+    }
   }, [moments])
+
 
   const handleFlyToUser = () => {
     if (mapRef.current && location) {
