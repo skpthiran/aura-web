@@ -22,15 +22,17 @@ export default function MapPage() {
   const userMarkerRef = useRef<Marker | null>(null)
   const momentMarkersRef = useRef<Marker[]>([])
 
-  // Initialize Map
+  const hasFlownToUser = useRef(false)
+
+  // Initialize Map immediately with fallback
   useEffect(() => {
     if (!mapContainer.current || mapRef.current) return
 
     const map = new MapLibreMap({
       container: mapContainer.current,
       style: MAPTILER_STYLE,
-      center: location ? [location.longitude, location.latitude] : [79.8612, 6.9271], // Falling back to Colombo
-      zoom: 14,
+      center: [79.8612, 6.9271], // Initialize at Colombo fallback
+      zoom: 13,
       attributionControl: false
     })
 
@@ -41,6 +43,19 @@ export default function MapPage() {
       mapRef.current = null
     }
   }, [])
+
+  // Fly to user when location first becomes available
+  useEffect(() => {
+    if (location && !hasFlownToUser.current && mapRef.current) {
+      mapRef.current.flyTo({
+        center: [location.longitude, location.latitude],
+        zoom: 15,
+        duration: 2000
+      })
+      hasFlownToUser.current = true
+    }
+  }, [location])
+
 
   // Sync User Location Marker
   useEffect(() => {
@@ -135,9 +150,13 @@ export default function MapPage() {
   }
 
   return (
-    <div className="flex-1 flex relative w-full h-[100dvh] md:h-auto overflow-hidden bg-void">
+    <div className="flex-1 flex relative w-full h-full overflow-hidden bg-void">
       {/* Map Engine */}
-      <div ref={mapContainer} className="absolute inset-0 z-0" />
+      <div 
+        ref={mapContainer} 
+        className="absolute inset-0 z-0" 
+        style={{ width: '100%', height: '100%' }}
+      />
       
       {/* HUD Overlays */}
       <div className="absolute inset-0 pointer-events-none z-10">
