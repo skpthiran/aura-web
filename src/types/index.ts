@@ -17,9 +17,24 @@ export interface Moment {
   expires_at: string
   is_active: boolean
   created_at: string
+  moment_type: 'moment' | 'event'
+  tags: string[]
+  lat: number
+  lng: number
   distance_meters?: number
   participant_count?: number
 }
+
+export interface MapPin {
+  id: string
+  title: string
+  lat: number
+  lng: number
+  moment_type: 'moment' | 'event'
+  participant_count: number
+  distance_meters: number
+}
+
 
 export interface Participant {
   id: string
