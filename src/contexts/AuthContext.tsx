@@ -9,87 +9,63 @@ interface AuthContextType {
   session: Session | null
   profile: Profile | null
   loading: boolean
-  signIn: (email: string, pass: string) => Promise<void>
-  signUp: (email: string, pass: string, username: string) => Promise<void>
+  signIn: (email: string, password: string) => Promise<void>
+  signUp: (email: string, password: string, fullName: string) => Promise<void>
   signOut: () => Promise<void>
+  refreshProfile: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
-export const AuthProvider = ({ children }: { children: ReactNode }) => {
+export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [session, setSession] = useState<Session | null>(null)
   const [profile, setProfile] = useState<Profile | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    let mounted = true
-
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!mounted) return
-      setSession(session)
-      setUser(session?.user ?? null)
-      if (session?.user) {
-        getProfile(session.user.id)
-          .then(p => { if (mounted) setProfile(p) })
-          .catch(() => {})
-          .finally(() => { if (mounted) setLoading(false) })
-      } else {
-        if (mounted) setLoading(false)
-      }
-    }).catch(() => {
-      if (mounted) setLoading(false)
-    })
-
+    // onAuthStateChange fires immediately with the current session
+    // from localStorage - no async getSession() needed
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        if (!mounted) return
+      async (_event, session) => {
         setSession(session)
         setUser(session?.user ?? null)
+        
         if (session?.user) {
-          try {
-            const p = await getProfile(session.user.id)
-            if (mounted) setProfile(p)
-          } catch {
-            // profile may not exist yet, that's ok
-          } finally {
-            if (mounted) setLoading(false)
-          }
+          // Load profile in background - don't block auth
+          getProfile(session.user.id)
+            .then(p => setProfile(p))
+            .catch(() => setProfile(null))
         } else {
-          if (mounted) {
-            setProfile(null)
-            setLoading(false)
-          }
+          setProfile(null)
         }
+        
+        // Always set loading false after first event
+        setLoading(false)
       }
     )
 
+    // Safety timeout - if onAuthStateChange never fires, unblock UI
+    const timeout = setTimeout(() => setLoading(false), 3000)
+
     return () => {
-      mounted = false
       subscription.unsubscribe()
+      clearTimeout(timeout)
     }
   }, [])
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ 
-      email, 
-      password 
-    })
+    const { error } = await supabase.auth.signInWithPassword({ email, password })
     if (error) throw error
   }
 
-
-  const signUp = async (email: string, pass: string, username: string) => {
-    const { data, error } = await supabase.auth.signUp({ 
-      email, 
-      password: pass,
-      options: {
-        data: { username }
-      }
+  const signUp = async (email: string, password: string, fullName: string) => {
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: { data: { full_name: fullName } }
     })
-    
     if (error) throw error
-    if (!data.user) throw new Error('Sign up failed: No user returned')
   }
 
   const signOut = async () => {
@@ -97,17 +73,25 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (error) throw error
   }
 
+  const refreshProfile = async () => {
+    if (user) {
+      const p = await getProfile(user.id)
+      setProfile(p)
+    }
+  }
+
   return (
-    <AuthContext.Provider value={{ user, session, profile, loading, signIn, signUp, signOut }}>
+    <AuthContext.Provider value={{
+      user, session, profile, loading,
+      signIn, signUp, signOut, refreshProfile
+    }}>
       {children}
     </AuthContext.Provider>
   )
 }
 
-export const useAuth = () => {
+export function useAuth() {
   const context = useContext(AuthContext)
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider')
-  }
+  if (!context) throw new Error('useAuth must be used within AuthProvider')
   return context
 }

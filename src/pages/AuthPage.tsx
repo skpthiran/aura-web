@@ -26,7 +26,6 @@ export default function AuthPage() {
     try {
       if (mode === 'signin') {
         await signIn(email, password);
-        await new Promise(resolve => setTimeout(resolve, 500));
         navigate('/app/today');
       } else {
         await signUp(email, password, fullName);
