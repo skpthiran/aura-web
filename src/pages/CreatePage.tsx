@@ -1,10 +1,12 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
 import { useNavigate } from 'react-router-dom'
+import { Map as MapLibreMap, Marker } from 'maplibre-gl'
+import 'maplibre-gl/dist/maplibre-gl.css'
 import { useAuth } from '../contexts/AuthContext'
 import { useUserLocation } from '../hooks/useUserLocation'
 import { createMoment } from '../lib/db/moments'
-import { MOMENT_EXPIRY_HOURS, MAX_MOMENT_CAPACITY } from '../lib/constants'
+import { MOMENT_EXPIRY_HOURS, MAX_MOMENT_CAPACITY, MAPTILER_STYLE } from '../lib/constants'
 import { 
   MapPin, 
   Clock, 
@@ -35,8 +37,59 @@ export default function CreatePage() {
   const { location } = useUserLocation()
   const navigate = useNavigate()
 
+  const [customLat, setCustomLat] = useState<number | null>(null)
+  const [customLng, setCustomLng] = useState<number | null>(null)
+  const mapPickerRef = useRef<HTMLDivElement>(null)
+  const mapPickerInstance = useRef<MapLibreMap | null>(null)
+  const pickerMarkerRef = useRef<Marker | null>(null)
+
+  const effectiveLat = customLat ?? location?.latitude ?? null
+  const effectiveLng = customLng ?? location?.longitude ?? null
+
+  useEffect(() => {
+    if (step === 2 && mapPickerRef.current && !mapPickerInstance.current) {
+      const centerLat = location?.latitude ?? 1.3521 // default center
+      const centerLng = location?.longitude ?? 103.8198
+
+      const map = new MapLibreMap({
+        container: mapPickerRef.current,
+        style: MAPTILER_STYLE,
+        center: [centerLng, centerLat],
+        zoom: 13,
+      })
+
+      const marker = new Marker({
+        draggable: true,
+        color: "#D4AF37", // Aura Gold
+      })
+        .setLngLat([centerLng, centerLat])
+        .addTo(map)
+
+      marker.on('dragend', () => {
+        const lngLat = marker.getLngLat()
+        setCustomLat(lngLat.lat)
+        setCustomLng(lngLat.lng)
+      })
+
+      map.on('click', (e) => {
+        marker.setLngLat(e.lngLat)
+        setCustomLat(e.lngLat.lat)
+        setCustomLng(e.lngLat.lng)
+      })
+
+      mapPickerInstance.current = map
+      pickerMarkerRef.current = marker
+
+      return () => {
+        map.remove()
+        mapPickerInstance.current = null
+        pickerMarkerRef.current = null
+      }
+    }
+  }, [step, location])
+
   const handleSubmit = async () => {
-    if (!location || !user) return
+    if (!effectiveLat || !effectiveLng || !user) return
     setLoading(true)
     setError(null)
     
@@ -48,8 +101,8 @@ export default function CreatePage() {
       await createMoment({
         title: title.trim(),
         description: description.trim() || undefined,
-        lat: location.latitude,
-        lng: location.longitude,
+        lat: effectiveLat,
+        lng: effectiveLng,
         capacity_limit: capacity,
         expires_at: expiresAt,
         moment_type: momentType as 'moment' | 'event',
@@ -252,31 +305,39 @@ export default function CreatePage() {
                   </div>
                 </div>
 
-                {/* Location Feedback */}
+                {/* Location Picker */}
                 <div className="space-y-6 pb-8 hairline-b">
                   <label className="micro-caps text-marble/40 text-[10px] tracking-[0.3em]">GEOSPATIAL ANCHOR</label>
-                  <div className="glass-panel p-6 flex items-center gap-6 rounded-xl border-white/5">
-                    <div className={cn(
-                      "w-12 h-12 rounded-full flex items-center justify-center bg-void border",
-                      location ? "border-gold/20 shadow-[0_0_20px_rgba(212,175,55,0.1)]" : "border-crimson/20"
-                    )}>
-                      <MapPin className={cn("w-5 h-5", location ? "text-gold" : "text-crimson")} />
-                    </div>
-                    <div>
-                      <p className={cn("text-sm font-medium micro-caps tracking-widest", location ? "text-marble" : "text-crimson")}>
-                        {location ? "LOCALIZATION SUCCESSFUL" : "COORDINATES REQUIRED"}
-                      </p>
-                      {location ? (
-                        <p className="text-[10px] font-mono text-marble/30 mt-1">
-                          LAT: {location.latitude.toFixed(6)} · LNG: {location.longitude.toFixed(6)}
-                        </p>
-                      ) : (
-                        <p className="text-[10px] font-mono text-crimson-bright/40 mt-1 uppercase tracking-tighter">
-                          Enable sensor access to proceed
-                        </p>
+                  <div className="relative rounded-2xl overflow-hidden border border-white/10 bg-void/50 h-[300px] group">
+                    <div ref={mapPickerRef} className="w-full h-full" />
+                    
+                    {/* Coordinate Overlay */}
+                    <div className="absolute bottom-4 left-4 right-4 glass-panel px-4 py-3 rounded-xl border-white/5 flex justify-between items-center pointer-events-none">
+                      <div className="flex gap-4">
+                        <div>
+                          <p className="text-[10px] text-marble/20 micro-caps">Latitude</p>
+                          <p className="text-xs font-mono text-gold">
+                            {effectiveLat?.toFixed(6) ?? '---'}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-[10px] text-marble/20 micro-caps">Longitude</p>
+                          <p className="text-xs font-mono text-gold">
+                            {effectiveLng?.toFixed(6) ?? '---'}
+                          </p>
+                        </div>
+                      </div>
+                      {customLat && (
+                        <span className="micro-caps text-[10px] text-crimson animate-pulse">
+                          CUSTOM OVERRIDE
+                        </span>
                       )}
                     </div>
                   </div>
+                  <p className="text-[10px] text-marble/30 mt-3 flex items-center gap-2">
+                    <MapPin className="w-3 h-3" />
+                    Tap map or drag marker to recalibrate anchor coordinates
+                  </p>
                 </div>
               </div>
 
@@ -324,7 +385,7 @@ export default function CreatePage() {
 
               {/* Submit Action */}
               <button
-                disabled={loading || !title.trim() || !location}
+                disabled={loading || !title.trim() || !effectiveLat}
                 onClick={handleSubmit}
                 className="w-full bg-marble text-void py-5 rounded-xl micro-caps tracking-[0.2em] font-bold text-xs disabled:opacity-30 transition-all hover:bg-gold-pale flex items-center justify-center gap-3 group mt-12 mb-8 shadow-2xl"
               >
