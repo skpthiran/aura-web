@@ -58,26 +58,29 @@ export default function CreatePage() {
     if (step !== 2) return
     
     let map: MapLibreMap | null = null
+    let initialized = false
     let attempts = 0
     
     const tryInit = () => {
+      if (initialized) return  // prevent double init
       attempts++
       const container = mapPickerRef.current
       if (!container) {
-        if (attempts < 20) setTimeout(tryInit, 100)
+        if (attempts < 10) setTimeout(tryInit, 150)
         return
       }
       
-      // Force container to have dimensions
       container.style.width = '100%'
-      container.style.height = '280px'
+      container.style.height = '260px'
       container.style.display = 'block'
       
       const rect = container.getBoundingClientRect()
-      if (rect.width === 0 || rect.height === 0) {
-        if (attempts < 20) setTimeout(tryInit, 100)
+      if (rect.width === 0) {
+        if (attempts < 10) setTimeout(tryInit, 150)
         return
       }
+      
+      initialized = true  // mark as initialized
       
       const centerLat = location?.latitude ?? 6.9271
       const centerLng = location?.longitude ?? 79.8612
@@ -100,12 +103,12 @@ export default function CreatePage() {
           
           const el = document.createElement('div')
           el.style.cssText = `
-            width: 24px;
-            height: 24px;
+            width: 22px;
+            height: 22px;
             background: #d4af37;
             border: 3px solid white;
             border-radius: 50%;
-            box-shadow: 0 0 0 6px rgba(212,175,55,0.3);
+            box-shadow: 0 0 0 5px rgba(212,175,55,0.3);
             cursor: grab;
           `
           
@@ -127,26 +130,25 @@ export default function CreatePage() {
             setCustomLng(e.lngLat.lng)
           })
         })
-        
-        map.on('error', (e) => console.error('Map error:', e))
-        
       } catch(err) {
         console.error('Map init error:', err)
+        initialized = false
       }
     }
     
-    // Start trying after a short delay
-    const timer = setTimeout(tryInit, 200)
+    const timer = setTimeout(tryInit, 250)
     
     return () => {
       clearTimeout(timer)
+      initialized = false
       if (map) {
         map.remove()
         mapPickerInstance.current = null
         pickerMarkerRef.current = null
       }
     }
-  }, [step, location])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step, location?.latitude, location?.longitude])
 
   const handleSubmit = async () => {
     if (!effectiveLat || !effectiveLng || !user) return

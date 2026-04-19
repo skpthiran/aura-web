@@ -41,7 +41,11 @@ export default function MapPage() {
 
     mapRef.current = map
 
+    const handleResize = () => mapRef.current?.resize()
+    window.addEventListener('resize', handleResize)
+
     return () => {
+      window.removeEventListener('resize', handleResize)
       map.remove()
       mapRef.current = null
     }
@@ -156,12 +160,12 @@ export default function MapPage() {
   }
 
   return (
-    <div className="flex-1 flex relative w-full h-full overflow-hidden bg-void">
+    <div className="relative flex-1 w-full h-full overflow-hidden bg-void" style={{ minHeight: '100dvh' }}>
       {/* Map Engine */}
       <div 
         ref={mapContainer} 
-        className="absolute inset-0 z-0" 
-        style={{ width: '100%', height: '100%' }}
+        className="absolute inset-0 w-full h-full" 
+        style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
       />
       
       {/* HUD Overlays */}
