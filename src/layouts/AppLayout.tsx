@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Outlet, NavLink, Link, useLocation, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "motion/react";
-import { Compass, Map as MapIcon, Plus, Landmark, MessageSquareText, Bell, User, Shield, Settings, LogOut, Loader2 } from "lucide-react";
+import { Compass, Map as MapIcon, Plus, Building2, MessageSquare, Landmark, MessageSquareText, Bell, User, Shield, Settings, LogOut, Loader2 } from "lucide-react";
 import { cn } from "../lib/utils";
 import { useAuth } from "../contexts/AuthContext";
 
@@ -12,6 +12,14 @@ const NAV_ITEMS = [
   { path: "/app/events", label: "Colosseum", icon: Landmark },
   { path: "/app/chat", label: "Agora", icon: MessageSquareText },
   { path: "/app/signals", label: "Signals", icon: Bell },
+];
+
+const mobileNavItems = [
+  { to: '/app/today', icon: Compass, label: 'Pulse' },
+  { to: '/app/map', icon: MapIcon, label: 'Forum' },
+  { to: '/app/create', icon: Plus, label: 'Create' },
+  { to: '/app/events', icon: Building2, label: 'Events' },
+  { to: '/app/chat', icon: MessageSquare, label: 'Chat' },
 ];
 
 export default function AppLayout() {
@@ -39,6 +47,51 @@ export default function AppLayout() {
 
   return (
     <div className="min-h-screen bg-void text-marble flex flex-col lg:flex-row overflow-hidden relative selection:bg-gold/20">
+      {/* Mobile Top Bar */}
+      <div className="lg:hidden fixed top-0 left-0 right-0 z-50
+        bg-void/95 backdrop-blur-xl border-b border-white/10
+        flex items-center justify-between px-5 py-3 safe-area-pt">
+        
+        {/* Logo */}
+        <div className="flex items-center gap-2">
+          <div className="w-7 h-7 rounded-full border border-gold/40 
+            flex items-center justify-center">
+            <span className="font-serif text-sm text-gold">A</span>
+          </div>
+          <span className="font-serif text-marble text-lg tracking-wide">
+            Aura
+          </span>
+        </div>
+        
+        {/* Right side: notifications + profile */}
+        <div className="flex items-center gap-3">
+          {/* Notification bell */}
+          <button className="w-9 h-9 rounded-full glass-panel hairline-all
+            flex items-center justify-center text-marble/40 
+            hover:text-marble transition-colors relative">
+            <Bell className="w-4 h-4" />
+            {/* Notification dot */}
+            <div className="absolute top-1.5 right-1.5 w-1.5 h-1.5 
+              rounded-full bg-crimson-bright" />
+          </button>
+          
+          {/* Profile avatar */}
+          <Link to="/app/profile">
+            <div className="w-9 h-9 rounded-full border border-white/20
+              bg-marble/10 overflow-hidden flex items-center justify-center">
+              {profile?.avatar_url ? (
+                <img src={profile.avatar_url} 
+                  className="w-full h-full object-cover" alt="Profile" />
+              ) : (
+                <span className="font-serif text-sm text-marble/60">
+                  {(profile?.full_name ?? user?.email ?? 'A')[0].toUpperCase()}
+                </span>
+              )}
+            </div>
+          </Link>
+        </div>
+      </div>
+
       {/* Premium Architectural Left Rail */}
       <aside className="hidden lg:flex flex-col w-[100px] hairline-r bg-void/90 backdrop-blur-3xl py-10 z-20 items-center shrink-0 border-white/5">
         
@@ -141,7 +194,7 @@ export default function AppLayout() {
       </aside>
 
       {/* Main Content Area */}
-      <main className="flex-1 flex flex-col relative overflow-y-auto h-[100dvh] lg:pb-0 z-10 scroll-smooth safe-area-pt">
+      <main className="flex-1 flex flex-col overflow-y-auto pt-16 lg:pt-0 pb-20 lg:pb-0 relative z-10 scroll-smooth h-[100dvh]">
         <AnimatePresence mode="popLayout">
           <motion.div
             key={location.pathname}
@@ -149,7 +202,7 @@ export default function AppLayout() {
             animate={{ opacity: 1, filter: "blur(0px)", scale: 1 }}
             exit={{ opacity: 0, filter: "blur(12px)" }}
             transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-            className="flex-1 flex flex-col pb-[100px] lg:pb-0"
+            className="flex-1 flex flex-col"
           >
             <Outlet />
           </motion.div>
@@ -157,79 +210,36 @@ export default function AppLayout() {
       </main>
 
       {/* Mobile Nav Bar */}
-      <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-void/95 backdrop-blur-2xl border-t border-white/10 safe-area-pb">
-        <div className="flex items-center justify-around h-[72px] px-2 relative">
-          {/* Active indicator track background */}
-          <div className="absolute inset-0 bg-gradient-to-t from-gold/5 to-transparent pointer-events-none" />
-          
-          {NAV_ITEMS.map((item) => (
-            <NavLink 
-              key={item.path} 
-              to={item.path}
-              className={({ isActive }) => cn(
-                "flex flex-col items-center justify-center min-w-[64px] h-full transition-all duration-300 relative z-10",
-                isActive ? "text-gold" : "text-marble/30"
-              )}
-            >
+      <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-50
+        bg-void/95 backdrop-blur-xl border-t border-white/10 safe-area-pb">
+        <div className="flex items-center justify-around px-2 pt-2 pb-2">
+          {mobileNavItems.map(({ to, icon: Icon, label }) => (
+            <NavLink key={to} to={to}>
               {({ isActive }) => (
-                <>
-                  <div className={cn(
-                    "w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300",
-                    isActive && !item.isAction && "bg-white/5",
-                    item.isAction && "bg-void border border-gold/30 shadow-[0_0_15px_rgba(212,175,55,0.1)] mb-1"
-                  )}>
-                    <item.icon 
-                      className={cn(
-                        item.isAction ? "w-5 h-5" : "w-[22px] h-[22px]",
-                        isActive && !item.isAction && "drop-shadow-[0_0_8px_rgba(212,175,55,0.4)]"
-                      )} 
-                      strokeWidth={isActive ? 2 : 1.5} 
-                    />
-                  </div>
-                  {!item.isAction && (
-                    <span className={cn(
-                      "micro-caps text-[8px] tracking-[0.1em] mt-1 transition-colors",
-                      isActive ? "text-gold" : "text-marble/30"
+                <div className={cn(
+                  `flex flex-col items-center gap-1 px-3 py-2 rounded-xl 
+                  transition-all duration-300`,
+                  isActive ? 'text-gold' : 'text-marble/30'
+                )}>
+                  {to === '/app/create' ? (
+                    <div className={cn(
+                      'w-11 h-11 rounded-full flex items-center justify-center border',
+                      isActive 
+                        ? 'bg-gold border-gold text-void' 
+                        : 'border-gold/40 text-gold'
                     )}>
-                      {item.label}
-                    </span>
+                      <Icon className="w-5 h-5" />
+                    </div>
+                  ) : (
+                    <>
+                      <Icon className="w-5 h-5" />
+                      <span className="micro-caps text-[10px]">{label}</span>
+                    </>
                   )}
-                  {isActive && !item.isAction && (
-                    <motion.div 
-                      layoutId="mobileNavIndicator"
-                      className="absolute -bottom-[1px] w-6 h-[2px] bg-gold rounded-t-full shadow-[0_0_8px_rgba(212,175,55,0.6)]" 
-                    />
-                  )}
-                </>
+                </div>
               )}
             </NavLink>
           ))}
-          
-          {/* Profile Item */}
-          <button 
-            onClick={() => setIsProfileMenuOpen(true)}
-            className={cn(
-              "flex flex-col items-center justify-center min-w-[64px] h-full transition-all duration-300 relative z-10 outline-none",
-              isProfileMenuOpen ? "text-gold" : "text-marble/30"
-            )}
-          >
-            <div className={cn(
-              "w-8 h-8 rounded-full border border-white/10 overflow-hidden flex items-center justify-center transition-all",
-              isProfileMenuOpen ? "border-gold shadow-[0_0_10px_rgba(212,175,55,0.3)]" : "grayscale opacity-60"
-            )}>
-              {profile?.avatar_url ? (
-                <img src={profile.avatar_url} alt="Avatar" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-              ) : (
-                <User className="w-4 h-4" />
-              )}
-            </div>
-            <span className={cn(
-              "micro-caps text-[8px] tracking-[0.1em] mt-1 transition-colors",
-              isProfileMenuOpen ? "text-gold" : "text-marble/30"
-            )}>
-              Me
-            </span>
-          </button>
         </div>
       </nav>
 
