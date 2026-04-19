@@ -233,6 +233,59 @@ export default function MomentDetailPage() {
               </div>
             </div>
 
+            {/* Venue */}
+            {(moment as any).venue && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.22 }}
+                className="glass-panel hairline-all rounded-2xl p-5 mb-6"
+              >
+                <div className="flex items-center gap-3 mb-1">
+                  <MapPin className="w-4 h-4 text-gold" />
+                  <p className="micro-caps text-xs text-marble/40">Venue</p>
+                </div>
+                <p className="text-marble text-sm ml-7">{(moment as any).venue}</p>
+              </motion.div>
+            )}
+
+            {/* Dress code + Age range row */}
+            {((moment as any).dresscode || (moment as any).age_min) && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.24 }}
+                className="grid grid-cols-2 gap-3 mb-6"
+              >
+                {(moment as any).dresscode && (
+                  <div className="glass-panel hairline-all rounded-2xl p-4 text-center">
+                    <p className="micro-caps text-xs text-marble/30 mb-1">Dress Code</p>
+                    <p className="text-marble text-sm font-medium">
+                      {(moment as any).dresscode}
+                    </p>
+                  </div>
+                )}
+                {(moment as any).age_min && (
+                  <div className="glass-panel hairline-all rounded-2xl p-4 text-center">
+                    <p className="micro-caps text-xs text-marble/30 mb-1">Age Range</p>
+                    <p className="text-marble text-sm font-medium">
+                      {(moment as any).age_min}+
+                      {(moment as any).age_max ? ` – ${(moment as any).age_max}` : ''}
+                    </p>
+                  </div>
+                )}
+              </motion.div>
+            )}
+
+            {/* Private badge */}
+            {(moment as any).is_private && (
+              <div className="flex items-center gap-2 mb-6 px-4 py-3 bg-gold/5 border border-gold/20 rounded-xl">
+                <span className="micro-caps text-xs text-gold">
+                  ◈ Private Signal — Invite Only
+                </span>
+              </div>
+            )}
+
             {/* LOCATION FOOTNOTE */}
             <div className="flex items-center gap-4 bg-white/5 p-6 rounded-2xl border border-white/5">
               <div className="w-12 h-12 rounded-full border border-gold/20 flex items-center justify-center shrink-0">

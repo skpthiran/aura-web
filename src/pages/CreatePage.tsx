@@ -35,6 +35,13 @@ export default function CreatePage() {
   const [tags, setTags] = useState<string[]>([])
   const [tagInput, setTagInput] = useState('')
   const [expiresAt, setExpiresAt] = useState('')
+  const [startDateTime, setStartDateTime] = useState('')
+  const [endDateTime, setEndDateTime] = useState('')
+  const [venue, setVenue] = useState('')
+  const [maxAge, setMaxAge] = useState<number | ''>('')
+  const [minAge, setMinAge] = useState<number | ''>('')
+  const [isPrivate, setIsPrivate] = useState(false)
+  const [dresscode, setDresscode] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -177,7 +184,18 @@ export default function CreatePage() {
         capacity_limit: capacity,
         moment_type: momentType as 'moment' | 'event',
         tags,
-        expires_at: momentType === 'event' && expiresAt ? new Date(expiresAt).toISOString() : undefined
+        expires_at: momentType === 'event' && endDateTime 
+          ? new Date(endDateTime).toISOString() 
+          : momentType === 'event' && expiresAt 
+            ? new Date(expiresAt).toISOString() 
+            : undefined,
+        start_time: startDateTime ? new Date(startDateTime).toISOString() : undefined,
+        end_time: endDateTime ? new Date(endDateTime).toISOString() : undefined,
+        venue: venue.trim() || undefined,
+        is_private: isPrivate,
+        dresscode: dresscode || undefined,
+        age_min: minAge !== '' ? minAge : undefined,
+        age_max: maxAge !== '' ? maxAge : undefined,
       })
       
       navigate('/app/map')
@@ -362,7 +380,6 @@ export default function CreatePage() {
                       </p>
                     </div>
                   )}
-
                   <div className="space-y-6">
                     <div className="flex justify-between items-end">
                       <label className="micro-caps text-marble/30 text-[10px] tracking-[0.3em]">CAPACITY LIMIT</label>
@@ -377,6 +394,152 @@ export default function CreatePage() {
                       className="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-gold"
                     />
                   </div>
+
+                  {/* Section A — START & END TIME */}
+                  <div className="hairline-b pb-6">
+                    <label className="block text-xs uppercase tracking-[0.15em] text-marble/40 mb-3 font-medium micro-caps">
+                      Signal Window
+                    </label>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div>
+                        <p className="micro-caps text-xs text-marble/30 mb-2">Starts</p>
+                        <input
+                          type="datetime-local"
+                          value={startDateTime}
+                          onChange={e => setStartDateTime(e.target.value)}
+                          min={new Date().toISOString().slice(0, 16)}
+                          className="w-full bg-void/50 border border-white/10 rounded-xl px-4 py-3 text-marble outline-none focus:border-gold/50 transition-colors [color-scheme:dark] text-sm"
+                        />
+                      </div>
+                      <div>
+                        <p className="micro-caps text-xs text-marble/30 mb-2">Ends</p>
+                        <input
+                          type="datetime-local"
+                          value={endDateTime}
+                          onChange={e => setEndDateTime(e.target.value)}
+                          min={startDateTime || new Date().toISOString().slice(0, 16)}
+                          className="w-full bg-void/50 border border-white/10 rounded-xl px-4 py-3 text-marble outline-none focus:border-gold/50 transition-colors [color-scheme:dark] text-sm"
+                        />
+                      </div>
+                    </div>
+                    {startDateTime && endDateTime && (
+                      <p className="micro-caps text-xs text-gold/60 mt-2">
+                        Duration: {(() => {
+                          const diff = new Date(endDateTime).getTime() - new Date(startDateTime).getTime()
+                          const hrs = Math.floor(diff / 3600000)
+                          const mins = Math.floor((diff % 3600000) / 60000)
+                          if (diff <= 0) return 'Invalid range'
+                          return hrs > 0 ? `${hrs}h ${mins > 0 ? mins + 'm' : ''}` : `${mins}m`
+                        })()}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Section B — VENUE NAME */}
+                  <div className="hairline-b pb-6">
+                    <label className="block text-xs uppercase tracking-[0.15em] text-marble/40 mb-3 font-medium micro-caps">
+                      Venue / Location Name
+                      <span className="text-marble/20 ml-2">(optional)</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={venue}
+                      onChange={e => setVenue(e.target.value)}
+                      placeholder="e.g. Rooftop Bar, Galle Face, Studio 7..."
+                      maxLength={100}
+                      className="w-full bg-void/50 border border-white/10 rounded-xl px-4 py-3 text-marble outline-none focus:border-gold/50 transition-colors placeholder:text-marble/20 text-sm"
+                    />
+                  </div>
+
+                  {/* Section C — SIGNAL TYPE SETTINGS */}
+                  <div className="hairline-b pb-6">
+                    <label className="block text-xs uppercase tracking-[0.15em] text-marble/40 mb-4 font-medium micro-caps">
+                      Signal Settings
+                    </label>
+                    
+                    <div className="flex items-center justify-between mb-4 glass-panel hairline-all rounded-xl px-4 py-3">
+                      <div>
+                        <p className="text-sm text-marble font-medium">Private Signal</p>
+                        <p className="micro-caps text-xs text-marble/30 mt-0.5">
+                          Only visible to invited participants
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setIsPrivate(prev => !prev)}
+                        className={cn(
+                          'w-12 h-6 rounded-full transition-all duration-300 relative',
+                          isPrivate ? 'bg-gold' : 'bg-white/10'
+                        )}
+                      >
+                        <div className={cn(
+                          'absolute top-1 w-4 h-4 rounded-full bg-void transition-all duration-300',
+                          isPrivate ? 'left-7' : 'left-1'
+                        )} />
+                      </button>
+                    </div>
+
+                    {momentType === 'event' && (
+                      <div>
+                        <p className="micro-caps text-xs text-marble/30 mb-2">
+                          Dress Code <span className="text-marble/20">(optional)</span>
+                        </p>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                          {['Casual', 'Smart Casual', 'Formal', 'Black Tie'].map(code => (
+                            <button
+                              key={code}
+                              type="button"
+                              onClick={() => setDresscode(prev => prev === code ? '' : code)}
+                              className={cn(
+                                'micro-caps text-xs py-2.5 rounded-xl border transition-all duration-300',
+                                dresscode === code
+                                  ? 'bg-gold/15 border-gold/50 text-gold'
+                                  : 'border-white/10 text-marble/40 hover:border-white/25 hover:text-marble/70'
+                              )}
+                            >
+                              {code}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Section D — AGE RANGE */}
+                  {momentType === 'event' && (
+                    <div className="hairline-b pb-6">
+                      <label className="block text-xs uppercase tracking-[0.15em] text-marble/40 mb-3 font-medium micro-caps">
+                        Age Range
+                        <span className="text-marble/20 ml-2">(optional)</span>
+                      </label>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <p className="micro-caps text-xs text-marble/30 mb-2">Min Age</p>
+                          <input
+                            type="number"
+                            value={minAge}
+                            onChange={e => setMinAge(e.target.value ? parseInt(e.target.value) : '')}
+                            placeholder="18"
+                            min={13}
+                            max={100}
+                            className="w-full bg-void/50 border border-white/10 rounded-xl px-4 py-3 text-marble outline-none focus:border-gold/50 transition-colors placeholder:text-marble/20 text-sm"
+                          />
+                        </div>
+                        <div>
+                          <p className="micro-caps text-xs text-marble/30 mb-2">Max Age</p>
+                          <input
+                            type="number"
+                            value={maxAge}
+                            onChange={e => setMaxAge(e.target.value ? parseInt(e.target.value) : '')}
+                            placeholder="No limit"
+                            min={13}
+                            max={100}
+                            className="w-full bg-void/50 border border-white/10 rounded-xl px-4 py-3 text-marble outline-none focus:border-gold/50 transition-colors placeholder:text-marble/20 text-sm"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 <div className="space-y-8">

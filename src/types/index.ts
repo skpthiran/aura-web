@@ -23,6 +23,13 @@ export interface Moment {
   lng?: number
   distance_meters?: number
   participant_count?: number
+  start_time?: string
+  end_time?: string
+  venue?: string
+  is_private?: boolean
+  dresscode?: string
+  age_min?: number
+  age_max?: number
 }
 
 export interface MapPin {

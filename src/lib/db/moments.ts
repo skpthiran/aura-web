@@ -58,6 +58,13 @@ export async function createMoment(payload: {
   moment_type: 'moment' | 'event'
   tags?: string[]
   expires_at?: string
+  start_time?: string
+  end_time?: string
+  venue?: string
+  is_private?: boolean
+  dresscode?: string
+  age_min?: number
+  age_max?: number
 }): Promise<Moment> {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error('Not authenticated')
@@ -75,6 +82,14 @@ export async function createMoment(payload: {
   if (payload.expires_at) {
     insertData.expires_at = payload.expires_at
   }
+  
+  if (payload.start_time) insertData.start_time = payload.start_time
+  if (payload.end_time) insertData.end_time = payload.end_time
+  if (payload.venue) insertData.venue = payload.venue
+  if (payload.is_private !== undefined) insertData.is_private = payload.is_private
+  if (payload.dresscode) insertData.dresscode = payload.dresscode
+  if (payload.age_min) insertData.age_min = payload.age_min
+  if (payload.age_max) insertData.age_max = payload.age_max
 
   const { data, error } = await supabase
     .from('moments')
