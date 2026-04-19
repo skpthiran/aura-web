@@ -45,22 +45,22 @@ export default function MapPage() {
 
   const { moments, loading: momentsLoading, refetch: refetchMoments } = useNearbyMoments(location, mapRadius)
 
-  // Combined Filtering: Type + Strict Radius
-  // Build filtered list
-  const visibleMoments: typeof moments = []
-  for (let i = 0; i < moments.length; i++) {
-    const signal = moments[i]
+  // === SIGNAL FILTERING — NO .filter() TO AVOID TDZ ===
+  const visibleMoments: Moment[] = []
+  for (let idx = 0; idx < moments.length; idx++) {
+    const sig = moments[idx]
     if (mapRadius < 99999999 && location) {
-      const distKm = haversineKm(
+      const dKm = haversineKm(
         location.latitude, location.longitude,
-        signal.lat, signal.lng
+        sig.lat || 0, sig.lng || 0
       )
-      if (distKm > mapRadius / 1000) continue
+      if (dKm > mapRadius / 1000) continue
     }
-    if (mapFilter === 'Moments' && signal.moment_type !== 'moment') continue
-    if (mapFilter === 'Events' && signal.moment_type !== 'event') continue
-    visibleMoments.push(signal)
+    if (mapFilter === 'Moments' && sig.moment_type !== 'moment') continue
+    if (mapFilter === 'Events' && sig.moment_type !== 'event') continue
+    visibleMoments.push(sig)
   }
+  // === END FILTERING ===
 
   // Radius Circle Visualization
   const updateRadiusCircle = useCallback(() => {
