@@ -137,6 +137,7 @@ export default function TodayPage() {
   const { location } = useUserLocation()
   const [activeTab, setActiveTab] = useState('All')
   const [radius, setRadius] = useState<number>(50000) // default 50km
+  const [radiusOpen, setRadiusOpen] = useState(false)
   
   const radiusOptions = [
     { label: '5 KM', value: 5000 },
@@ -158,6 +159,18 @@ export default function TodayPage() {
       return new Set()
     }
   })
+
+  useEffect(() => {
+    if (!radiusOpen) return
+    const handler = (e: MouseEvent) => {
+      const target = e.target as HTMLElement
+      if (!target.closest('[data-radius-dropdown]')) {
+        setRadiusOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [radiusOpen])
 
   const handleJoin = async (momentId: string) => {
     if (!user || joinedIds.has(momentId)) return
@@ -268,51 +281,94 @@ export default function TodayPage() {
             </div>
             
             <div className="mt-2 md:mt-0 flex flex-col items-start md:items-end gap-4 md:gap-6 pointer-events-auto">
-              {/* Consolidated Filter Strip (Mobile Optimized) */}
-              <div className="w-screen md:w-auto -ml-6 md:ml-0 px-6 md:px-0 overflow-x-auto no-scrollbar">
-                <div className="flex items-center gap-3 glass-panel hairline-all p-1.5 rounded-full bg-black/40 backdrop-blur-2xl w-max">
-                  {/* Type Tabs */}
-                  <div className="flex gap-1 border-r border-white/10 pr-3 mr-1">
-                    {['All', 'Moments', 'Events'].map(tab => (
-                      <button
-                        key={tab}
-                        onClick={() => setActiveTab(tab)}
-                        className={cn(
-                          "micro-caps text-[9px] px-4 py-2 rounded-full transition-all duration-300 whitespace-nowrap",
-                          activeTab === tab 
-                            ? "bg-white text-void font-bold shadow-md" 
-                            : "text-white/40 hover:text-white"
-                        )}
-                      >
-                        {tab}
-                      </button>
-                    ))}
-                  </div>
+              {/* Redesigned Filter Row 1 — Type tabs & Radius Dropdown */}
+              <div className="flex items-center gap-2 mt-4 pointer-events-auto">
+                {['All', 'Moments', 'Events'].map(tab => (
+                  <button
+                    key={tab}
+                    onClick={() => setActiveTab(tab)}
+                    className={cn(
+                      'micro-caps text-xs px-5 py-2 rounded-full whitespace-nowrap',
+                      'transition-all duration-300',
+                      activeTab === tab
+                        ? 'bg-white text-black font-bold'
+                        : 'bg-black/40 backdrop-blur-md border border-white/20 text-white/60'
+                    )}
+                  >
+                    {tab}
+                  </button>
+                ))}
 
-                  {/* Radius Options */}
-                  <div className="flex gap-1.5 items-center">
-                    <span className="micro-caps text-[8px] text-white/20 ml-2 tracking-widest">RANGE</span>
-                    {radiusOptions.map(opt => (
-                      <button
-                        key={opt.value}
-                        onClick={() => setRadius(opt.value)}
-                        className={cn(
-                          'micro-caps text-[9px] px-3.5 py-2 rounded-full whitespace-nowrap transition-all duration-300',
-                          radius === opt.value
-                            ? 'bg-gold/20 text-gold border border-gold/40'
-                            : 'text-white/40 hover:text-white hover:bg-white/5'
-                        )}
-                      >
-                        {opt.label}
-                      </button>
-                    ))}
-                  </div>
+                {/* Radius dropdown trigger — right side */}
+                <div className="relative ml-auto" data-radius-dropdown>
+                  <button
+                    onClick={() => setRadiusOpen(prev => !prev)}
+                    className={cn(
+                      'flex items-center gap-2 micro-caps text-xs px-4 py-2 rounded-full',
+                      'transition-all duration-300 whitespace-nowrap',
+                      'bg-black/40 backdrop-blur-md border text-white/60',
+                      radiusOpen
+                        ? 'border-gold/60 text-gold'
+                        : 'border-white/20 hover:border-white/40'
+                    )}
+                  >
+                    <span>
+                      {radiusOptions.find(r => r.value === radius)?.label ?? '50 KM'}
+                    </span>
+                    <svg
+                      className={cn(
+                        'w-3 h-3 transition-transform duration-200',
+                        radiusOpen ? 'rotate-180' : ''
+                      )}
+                      fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round"
+                        strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </button>
+
+                  {/* Dropdown panel */}
+                  {radiusOpen && (
+                    <div className="absolute right-0 top-full mt-2 z-50
+                      bg-black/90 backdrop-blur-2xl border border-white/12
+                      rounded-2xl overflow-hidden shadow-2xl shadow-black/60
+                      min-w-[140px]">
+                      {radiusOptions.map(opt => (
+                        <button
+                          key={opt.value}
+                          onClick={() => {
+                            setRadius(opt.value)
+                            setRadiusOpen(false)
+                          }}
+                          className={cn(
+                            'w-full text-left px-4 py-3 micro-caps text-xs',
+                            'transition-colors duration-200',
+                            radius === opt.value
+                              ? 'text-gold bg-gold/10'
+                              : 'text-white/50 hover:text-white hover:bg-white/5'
+                          )}
+                        >
+                          {opt.value === radius && (
+                            <span className="mr-2">✓</span>
+                          )}
+                          {opt.label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
 
-              <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-void/40 backdrop-blur-md border border-white/5 self-start md:self-end hidden md:flex">
-                <div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse shadow-[0_0_8px_rgba(74,222,128,0.5)]" />
-                <span className="micro-caps text-[9px] text-white/40 tracking-widest">{filteredMoments.length} Signals Intercepted</span>
+              {/* Redesigned Filter Row 2 — Live Count Badge */}
+              <div className="flex items-center gap-2 mt-3 pointer-events-auto">
+                <div className="flex items-center gap-2
+                  bg-black/50 backdrop-blur-md border border-white/10
+                  rounded-full px-3 py-1.5 w-fit">
+                  <div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
+                  <span className="micro-caps text-xs text-white/60">
+                    {filteredMoments.length} signals · {radiusOptions.find(r => r.value === radius)?.label}
+                  </span>
+                </div>
               </div>
             </div>
           </div>
