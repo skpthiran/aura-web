@@ -37,33 +37,45 @@ export default function ChatPage() {
       .finally(() => setLoadingMoments(false))
   }, [user])
 
-  // Load messages when activeMomentId changes
   useEffect(() => {
     if (!activeMomentId) return
     setLoadingMessages(true)
+    
     getChatMessages(activeMomentId)
       .then(setMessages)
       .catch(console.error)
       .finally(() => setLoadingMessages(false))
 
-    // Realtime subscription
     const channel = supabase
-      .channel(`chat:${activeMomentId}`)
-      .on('postgres_changes', {
-        event: 'INSERT',
-        schema: 'public',
-        table: 'chat_messages',
-        filter: `moment_id=eq.${activeMomentId}`
-      }, async (payload) => {
-        // Fetch full message with profile
-        const { data } = await supabase
-          .from('chat_messages')
-          .select('*, profiles(username, full_name, avatar_url)')
-          .eq('id', payload.new.id)
-          .single()
-        if (data) setMessages(prev => [...prev, data as ChatMessage])
+      .channel(`chat-${activeMomentId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'chat_messages',
+          filter: `moment_id=eq.${activeMomentId}`
+        },
+        (payload) => {
+          // Build message from payload directly without extra fetch
+          const newMsg: ChatMessage = {
+            id: payload.new.id,
+            moment_id: payload.new.moment_id,
+            user_id: payload.new.user_id,
+            content: payload.new.content,
+            created_at: payload.new.created_at,
+            profiles: undefined
+          }
+          setMessages(prev => {
+            // Avoid duplicates
+            if (prev.find(m => m.id === newMsg.id)) return prev
+            return [...prev, newMsg]
+          })
+        }
+      )
+      .subscribe((status) => {
+        console.log('Realtime subscription status:', status)
       })
-      .subscribe()
 
     return () => {
       supabase.removeChannel(channel)
