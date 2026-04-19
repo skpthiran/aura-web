@@ -38,9 +38,9 @@ export default function AppLayout() {
   const userTier = "Luminous Tier"; // Placeholder for now
 
   return (
-    <div className="min-h-screen bg-void text-marble flex flex-col md:flex-row overflow-hidden relative selection:bg-gold/20">
+    <div className="min-h-screen bg-void text-marble flex flex-col lg:flex-row overflow-hidden relative selection:bg-gold/20">
       {/* Premium Architectural Left Rail */}
-      <aside className="hidden md:flex flex-col w-[100px] hairline-r bg-void/90 backdrop-blur-3xl py-10 z-20 items-center shrink-0 border-white/5">
+      <aside className="hidden lg:flex flex-col w-[100px] hairline-r bg-void/90 backdrop-blur-3xl py-10 z-20 items-center shrink-0 border-white/5">
         
         {/* Top Logo */}
         <Link to="/app" className="mb-16 group relative w-full flex justify-center cursor-pointer">
@@ -141,7 +141,7 @@ export default function AppLayout() {
       </aside>
 
       {/* Main Content Area */}
-      <main className="flex-1 flex flex-col relative overflow-y-auto h-[100dvh] pb-24 md:pb-0 z-10 scroll-smooth">
+      <main className="flex-1 flex flex-col relative overflow-y-auto h-[100dvh] lg:pb-0 z-10 scroll-smooth safe-area-pt">
         <AnimatePresence mode="popLayout">
           <motion.div
             key={location.pathname}
@@ -149,57 +149,88 @@ export default function AppLayout() {
             animate={{ opacity: 1, filter: "blur(0px)", scale: 1 }}
             exit={{ opacity: 0, filter: "blur(12px)" }}
             transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-            className="flex-1 flex flex-col"
+            className="flex-1 flex flex-col pb-[100px] lg:pb-0"
           >
             <Outlet />
           </motion.div>
         </AnimatePresence>
       </main>
 
-      {/* Mobile Nav */}
-      <nav className="md:hidden fixed bottom-6 left-6 right-6 h-16 bg-card/90 backdrop-blur-3xl hairline-all rounded-full flex items-center justify-between px-2 z-50 overflow-hidden shadow-2xl">
-        <div className="absolute inset-0 bg-gradient-to-t from-gold/5 to-transparent pointer-events-none" />
-        {NAV_ITEMS.map((item) => (
-          <NavLink 
-            key={item.path} 
-            to={item.path}
-            className={({ isActive }) => cn(
-              "flex flex-col items-center justify-center w-12 h-12 rounded-full transition-all duration-300 relative z-10 ml-1",
-              isActive ? "text-gold-pale" : "text-marble/40 hover:text-marble",
-              item.isAction && "bg-void hairline-all text-gold shadow-[0_0_20px_rgba(212,175,55,0.15)] -mt-6 h-14 w-14"
+      {/* Mobile Nav Bar */}
+      <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-void/95 backdrop-blur-2xl border-t border-white/10 safe-area-pb">
+        <div className="flex items-center justify-around h-[72px] px-2 relative">
+          {/* Active indicator track background */}
+          <div className="absolute inset-0 bg-gradient-to-t from-gold/5 to-transparent pointer-events-none" />
+          
+          {NAV_ITEMS.map((item) => (
+            <NavLink 
+              key={item.path} 
+              to={item.path}
+              className={({ isActive }) => cn(
+                "flex flex-col items-center justify-center min-w-[64px] h-full transition-all duration-300 relative z-10",
+                isActive ? "text-gold" : "text-marble/30"
+              )}
+            >
+              {({ isActive }) => (
+                <>
+                  <div className={cn(
+                    "w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300",
+                    isActive && !item.isAction && "bg-white/5",
+                    item.isAction && "bg-void border border-gold/30 shadow-[0_0_15px_rgba(212,175,55,0.1)] mb-1"
+                  )}>
+                    <item.icon 
+                      className={cn(
+                        item.isAction ? "w-5 h-5" : "w-[22px] h-[22px]",
+                        isActive && !item.isAction && "drop-shadow-[0_0_8px_rgba(212,175,55,0.4)]"
+                      )} 
+                      strokeWidth={isActive ? 2 : 1.5} 
+                    />
+                  </div>
+                  {!item.isAction && (
+                    <span className={cn(
+                      "micro-caps text-[8px] tracking-[0.1em] mt-1 transition-colors",
+                      isActive ? "text-gold" : "text-marble/30"
+                    )}>
+                      {item.label}
+                    </span>
+                  )}
+                  {isActive && !item.isAction && (
+                    <motion.div 
+                      layoutId="mobileNavIndicator"
+                      className="absolute -bottom-[1px] w-6 h-[2px] bg-gold rounded-t-full shadow-[0_0_8px_rgba(212,175,55,0.6)]" 
+                    />
+                  )}
+                </>
+              )}
+            </NavLink>
+          ))}
+          
+          {/* Profile Item */}
+          <button 
+            onClick={() => setIsProfileMenuOpen(true)}
+            className={cn(
+              "flex flex-col items-center justify-center min-w-[64px] h-full transition-all duration-300 relative z-10 outline-none",
+              isProfileMenuOpen ? "text-gold" : "text-marble/30"
             )}
           >
-            {({ isActive }) => (
-              <>
-                <item.icon className={cn(item.isAction ? "w-6 h-6" : "w-5 h-5")} strokeWidth={isActive ? 2 : 1.5} />
-                {isActive && !item.isAction && (
-                  <motion.div 
-                    layoutId="mobileNavIndicator"
-                    className="absolute -bottom-1 w-1 h-1 rounded-full bg-gold-pale shadow-[0_0_8px_rgba(253,229,171,1)]" 
-                  />
-                )}
-              </>
-            )}
-          </NavLink>
-        ))}
-        {/* Mobile Profile Avatar */}
-        <button 
-          onClick={() => setIsProfileMenuOpen(true)}
-          className={cn(
-            "relative flex items-center justify-center w-10 h-10 rounded-full hairline-all overflow-hidden z-10 transition-all active:scale-95 group mr-1 outline-none",
-            isProfileMenuOpen ? "border-gold shadow-[0_0_15px_rgba(212,175,55,0.4)]" : "hover:border-gold/50"
-          )}
-        >
-          <div className="absolute inset-0 bg-gold/10 opacity-0 group-hover:opacity-100 transition-opacity z-10" />
-          {profile?.avatar_url ? (
-            <img src={profile.avatar_url} alt="Avatar" className={cn(
-              "w-full h-full object-cover transition-all duration-500",
-               isProfileMenuOpen ? "grayscale-0 opacity-100 scale-110" : "grayscale opacity-80 group-hover:grayscale-0 group-hover:opacity-100 group-hover:scale-110"
-            )} referrerPolicy="no-referrer" />
-          ) : (
-            <User className="w-5 h-5 text-marble/40" />
-          )}
-        </button>
+            <div className={cn(
+              "w-8 h-8 rounded-full border border-white/10 overflow-hidden flex items-center justify-center transition-all",
+              isProfileMenuOpen ? "border-gold shadow-[0_0_10px_rgba(212,175,55,0.3)]" : "grayscale opacity-60"
+            )}>
+              {profile?.avatar_url ? (
+                <img src={profile.avatar_url} alt="Avatar" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+              ) : (
+                <User className="w-4 h-4" />
+              )}
+            </div>
+            <span className={cn(
+              "micro-caps text-[8px] tracking-[0.1em] mt-1 transition-colors",
+              isProfileMenuOpen ? "text-gold" : "text-marble/30"
+            )}>
+              Me
+            </span>
+          </button>
+        </div>
       </nav>
 
       {/* Profile Popover / Sheet */}
@@ -221,7 +252,7 @@ export default function AppLayout() {
               animate={{ opacity: 1, x: 0, y: 0, scale: 1 }}
               exit={{ opacity: 0, x: -10, y: 10, scale: 0.95 }}
               transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-              className="hidden md:block fixed z-[70] left-[110px] bottom-10 w-64 bg-card/95 backdrop-blur-3xl hairline-all shadow-[0_20px_40px_rgba(0,0,0,0.8)] rounded-sm overflow-hidden pointer-events-auto"
+              className="hidden lg:block fixed z-[70] left-[110px] bottom-10 w-64 bg-card/95 backdrop-blur-3xl hairline-all shadow-[0_20px_40px_rgba(0,0,0,0.8)] rounded-sm overflow-hidden pointer-events-auto"
             >
               <div className="p-6 border-b border-white/5 bg-void/50">
                 <p className="font-serif text-xl text-marble truncate">{displayName}</p>
@@ -256,7 +287,7 @@ export default function AppLayout() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: "100%" }}
               transition={{ type: "spring", damping: 25, stiffness: 200 }}
-              className="md:hidden fixed z-[70] inset-x-0 bottom-0 bg-card/95 backdrop-blur-3xl hairline-t shadow-[0_-20px_40px_rgba(0,0,0,0.8)] pb-8 rounded-t-[32px] overflow-hidden pointer-events-auto"
+              className="lg:hidden fixed z-[70] inset-x-0 bottom-0 bg-card/95 backdrop-blur-3xl border-t border-white/10 shadow-[0_-20px_40px_rgba(0,0,0,0.8)] pb-10 rounded-t-[32px] overflow-hidden pointer-events-auto safe-area-pb"
             >
               <div className="w-12 h-1 bg-white/10 rounded-full mx-auto my-4" />
               <div className="p-6 pt-2 border-b border-white/5 flex items-center gap-4 bg-void/50">

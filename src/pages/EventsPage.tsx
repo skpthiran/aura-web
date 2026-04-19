@@ -54,10 +54,10 @@ const EventCard: React.FC<EventCardProps> = ({ event, index, isJoined, isJoining
       </div>
 
       {/* Content */}
-      <div className="relative z-10 p-8 flex items-center justify-between"
+      <div className="relative z-10 p-6 md:p-8 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-6 md:gap-8"
         style={{ minHeight: '180px' }}>
         
-        <div className="flex-1 max-w-lg">
+        <div className="flex-1 md:max-w-lg">
           {/* Badge */}
           <div className="flex items-center gap-3 mb-3">
             <span className="micro-caps text-xs px-3 py-1 rounded-full
@@ -70,7 +70,7 @@ const EventCard: React.FC<EventCardProps> = ({ event, index, isJoined, isJoining
           </div>
 
           {/* Title */}
-          <h3 className="font-serif text-3xl text-marble mb-3 
+          <h3 className="font-serif text-2xl md:text-3xl text-marble mb-2 md:mb-3 
             group-hover:text-gold-pale transition-colors duration-300">
             {event.title}
           </h3>
@@ -84,10 +84,10 @@ const EventCard: React.FC<EventCardProps> = ({ event, index, isJoined, isJoining
 
           {/* Tags */}
           {event.tags && event.tags.length > 0 && (
-            <div className="flex flex-wrap gap-2 mb-4">
+            <div className="flex flex-wrap gap-1.5 md:gap-2 mb-4 md:mb-5">
               {event.tags.map(tag => (
-                <span key={tag} className="text-xs micro-caps px-2 py-0.5
-                  hairline-all rounded-full text-marble/40">
+                <span key={tag} className="text-[9px] md:text-xs micro-caps px-2 py-0.5
+                  hairline-all rounded-full text-marble/30">
                   {tag}
                 </span>
               ))}
@@ -95,24 +95,24 @@ const EventCard: React.FC<EventCardProps> = ({ event, index, isJoined, isJoining
           )}
 
           {/* Meta row */}
-          <div className="flex items-center gap-5">
-            <span className="flex items-center gap-1.5 text-xs text-marble/40">
+          <div className="flex flex-wrap items-center gap-4 md:gap-5">
+            <span className="flex items-center gap-1.5 text-[10px] md:text-xs text-marble/30">
               <Users className="w-3.5 h-3.5" />
               {event.participant_count ?? 0} / {event.capacity_limit}
             </span>
-            <span className="flex items-center gap-1.5 text-xs text-marble/40">
+            <span className="flex items-center gap-1.5 text-[10px] md:text-xs text-marble/30">
               <Calendar className="w-3.5 h-3.5" />
               {formattedDate}
             </span>
-            <span className="flex items-center gap-1.5 text-xs text-marble/40">
+            <span className="flex items-center gap-1.5 text-[10px] md:text-xs text-marble/30">
               <Clock className="w-3.5 h-3.5" />
-              {hoursLeft}h remaining
+              {hoursLeft}h left
             </span>
           </div>
         </div>
 
         {/* Join button */}
-        <div className="shrink-0 ml-8">
+        <div className="shrink-0">
           <button
             onClick={(e) => {
               e.stopPropagation()
@@ -120,10 +120,10 @@ const EventCard: React.FC<EventCardProps> = ({ event, index, isJoined, isJoining
             }}
             disabled={isJoined || isJoining}
             className={cn(
-              'micro-caps text-sm px-8 py-3 rounded-full transition-all',
+              'micro-caps text-xs md:text-sm px-6 md:px-8 py-3 rounded-full transition-all w-full md:w-auto text-center justify-center flex items-center',
               isJoined
                 ? 'bg-gold/10 text-gold border border-gold/30 cursor-default'
-                : 'bg-gold text-void hover:bg-gold-pale disabled:opacity-50 font-medium'
+                : 'bg-gold text-void hover:bg-gold-pale disabled:opacity-50 font-bold'
             )}
           >
             {isJoining ? (
@@ -168,7 +168,7 @@ export default function EventsPage() {
         <div className="flex items-end justify-between mb-10">
           <div>
             <p className="micro-caps text-gold mb-2">Structured Gatherings</p>
-            <h1 className="font-serif text-6xl text-marble">Colosseum</h1>
+            <h1 className="font-serif text-4xl md:text-6xl text-marble tracking-tight">Colosseum</h1>
             <p className="micro-caps text-xs text-marble/30 mt-2">
               Curated Events · Planned Experiences
             </p>

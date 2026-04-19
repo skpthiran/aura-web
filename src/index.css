@@ -77,6 +77,14 @@
     text-shadow: 0 0 24px var(--color-gold-glow);
   }
 
+  .safe-area-pb {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .safe-area-pt {
+    padding-top: env(safe-area-inset-top);
+  }
+
   /* Structural map overlays */
   .hud-overlay {
     background: radial-gradient(circle at center, transparent 0%, rgba(0,0,0,0.8) 100%);

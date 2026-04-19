@@ -188,45 +188,45 @@ export default function TodayPage() {
           <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-90" />
           
           {/* FLOATING PULSE TITLE */}
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
+          <div className="absolute inset-x-0 top-[20%] flex items-center justify-center pointer-events-none z-10">
             <motion.h1 
               initial={{ opacity: 0, y: 40 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1] }}
-              className="text-[25vw] md:text-[20vw] font-serif text-marble/10 tracking-tighter leading-none select-none"
+              className="text-[30vw] md:text-[20vw] font-serif text-marble/5 tracking-tighter leading-none select-none"
             >
               Pulse
             </motion.h1>
           </div>
 
           {/* RESTORED CORE HEADER */}
-          <div className="absolute top-0 left-0 right-0 p-8 md:p-12 z-30 flex flex-col md:flex-row items-end justify-between pointer-events-none">
+          <div className="absolute top-0 left-0 right-0 p-6 md:p-12 z-30 flex flex-col md:flex-row items-start md:items-end justify-between pointer-events-none safe-area-pt">
             <div className="pointer-events-auto">
               <motion.p 
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
-                className="micro-caps text-gold text-xs tracking-[0.4em] mb-4"
+                className="micro-caps text-gold text-[10px] md:text-xs tracking-[0.4em] mb-2 md:mb-4"
               >
-                ◈ Live Discovery · Spontaneous Activity
+                ◈ Live Discovery · Spontaneous
               </motion.p>
               <motion.h1 
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.8 }}
-                className="font-serif text-8xl md:text-[120px] leading-none text-marble tracking-tighter opacity-90"
+                className="font-serif text-6xl md:text-[120px] leading-none text-marble tracking-tighter opacity-90"
               >
                 Pulse
               </motion.h1>
             </div>
             
-            <div className="flex flex-col items-end gap-6 mt-8 md:mt-0 pointer-events-auto">
-              <div className="flex gap-2 glass-panel hairline-all p-1 rounded-full bg-void/20 backdrop-blur-xl">
+            <div className="flex flex-col items-start md:items-end gap-4 md:gap-6 mt-6 md:mt-0 pointer-events-auto">
+              <div className="flex gap-1 md:gap-2 glass-panel hairline-all p-1 rounded-full bg-void/20 backdrop-blur-xl max-w-full overflow-x-auto no-scrollbar">
                 {['Now', 'This Week', 'This Month'].map(tab => (
                   <button
                     key={tab}
                     onClick={() => setActiveTab(tab)}
                     className={cn(
-                      "micro-caps text-[10px] px-6 py-2.5 rounded-full transition-all duration-300",
+                      "micro-caps text-[9px] md:text-[10px] px-4 md:px-6 py-2 md:py-2.5 rounded-full transition-all duration-300 whitespace-nowrap",
                       activeTab === tab 
                         ? "bg-marble text-void font-bold shadow-lg" 
                         : "text-marble/40 hover:text-marble/80"
@@ -236,9 +236,9 @@ export default function TodayPage() {
                   </button>
                 ))}
               </div>
-              <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-void/40 backdrop-blur-md border border-white/5">
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-void/40 backdrop-blur-md border border-white/5">
                 <div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse shadow-[0_0_8px_rgba(74,222,128,0.5)]" />
-                <span className="micro-caps text-[10px] text-white/40 tracking-widest">{filteredMoments.length} Signals Intercepted</span>
+                <span className="micro-caps text-[9px] text-white/40 tracking-widest">{filteredMoments.length} Signals Intercepted</span>
               </div>
             </div>
           </div>
@@ -264,7 +264,7 @@ export default function TodayPage() {
                 initial={{ opacity: 0, y: 30 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.6 }}
-                className="font-serif text-5xl md:text-8xl text-white mb-6 leading-[0.9] tracking-tight"
+                className="font-serif text-4xl md:text-8xl text-white mb-6 leading-[0.9] tracking-tight"
               >
                 {heroMoment.title}
               </motion.h2>
@@ -273,29 +273,29 @@ export default function TodayPage() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.8 }}
-                className="flex flex-wrap items-center gap-8"
+                className="flex flex-col md:flex-row items-start md:items-center gap-6 md:gap-8"
               >
                 <div className="flex items-center gap-4">
-                  <div className="flex -space-x-3">
+                  <div className="flex -space-x-2">
                     {[...Array(Math.min(4, heroMoment.participant_count || 0))].map((_, i) => (
                       <img 
                         key={i} 
                         src={`https://i.pravatar.cc/100?u=${heroMoment.id}-${i}`}
-                        className="w-10 h-10 rounded-full border-2 border-void" 
+                        className="w-8 h-8 md:w-10 md:h-10 rounded-full border-2 border-void" 
                         alt="p"
                       />
                     ))}
                   </div>
-                  <span className="micro-caps text-xs text-marble/40">
+                  <span className="micro-caps text-[10px] text-marble/40">
                     {heroMoment.participant_count || 0} Attending
                   </span>
                 </div>
 
-                <div className="flex gap-4">
+                <div className="flex gap-3 w-full md:w-auto">
                   {!joinedIds.has(heroMoment.id) && (
                     <button
                       onClick={() => handleReject(heroMoment.id)}
-                      className="micro-caps text-sm px-8 py-4 rounded-full border border-white/20 text-white/60 
+                      className="flex-1 md:flex-none micro-caps text-[10px] md:text-sm px-6 py-3 md:py-4 rounded-full border border-white/20 text-white/60 
                         backdrop-blur-md hover:border-red-500 hover:text-red-400 hover:bg-red-500/10 transition-all duration-300"
                     >
                       Reject
@@ -305,7 +305,7 @@ export default function TodayPage() {
                     onClick={() => handleJoin(heroMoment.id)}
                     disabled={joinedIds.has(heroMoment.id) || joiningId === heroMoment.id}
                     className={cn(
-                      "micro-caps text-sm px-12 py-4 rounded-full font-bold transition-all duration-300",
+                      "flex-[2] md:flex-none micro-caps text-[10px] md:text-sm px-8 py-3 md:py-4 rounded-full font-bold transition-all duration-300",
                       joinedIds.has(heroMoment.id)
                         ? "bg-gold/20 text-gold border border-gold/40 cursor-default"
                         : "bg-marble text-void hover:bg-green-400 hover:text-void hover:shadow-[0_0_30px_rgba(74,222,128,0.3)]"
@@ -333,11 +333,11 @@ export default function TodayPage() {
 
       {/* EDITORIAL GRID */}
       {gridMoments.length > 0 && (
-        <section className="px-8 py-24 w-full">
-          <div className="flex items-end justify-between mb-16 px-2">
+        <section className="px-6 md:px-8 py-12 md:py-24 w-full">
+          <div className="flex items-end justify-between mb-8 md:mb-16 px-2">
             <div>
-              <span className="micro-caps text-xs text-gold tracking-[0.4em] mb-2 block">◈ More Signals</span>
-              <h2 className="font-serif text-5xl text-marble">Current Pulse</h2>
+              <span className="micro-caps text-[10px] md:text-xs text-gold tracking-[0.4em] mb-2 block">◈ More Signals</span>
+              <h2 className="font-serif text-4xl md:text-5xl text-marble">Current Pulse</h2>
             </div>
             <div className="text-right hidden md:block">
               <span className="micro-caps text-[10px] text-marble/30">SCROLL TO DISCOVER</span>

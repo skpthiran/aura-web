@@ -195,7 +195,7 @@ export default function CreatePage() {
               <div className="w-8 h-[1px] bg-gold/50" />
               <p className="micro-caps text-gold tracking-[0.3em] text-[10px]">Signal Protocol</p>
             </div>
-            <h1 className="font-serif text-5xl text-marble tracking-tight leading-none">
+            <h1 className="font-serif text-3xl md:text-5xl text-marble tracking-tight leading-tight">
               {step === 1 ? 'Choose Format' : 'Configure Signal'}
             </h1>
           </div>
@@ -228,7 +228,7 @@ export default function CreatePage() {
                   setMomentType('moment')
                   setStep(2)
                 }}
-                className="relative h-[500px] rounded-3xl overflow-hidden cursor-pointer group border border-white/5 hover:border-crimson/40 transition-colors shadow-2xl"
+                className="relative h-[400px] md:h-[500px] rounded-3xl overflow-hidden cursor-pointer group border border-white/5 hover:border-crimson/40 transition-colors shadow-2xl"
               >
                 <img src={momentBg} className="absolute inset-0 w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110" alt="Moment Background" />
                 <div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-transparent z-10" />
@@ -260,7 +260,7 @@ export default function CreatePage() {
                   setMomentType('event')
                   setStep(2)
                 }}
-                className="relative h-[500px] rounded-3xl overflow-hidden cursor-pointer group border border-white/5 hover:border-gold/40 transition-colors shadow-2xl"
+                className="relative h-[400px] md:h-[500px] rounded-3xl overflow-hidden cursor-pointer group border border-white/5 hover:border-gold/40 transition-colors shadow-2xl"
               >
                 <img src={eventBg} className="absolute inset-0 w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110" alt="Event Background" />
                 <div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-transparent z-10" />
@@ -313,7 +313,7 @@ export default function CreatePage() {
                       value={title}
                       onChange={(e) => setTitle(e.target.value)}
                       placeholder="ENTER SIGNAL TITLE..."
-                      className="w-full bg-void/50 border-b border-white/10 py-4 text-marble text-2xl outline-none focus:border-gold transition-all placeholder:text-marble/10 font-serif"
+                      className="w-full bg-void/50 border-b border-white/10 py-4 text-xl md:text-2xl text-marble outline-none focus:border-gold transition-all placeholder:text-marble/10 font-serif"
                     />
                   </div>
 
@@ -376,7 +376,7 @@ export default function CreatePage() {
                           display: 'block',
                           position: 'relative'
                         }}
-                        className="rounded-xl overflow-hidden border border-white/10"
+                        className="rounded-xl overflow-hidden border border-white/10 h-[240px] md:h-[280px]"
                       />
                       <div className="absolute bottom-6 left-6 right-6 glass-panel p-4 rounded-2xl border-white/10 flex justify-between items-center">
                         <div className="flex gap-6">
@@ -426,7 +426,7 @@ export default function CreatePage() {
               <button
                 disabled={loading || !title.trim() || !effectiveLat || (momentType === 'event' && !expiresAt)}
                 onClick={handleSubmit}
-                className="w-full h-20 bg-marble text-void rounded-2xl micro-caps tracking-[0.3em] font-bold text-sm disabled:opacity-20 transition-all hover:bg-gold-pale flex items-center justify-center gap-4 group relative overflow-hidden"
+                className="w-full h-16 md:h-20 bg-marble text-void rounded-2xl micro-caps tracking-[0.2em] md:tracking-[0.3em] font-bold text-xs md:text-sm disabled:opacity-20 transition-all hover:bg-gold-pale flex items-center justify-center gap-3 md:gap-4 group relative overflow-hidden"
               >
                 {loading ? (
                   <Loader2 className="w-6 h-6 animate-spin" />

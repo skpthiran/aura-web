@@ -4,7 +4,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { getJoinedMoments, getChatMessages, sendMessage } from '../lib/db/chat'
 import { ChatMessage } from '../types'
 import { supabase } from '../lib/supabase'
-import { Send, MessageSquare, Zap, Calendar, User } from 'lucide-react'
+import { Send, MessageSquare, Zap, Calendar, User, ArrowLeft } from 'lucide-react'
 import { cn } from '../lib/utils'
 import { Link } from 'react-router-dom'
 
@@ -83,7 +83,10 @@ export default function ChatPage() {
     <div className="flex-1 flex overflow-hidden w-full h-full">
       
       {/* Left panel — moment list */}
-      <div className="w-72 shrink-0 hairline-r flex flex-col glass-panel bg-void/50">
+      <div className={cn(
+        "w-full lg:w-72 shrink-0 hairline-r flex flex-col glass-panel bg-void/50",
+        activeMomentId && "hidden lg:flex"
+      )}>
         <div className="p-5 hairline-b">
           <p className="micro-caps text-gold text-xs mb-1">Channels</p>
           <h2 className="font-serif text-xl text-marble">Signal Chat</h2>
@@ -156,7 +159,10 @@ export default function ChatPage() {
       </div>
 
       {/* Right panel — messages */}
-      <div className="flex-1 flex flex-col overflow-hidden bg-void">
+      <div className={cn(
+        "flex-1 flex flex-col overflow-hidden bg-void",
+        !activeMomentId && "hidden lg:flex"
+      )}>
         {!activeMomentId ? (
           <div className="flex-1 flex items-center justify-center p-10">
             <div className="text-center">
@@ -172,14 +178,21 @@ export default function ChatPage() {
         ) : (
           <>
             {/* Header info for mobile/active context */}
-            <div className="px-6 py-4 hairline-b bg-void/80 backdrop-blur-md flex items-center justify-between">
-               <div>
-                  <h3 className="font-serif text-lg text-marble">
+            <div className="px-5 lg:px-6 py-4 lg:py-5 hairline-b bg-void/80 backdrop-blur-md flex items-center gap-4 safe-area-pt lg:safe-area-pt-0">
+               <button 
+                onClick={() => setActiveMomentId(null)}
+                className="lg:hidden w-8 h-8 flex items-center justify-center rounded-full bg-white/5 border border-white/10"
+               >
+                 <ArrowLeft className="w-4 h-4 text-marble" />
+               </button>
+               
+               <div className="flex-1">
+                  <h3 className="font-serif text-lg text-marble leading-tight truncate">
                     {joinedMoments.find(m => m.moment_id === activeMomentId)?.moments?.title}
                   </h3>
                   <div className="flex items-center gap-2">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                    <span className="micro-caps text-[10px] text-marble/40 tracking-widest">REALTIME_ENCRYPTED</span>
+                    <span className="micro-caps text-[9px] text-marble/40 tracking-widest uppercase">ENCRYPT_SIGNAL</span>
                   </div>
                </div>
             </div>
@@ -261,7 +274,7 @@ export default function ChatPage() {
             </div>
 
             {/* Input area */}
-            <div className="p-4 bg-void/50 backdrop-blur-sm">
+            <div className="p-4 bg-void/50 backdrop-blur-sm safe-area-pb lg:pb-6">
               <div className="max-w-4xl mx-auto flex gap-3 items-center glass-panel 
                 hairline-all bg-void/80 rounded-2xl px-4 py-2 focus-within:border-gold/30 transition-all shadow-xl">
                 <input
