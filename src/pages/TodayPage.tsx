@@ -156,8 +156,22 @@ export default function TodayPage() {
   }
 
   const filteredMoments = useMemo(() => {
-    return moments.filter(m => !rejectedIds.has(m.id))
-  }, [moments, rejectedIds])
+    const nowTime = Date.now()
+    const in24h = nowTime + 24 * 60 * 60 * 1000
+    const in7d = nowTime + 7 * 24 * 60 * 60 * 1000
+    const in30d = nowTime + 30 * 24 * 60 * 60 * 1000
+
+    return moments.filter(m => {
+      if (rejectedIds.has(m.id)) return false
+      const expiresTime = new Date(m.expires_at).getTime()
+      if (expiresTime < nowTime) return false // already expired
+      
+      if (activeTab === 'Now') return expiresTime <= in24h
+      if (activeTab === 'This Week') return expiresTime <= in7d
+      if (activeTab === 'This Month') return expiresTime <= in30d
+      return true
+    })
+  }, [moments, rejectedIds, activeTab])
 
   const heroMoment = filteredMoments[0]
   const gridMoments = filteredMoments.slice(1)

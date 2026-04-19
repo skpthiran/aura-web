@@ -17,6 +17,7 @@ export default function ChatPage() {
   const [sending, setSending] = useState(false)
   const [loadingMoments, setLoadingMoments] = useState(true)
   const [loadingMessages, setLoadingMessages] = useState(false)
+  const [chatFilter, setChatFilter] = useState<'all' | 'moments' | 'events'>('all')
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   // Load joined moments on mount
@@ -79,6 +80,14 @@ export default function ChatPage() {
     }
   }
 
+  const filteredJoinedMoments = joinedMoments.filter(item => {
+    const moment = item.moments as any
+    if (!moment) return false
+    if (chatFilter === 'moments') return moment.moment_type === 'moment'
+    if (chatFilter === 'events') return moment.moment_type === 'event'
+    return true
+  })
+
   return (
     <div className="flex-1 flex overflow-hidden w-full h-full">
       
@@ -87,9 +96,36 @@ export default function ChatPage() {
         "w-full lg:w-72 shrink-0 hairline-r flex flex-col glass-panel bg-void/50",
         activeMomentId && "hidden lg:flex"
       )}>
-        <div className="p-5 hairline-b">
-          <p className="micro-caps text-gold text-xs mb-1">Channels</p>
-          <h2 className="font-serif text-xl text-marble">Signal Chat</h2>
+        <div className="p-5 hairline-b flex items-center justify-between">
+          <div>
+            <p className="micro-caps text-gold text-xs mb-1">Channels</p>
+            <h2 className="font-serif text-xl text-marble">Signal Chat</h2>
+          </div>
+          <p className="micro-caps text-[10px] text-marble/30 font-mono">
+            {filteredJoinedMoments.length} ACTIVE
+          </p>
+        </div>
+        
+        {/* Filter tabs */}
+        <div className="px-3 py-3 flex gap-1.5 hairline-b bg-void/20">
+          {[
+            { key: 'all', label: 'All' },
+            { key: 'moments', label: 'Moments' },
+            { key: 'events', label: 'Events' },
+          ].map(tab => (
+            <button
+              key={tab.key}
+              onClick={() => setChatFilter(tab.key as any)}
+              className={cn(
+                'flex-1 micro-caps text-[9px] py-1.5 rounded-full transition-all border',
+                chatFilter === tab.key
+                  ? 'bg-marble text-void border-marble font-bold'
+                  : 'bg-white/5 border-white/5 text-marble/40 hover:text-marble/70'
+              )}
+            >
+              {tab.label}
+            </button>
+          ))}
         </div>
         
         <div className="flex-1 overflow-y-auto p-3 custom-scrollbar">
@@ -114,7 +150,7 @@ export default function ChatPage() {
             </div>
           )}
           
-          {joinedMoments.map((item) => {
+          {filteredJoinedMoments.map((item) => {
             const moment = item.moments as any
             if (!moment) return null
             const isActive = activeMomentId === item.moment_id
