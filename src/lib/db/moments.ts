@@ -101,15 +101,48 @@ export async function createMoment(payload: {
   return data as Moment
 }
 
-export async function joinMoment(momentId: string): Promise<void> {
+export async function joinMoment(momentId: string): Promise<{ 
+  status: 'joined' | 'waitlist', position?: number 
+}> {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error('Not authenticated')
 
+  // Check current participant count vs capacity
+  const { data: moment } = await supabase
+    .from('moments')
+    .select('capacity_limit')
+    .eq('id', momentId)
+    .single()
+
+  const { count: currentCount } = await supabase
+    .from('participants')
+    .select('id', { count: 'exact', head: true })
+    .eq('moment_id', momentId)
+    .eq('status', 'joined')
+
+  const isFull = (currentCount ?? 0) >= (moment?.capacity_limit ?? 999)
+
+  // Get waitlist count for position
+  const { count: waitlistCount } = await supabase
+    .from('participants')
+    .select('id', { count: 'exact', head: true })
+    .eq('moment_id', momentId)
+    .eq('status', 'waitlist')
+
+  const status = isFull ? 'waitlist' : 'joined'
+  const position = isFull ? (waitlistCount ?? 0) + 1 : undefined
+
   const { error } = await supabase
     .from('participants')
-    .insert({ moment_id: momentId, user_id: user.id })
+    .upsert({
+      moment_id: momentId,
+      user_id: user.id,
+      status,
+      position: position ?? null,
+    }, { onConflict: 'moment_id,user_id' })
 
   if (error) throw error
+  return { status, position }
 }
 
 export async function leaveMoment(momentId: string): Promise<void> {

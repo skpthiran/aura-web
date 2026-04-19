@@ -8,7 +8,7 @@ import { usePageTitle } from '../hooks/usePageTitle'
 import { 
   ArrowLeft, MapPin, Clock, Users, Calendar, 
   Zap, Tag, MessageSquare, Share2, Loader, Copy, Check,
-  MoreVertical, Shield, Flag, Bell, Navigation
+  MoreVertical, Shield, Flag, Bell, Navigation, AlertTriangle
 } from 'lucide-react'
 import { cn } from '../lib/utils'
 import { Moment } from '../types'
@@ -22,6 +22,10 @@ export default function MomentDetailPage() {
   const [joining, setJoining] = useState(false)
   const [isJoined, setIsJoined] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [waitlistPosition, setWaitlistPosition] = useState<number | null>(null)
+  const [isFull, setIsFull] = useState(false)
+  const [participantCount, setParticipantCount] = useState(0)
+  const [waitlistTotal, setWaitlistTotal] = useState(0)
   const [creator, setCreator] = useState<{
     id: string
     full_name: string | null
@@ -41,17 +45,33 @@ export default function MomentDetailPage() {
           return
         }
         setMoment(data)
+        const currentCount = data.participant_count || 0
+        setParticipantCount(currentCount)
+        setIsFull(currentCount >= (data.capacity_limit || 999))
         
+        // Fetch waitlist count
+        const { count: wlCount } = await supabase
+          .from('participants')
+          .select('id', { count: 'exact', head: true })
+          .eq('moment_id', id)
+          .eq('status', 'waitlist')
+        setWaitlistTotal(wlCount || 0)
+
         // Check if user is already a participant
         if (user) {
           const { data: participant } = await supabase
             .from('participants')
-            .select('*')
+            .select('status, position')
             .eq('moment_id', id)
             .eq('user_id', user.id)
             .single()
           
-          if (participant) setIsJoined(true)
+          if (participant) {
+            setIsJoined(true)
+            if (participant.status === 'waitlist') {
+              setWaitlistPosition(participant.position)
+            }
+          }
         }
 
         // Fetch creator profile
@@ -77,10 +97,14 @@ export default function MomentDetailPage() {
     if (!user || !moment || joining || isJoined) return
     setJoining(true)
     try {
-      await joinMoment(moment.id)
+      const res = await joinMoment(moment.id)
       setIsJoined(true)
-      // Update local count
-      setMoment(prev => prev ? { ...prev, participant_count: (prev.participant_count || 0) + 1 } : null)
+      if (res.status === 'waitlist') {
+        setWaitlistPosition(res.position || null)
+        setWaitlistTotal(prev => prev + 1)
+      } else {
+        setParticipantCount(prev => prev + 1)
+      }
     } catch (err) {
       console.error(err)
     } finally {
@@ -359,10 +383,10 @@ export default function MomentDetailPage() {
               <div className="glass-panel hairline-all rounded-2xl p-4 text-center">
                 <Users className="w-4 h-4 text-gold mx-auto mb-2" />
                 <p className="font-serif text-2xl text-marble">
-                  {moment.participant_count || 0}
+                  {participantCount}
                 </p>
-                <p className="micro-caps text-xs text-marble/30">
-                  / {moment.capacity_limit || '∞'} spots
+                <p className="micro-caps text-[10px] text-marble/30">
+                  {waitlistTotal > 0 ? `+${waitlistTotal} waiting` : `/ ${moment.capacity_limit || '∞'} spots`}
                 </p>
               </div>
               <div className="glass-panel hairline-all rounded-2xl p-4 text-center">
@@ -450,11 +474,35 @@ export default function MomentDetailPage() {
           {/* Action Column */}
           <div className="lg:col-span-5 space-y-6">
              {/* REGISTRATION PANEL */}
-             <div className="glass-panel p-8 rounded-[40px] border border-white/10 shadow-2xl relative overflow-hidden">
+              <div className="glass-panel p-8 rounded-[40px] border border-white/10 shadow-2xl relative overflow-hidden">
                 <div className="absolute top-0 right-0 w-32 h-32 bg-gold/5 blur-3xl -mr-16 -mt-16" />
                 
                 <h2 className="font-serif text-3xl text-marble mb-2">Engage Signal</h2>
-                <p className="text-xs text-marble/40 micro-caps tracking-widest mb-8">CONNECTION STATUS: {isJoined ? 'ACTIVE' : 'IDLE'}</p>
+                <p className="text-xs text-marble/40 micro-caps tracking-widest mb-8">
+                  {waitlistPosition ? `WAITLIST POSITION: #${waitlistPosition}` : `CONNECTION STATUS: ${isJoined ? 'ACTIVE' : 'IDLE'}`}
+                </p>
+
+                {/* Capacity progress bar */}
+                {moment.capacity_limit && (
+                  <div className="mb-6">
+                    <div className="flex justify-between items-end mb-2">
+                      <span className="micro-caps text-[10px] text-marble/40">Network Capacity</span>
+                      <span className="text-[10px] text-marble/60 font-mono">
+                        {participantCount}/{moment.capacity_limit}
+                      </span>
+                    </div>
+                    <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden">
+                      <motion.div 
+                        initial={{ width: 0 }}
+                        animate={{ width: `${Math.min(100, (participantCount / moment.capacity_limit) * 100)}%` }}
+                        className={cn(
+                          "h-full rounded-full",
+                          isFull ? "bg-crimson-bright shadow-[0_0_10px_rgba(255,50,50,0.5)]" : "bg-gold"
+                        )}
+                      />
+                    </div>
+                  </div>
+                )}
 
                 <div className="space-y-4">
                   <button 
@@ -463,14 +511,18 @@ export default function MomentDetailPage() {
                     className={cn(
                       "w-full py-5 rounded-2xl micro-caps text-sm tracking-[0.3em] font-bold transition-all shadow-xl flex items-center justify-center gap-3",
                       isJoined 
-                        ? "bg-gold/10 text-gold border border-gold/30 cursor-default" 
-                        : "bg-gold text-void hover:bg-gold-pale hover:shadow-gold/20"
+                        ? (waitlistPosition ? "bg-crimson/10 text-crimson-bright border border-crimson/30" : "bg-gold/10 text-gold border border-gold/30") 
+                        : (isFull ? "bg-white/10 text-marble border border-white/20" : "bg-gold text-void hover:bg-gold-pale hover:shadow-gold/20")
                     )}
                   >
                     {joining ? (
                       <><Loader className="w-5 h-5 animate-spin" /> PROCESSING</>
+                    ) : waitlistPosition ? (
+                      <><Shield className="w-5 h-5" /> ON WAITLIST #{waitlistPosition}</>
                     ) : isJoined ? (
                       <><Zap className="w-5 h-5 animate-pulse" /> CONNECTION ESTABLISHED</>
+                    ) : isFull ? (
+                      <><AlertTriangle className="w-5 h-5" /> JOIN WAITLIST</>
                     ) : (
                       <><Zap className="w-5 h-5" /> INITIALIZE ENGAGEMENT</>
                     )}
@@ -485,12 +537,12 @@ export default function MomentDetailPage() {
                       {copied ? 'COPIED' : 'SHARE'}
                     </button>
                     
-                    <Link to={isJoined ? `/app/chat?id=${moment.id}` : '#'} 
+                    <Link to={isJoined && !waitlistPosition ? `/app/chat?id=${moment.id}` : '#'} 
                       className={cn(
                         "py-4 rounded-xl glass-panel hairline-all micro-caps text-[10px] tracking-widest transition-all flex items-center justify-center gap-2",
-                        isJoined ? "text-marble/60 hover:text-marble cursor-pointer" : "text-marble/10 cursor-not-allowed"
+                        isJoined && !waitlistPosition ? "text-marble/60 hover:text-marble cursor-pointer" : "text-marble/10 cursor-not-allowed"
                       )}
-                      onClick={(e) => !isJoined && e.preventDefault()}
+                      onClick={(e) => (!isJoined || waitlistPosition) && e.preventDefault()}
                     >
                       <MessageSquare className="w-4 h-4" /> COMMS
                     </Link>
@@ -502,13 +554,17 @@ export default function MomentDetailPage() {
                     By engaging this signal, you agree to Aura's discretion protocols and community guidelines.
                   </p>
                 )}
-             </div>
+              </div>
 
-             {/* PARTICIPANTS LIST */}
              <div className="glass-panel p-8 rounded-[32px]">
                 <div className="flex items-center justify-between mb-8">
                   <h3 className="micro-caps text-xs text-marble/50 tracking-[0.3em]">NETWORK PRESENCE</h3>
-                  <span className="text-[10px] bg-white/5 px-2 py-0.5 rounded text-gold/60">{moment.participant_count || 0}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] bg-white/5 px-2 py-0.5 rounded text-gold/60">{participantCount}</span>
+                    {waitlistTotal > 0 && (
+                      <span className="text-[10px] bg-crimson/10 px-2 py-0.5 rounded text-crimson-bright">+{waitlistTotal}</span>
+                    )}
+                  </div>
                 </div>
 
                 <div className="space-y-4">

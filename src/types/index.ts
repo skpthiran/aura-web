@@ -47,7 +47,8 @@ export interface Participant {
   id: string
   moment_id: string
   user_id: string
-  status: 'pending' | 'joined' | 'left'
+  status: 'pending' | 'joined' | 'left' | 'waitlist'
+  position?: number
   joined_at: string
 }
 
