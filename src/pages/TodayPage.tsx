@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useEffect } from 'react'
 import { motion } from 'motion/react'
 import { Link } from 'react-router-dom'
 import { Radio, Users, Loader, MapPin, Zap } from 'lucide-react'
@@ -90,19 +90,22 @@ const MomentGridCard: React.FC<MomentGridCardProps> = ({
             {!isJoined && (
               <button
                 onClick={(e) => { e.stopPropagation(); onReject(); }}
-                className="p-2 rounded-full border border-white/10 text-white/40 hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/50 transition-all"
+                className="micro-caps text-[10px] px-4 py-2 rounded-full 
+                  border border-white/20 text-marble/60 
+                  hover:border-red-500 hover:text-red-400 hover:bg-red-500/10 
+                  transition-all duration-300"
               >
-                <Zap size={14} className="rotate-12" />
+                Reject
               </button>
             )}
             <button
               onClick={(e) => { e.stopPropagation(); onJoin(); }}
               disabled={isJoined || isJoining}
               className={cn(
-                "micro-caps text-[10px] px-4 py-2 rounded-full font-medium transition-all",
+                "micro-caps text-[10px] px-4 py-2 rounded-full transition-all duration-300",
                 isJoined 
-                  ? "bg-gold/20 text-gold border border-gold/40" 
-                  : "bg-white text-void hover:bg-green-400"
+                  ? "bg-gold/20 text-gold border border-gold/40 cursor-default" 
+                  : "bg-white text-void hover:bg-green-400 hover:text-void hover:shadow-lg hover:shadow-green-400/20 font-medium"
               )}
             >
               {isJoining ? '...' : isJoined ? 'Joined' : 'Join'}
@@ -122,7 +125,14 @@ export default function TodayPage() {
   
   const [joiningId, setJoiningId] = useState<string | null>(null)
   const [joinedIds, setJoinedIds] = useState<Set<string>>(new Set())
-  const [rejectedIds, setRejectedIds] = useState<Set<string>>(new Set())
+  const [rejectedIds, setRejectedIds] = useState<Set<string>>(() => {
+    try {
+      const saved = sessionStorage.getItem('aura-rejected-ids')
+      return saved ? new Set(JSON.parse(saved)) : new Set()
+    } catch {
+      return new Set()
+    }
+  })
 
   const handleJoin = async (momentId: string) => {
     if (!user || joinedIds.has(momentId)) return
@@ -138,7 +148,11 @@ export default function TodayPage() {
   }
 
   const handleReject = (momentId: string) => {
-    setRejectedIds(prev => new Set([...prev, momentId]))
+    setRejectedIds(prev => {
+      const next = new Set([...prev, momentId])
+      sessionStorage.setItem('aura-rejected-ids', JSON.stringify([...next]))
+      return next
+    })
   }
 
   const filteredMoments = useMemo(() => {
@@ -185,29 +199,47 @@ export default function TodayPage() {
             </motion.h1>
           </div>
 
-          {/* TOP NAVIGATION OVERLAY */}
-          <div className="absolute top-0 left-0 right-0 p-8 flex justify-between items-start z-20">
-            <div className="flex flex-col gap-1">
-              <span className="micro-caps text-[10px] text-gold tracking-[0.4em]">◈ Live Discovery</span>
-              <div className="flex items-center gap-2">
-                <div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
-                <span className="micro-caps text-[10px] text-white/40">{filteredMoments.length} Signals Found</span>
-              </div>
+          {/* RESTORED CORE HEADER */}
+          <div className="absolute top-0 left-0 right-0 p-8 md:p-12 z-30 flex flex-col md:flex-row items-end justify-between pointer-events-none">
+            <div className="pointer-events-auto">
+              <motion.p 
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                className="micro-caps text-gold text-xs tracking-[0.4em] mb-4"
+              >
+                ◈ Live Discovery · Spontaneous Activity
+              </motion.p>
+              <motion.h1 
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.8 }}
+                className="font-serif text-8xl md:text-[120px] leading-none text-marble tracking-tighter opacity-90"
+              >
+                Pulse
+              </motion.h1>
             </div>
-
-            <div className="flex gap-2 glass-panel hairline-all p-1 rounded-full scale-90 md:scale-100">
-              {['Now', 'This Week', 'This Month'].map(tab => (
-                <button
-                  key={tab}
-                  onClick={() => setActiveTab(tab)}
-                  className={cn(
-                    "micro-caps text-[10px] px-5 py-2 rounded-full transition-all",
-                    activeTab === tab ? "bg-marble text-void font-bold" : "text-marble/40 hover:text-marble/80"
-                  )}
-                >
-                  {tab}
-                </button>
-              ))}
+            
+            <div className="flex flex-col items-end gap-6 mt-8 md:mt-0 pointer-events-auto">
+              <div className="flex gap-2 glass-panel hairline-all p-1 rounded-full bg-void/20 backdrop-blur-xl">
+                {['Now', 'This Week', 'This Month'].map(tab => (
+                  <button
+                    key={tab}
+                    onClick={() => setActiveTab(tab)}
+                    className={cn(
+                      "micro-caps text-[10px] px-6 py-2.5 rounded-full transition-all duration-300",
+                      activeTab === tab 
+                        ? "bg-marble text-void font-bold shadow-lg" 
+                        : "text-marble/40 hover:text-marble/80"
+                    )}
+                  >
+                    {tab}
+                  </button>
+                ))}
+              </div>
+              <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-void/40 backdrop-blur-md border border-white/5">
+                <div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse shadow-[0_0_8px_rgba(74,222,128,0.5)]" />
+                <span className="micro-caps text-[10px] text-white/40 tracking-widest">{filteredMoments.length} Signals Intercepted</span>
+              </div>
             </div>
           </div>
 
@@ -263,19 +295,20 @@ export default function TodayPage() {
                   {!joinedIds.has(heroMoment.id) && (
                     <button
                       onClick={() => handleReject(heroMoment.id)}
-                      className="micro-caps text-sm px-8 py-4 rounded-full border border-white/20 text-white/60 hover:bg-white/5 transition-all"
+                      className="micro-caps text-sm px-8 py-4 rounded-full border border-white/20 text-white/60 
+                        backdrop-blur-md hover:border-red-500 hover:text-red-400 hover:bg-red-500/10 transition-all duration-300"
                     >
-                      Skip
+                      Reject
                     </button>
                   )}
                   <button
                     onClick={() => handleJoin(heroMoment.id)}
                     disabled={joinedIds.has(heroMoment.id) || joiningId === heroMoment.id}
                     className={cn(
-                      "micro-caps text-sm px-12 py-4 rounded-full font-bold transition-all",
+                      "micro-caps text-sm px-12 py-4 rounded-full font-bold transition-all duration-300",
                       joinedIds.has(heroMoment.id)
-                        ? "bg-gold/20 text-gold border border-gold/40"
-                        : "bg-marble text-void hover:bg-gold-pale hover:shadow-[0_0_30px_rgba(255,255,255,0.2)]"
+                        ? "bg-gold/20 text-gold border border-gold/40 cursor-default"
+                        : "bg-marble text-void hover:bg-green-400 hover:text-void hover:shadow-[0_0_30px_rgba(74,222,128,0.3)]"
                     )}
                   >
                     {joiningId === heroMoment.id ? 'Processing...' : joinedIds.has(heroMoment.id) ? 'Joined' : 'Join Signal'}
@@ -300,7 +333,7 @@ export default function TodayPage() {
 
       {/* EDITORIAL GRID */}
       {gridMoments.length > 0 && (
-        <section className="px-8 py-24 max-w-screen-2xl mx-auto">
+        <section className="px-8 py-24 w-full">
           <div className="flex items-end justify-between mb-16 px-2">
             <div>
               <span className="micro-caps text-xs text-gold tracking-[0.4em] mb-2 block">◈ More Signals</span>

@@ -56,7 +56,9 @@ export default function CreatePage() {
 
   useEffect(() => {
     if (step === 2 && mapPickerRef.current && !mapPickerInstance.current) {
-      const timer = setTimeout(() => {
+      let rafId: number
+      
+      const initMap = () => {
         if (!mapPickerRef.current) return
         
         const centerLat = location?.latitude ?? 6.9271
@@ -106,10 +108,12 @@ export default function CreatePage() {
             setCustomLng(e.lngLat.lng)
           })
         })
-      }, 300)
+      }
+
+      rafId = requestAnimationFrame(initMap)
 
       return () => {
-        clearTimeout(timer)
+        cancelAnimationFrame(rafId)
         if (mapPickerInstance.current) {
           mapPickerInstance.current.remove()
           mapPickerInstance.current = null
