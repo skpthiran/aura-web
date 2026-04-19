@@ -55,17 +55,36 @@ export default function CreatePage() {
   const maxDate = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 16) // +30 days
 
   useEffect(() => {
-    if (step === 2 && mapPickerRef.current && !mapPickerInstance.current) {
-      let rafId: number
+    if (step !== 2) return
+    
+    let map: MapLibreMap | null = null
+    let attempts = 0
+    
+    const tryInit = () => {
+      attempts++
+      const container = mapPickerRef.current
+      if (!container) {
+        if (attempts < 20) setTimeout(tryInit, 100)
+        return
+      }
       
-      const initMap = () => {
-        if (!mapPickerRef.current) return
-        
-        const centerLat = location?.latitude ?? 6.9271
-        const centerLng = location?.longitude ?? 79.8612
-        
-        const map = new MapLibreMap({
-          container: mapPickerRef.current,
+      // Force container to have dimensions
+      container.style.width = '100%'
+      container.style.height = '280px'
+      container.style.display = 'block'
+      
+      const rect = container.getBoundingClientRect()
+      if (rect.width === 0 || rect.height === 0) {
+        if (attempts < 20) setTimeout(tryInit, 100)
+        return
+      }
+      
+      const centerLat = location?.latitude ?? 6.9271
+      const centerLng = location?.longitude ?? 79.8612
+      
+      try {
+        map = new MapLibreMap({
+          container,
           style: MAPTILER_STYLE,
           center: [centerLng, centerLat],
           zoom: 13,
@@ -77,7 +96,7 @@ export default function CreatePage() {
         mapPickerInstance.current = map
         
         map.on('load', () => {
-          map.resize()
+          map!.resize()
           
           const el = document.createElement('div')
           el.style.cssText = `
@@ -86,38 +105,44 @@ export default function CreatePage() {
             background: #d4af37;
             border: 3px solid white;
             border-radius: 50%;
-            box-shadow: 0 0 20px rgba(212,175,55,0.6);
+            box-shadow: 0 0 0 6px rgba(212,175,55,0.3);
             cursor: grab;
           `
           
           const marker = new Marker({ element: el, draggable: true })
             .setLngLat([centerLng, centerLat])
-            .addTo(map)
+            .addTo(map!)
           
           pickerMarkerRef.current = marker
           
           marker.on('dragend', () => {
-            const lngLat = marker.getLngLat()
-            setCustomLat(lngLat.lat)
-            setCustomLng(lngLat.lng)
+            const ll = marker.getLngLat()
+            setCustomLat(ll.lat)
+            setCustomLng(ll.lng)
           })
           
-          map.on('click', (e) => {
+          map!.on('click', (e) => {
             marker.setLngLat([e.lngLat.lng, e.lngLat.lat])
             setCustomLat(e.lngLat.lat)
             setCustomLng(e.lngLat.lng)
           })
         })
+        
+        map.on('error', (e) => console.error('Map error:', e))
+        
+      } catch(err) {
+        console.error('Map init error:', err)
       }
-
-      rafId = requestAnimationFrame(initMap)
-
-      return () => {
-        cancelAnimationFrame(rafId)
-        if (mapPickerInstance.current) {
-          mapPickerInstance.current.remove()
-          mapPickerInstance.current = null
-        }
+    }
+    
+    // Start trying after a short delay
+    const timer = setTimeout(tryInit, 200)
+    
+    return () => {
+      clearTimeout(timer)
+      if (map) {
+        map.remove()
+        mapPickerInstance.current = null
         pickerMarkerRef.current = null
       }
     }
@@ -343,7 +368,16 @@ export default function CreatePage() {
                   <div className="space-y-4">
                     <label className="micro-caps text-marble/30 text-[10px] tracking-[0.3em]">GEOSPATIAL ANCHOR</label>
                     <div className="relative rounded-3xl overflow-hidden border border-white/10 h-[380px] group">
-                      <div ref={mapPickerRef} className="w-full h-full" />
+                      <div
+                        ref={mapPickerRef}
+                        style={{ 
+                          width: '100%', 
+                          height: '280px', 
+                          display: 'block',
+                          position: 'relative'
+                        }}
+                        className="rounded-xl overflow-hidden border border-white/10"
+                      />
                       <div className="absolute bottom-6 left-6 right-6 glass-panel p-4 rounded-2xl border-white/10 flex justify-between items-center">
                         <div className="flex gap-6">
                           <div>
