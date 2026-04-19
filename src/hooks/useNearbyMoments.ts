@@ -4,7 +4,7 @@ import { getNearbyMoments } from '../lib/db/moments'
 import { DEFAULT_RADIUS_METERS } from '../lib/constants'
 import { UserLocation } from '../types'
 
-export function useNearbyMoments(location: UserLocation | null, filterType: string = 'Now') {
+export function useNearbyMoments(location: UserLocation | null, filterType: string = 'All') {
   const [moments, setMoments] = useState<Moment[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -38,7 +38,7 @@ export function useNearbyMoments(location: UserLocation | null, filterType: stri
           return d > now && d < nextMonth
         })
       }
-
+      // If filterType is 'All' or anything else, return unfiltered data
       setMoments(filtered)
     } catch (err) {
       console.error('Error fetching moments:', err)
