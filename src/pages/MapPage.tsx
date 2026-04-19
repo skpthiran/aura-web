@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'motion/react'
 import { Map as MapLibreMap, Marker } from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
@@ -332,7 +333,9 @@ export default function MapPage() {
                   <div className="micro-caps text-[10px] text-gold-pale mb-2 md:mb-3 flex items-center gap-2">
                     <Radar className="w-3 h-3" /> Signal Intercepted
                   </div>
-                  <h2 className="font-serif text-3xl md:text-5xl text-marble tracking-[-0.02em] leading-tight md:leading-normal">{selectedMoment.title}</h2>
+                  <Link to={`/app/moment/${selectedMoment.id}`}>
+                    <h2 className="font-serif text-3xl md:text-5xl text-marble tracking-[-0.02em] leading-tight md:leading-normal hover:text-gold transition-colors cursor-pointer">{selectedMoment.title}</h2>
+                  </Link>
                 </div>
               </div>
 
@@ -368,10 +371,16 @@ export default function MapPage() {
                  <div className="pt-2 md:pt-4 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
                     <button 
                       onClick={() => setSelectedMoment(null)} 
-                      className="order-2 md:order-1 micro-caps text-[9px] md:text-xs text-marble/30 hover:text-marble transition-colors uppercase cursor-pointer text-center md:text-left py-2"
+                      className="order-3 md:order-1 micro-caps text-[9px] md:text-xs text-marble/30 hover:text-marble transition-colors uppercase cursor-pointer text-center md:text-left py-2"
                     >
                       Close Interface
                     </button>
+                    <Link 
+                      to={`/app/moment/${selectedMoment.id}`}
+                      className="order-2 micro-caps text-[9px] md:text-xs text-gold/60 hover:text-gold transition-colors uppercase text-center py-2 px-4 border border-gold/20 rounded-full"
+                    >
+                      View Signal Dossier
+                    </Link>
                     <button 
                       disabled={isJoining || hasJoined}
                       onClick={handleJoinMoment}

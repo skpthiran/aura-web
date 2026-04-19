@@ -50,74 +50,84 @@ const MomentGridCard: React.FC<MomentGridCardProps> = ({
   }, [moment.expires_at])
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.1 * (index % 5), duration: 0.6 }}
-      className="group relative h-[450px] overflow-hidden rounded-2xl border border-white/5 
-        hover:border-white/10 transition-all duration-500"
-    >
-      <img
-        src={`https://picsum.photos/seed/${moment.id}/800/1200`}
-        className="absolute inset-0 h-full w-full object-cover transition-transform duration-[3s] group-hover:scale-110"
-        alt={moment.title}
-        onError={(e) => { 
-          e.currentTarget.style.opacity = '0'
-        }}
-      />
-      <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent" />
-      
-      {/* Top badges */}
-      <div className="absolute top-4 left-4 flex gap-2 z-10">
-        <span className={cn(
-          "micro-caps text-[10px] px-2.5 py-1 rounded-full border backdrop-blur-md",
-          isEvent ? "bg-gold/10 border-gold/40 text-gold" : "bg-crimson/10 border-crimson/40 text-crimson-bright"
-        )}>
-          {isEvent ? '◈ Event' : '⚡ Moment'}
-        </span>
-      </div>
-
-      {/* Bottom content */}
-      <div className="absolute bottom-0 left-0 right-0 p-5 z-10">
-        <h3 className="font-serif text-2xl text-white mb-3 group-hover:text-gold-pale transition-colors">
-          {moment.title}
-        </h3>
+    <Link to={`/app/moment/${moment.id}`}>
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.1 * (index % 5), duration: 0.6 }}
+        className="group relative h-[450px] overflow-hidden rounded-2xl border border-white/5 
+          hover:border-white/10 transition-all duration-500 cursor-pointer"
+      >
+        <img
+          src={`https://picsum.photos/seed/${moment.id}/800/1200`}
+          className="absolute inset-0 h-full w-full object-cover transition-transform duration-[3s] group-hover:scale-110"
+          alt={moment.title}
+          onError={(e) => { 
+            e.currentTarget.style.opacity = '0'
+          }}
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent" />
         
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3 text-[10px] micro-caps text-white/40">
-            <span className="flex items-center gap-1"><Users size={10} /> {moment.participant_count ?? 0}</span>
-            <span>{distanceDisplay}</span>
-            <span>{timeDisplay}</span>
-          </div>
+        {/* Top badges */}
+        <div className="absolute top-4 left-4 flex gap-2 z-10">
+          <span className={cn(
+            "micro-caps text-[10px] px-2.5 py-1 rounded-full border backdrop-blur-md",
+            isEvent ? "bg-gold/10 border-gold/40 text-gold" : "bg-crimson/10 border-crimson/40 text-crimson-bright"
+          )}>
+            {isEvent ? '◈ Event' : '⚡ Moment'}
+          </span>
+        </div>
+
+        {/* Bottom content */}
+        <div className="absolute bottom-0 left-0 right-0 p-5 z-10">
+          <h3 className="font-serif text-2xl text-white mb-3 group-hover:text-gold-pale transition-colors">
+            {moment.title}
+          </h3>
           
-          <div className="flex gap-2">
-            {!isJoined && (
-              <button
-                onClick={(e) => { e.stopPropagation(); onReject(); }}
-                className="micro-caps text-[10px] px-4 py-2 rounded-full 
-                  border border-white/20 text-marble/60 
-                  hover:border-red-500 hover:text-red-400 hover:bg-red-500/10 
-                  transition-all duration-300"
-              >
-                Reject
-              </button>
-            )}
-            <button
-              onClick={(e) => { e.stopPropagation(); onJoin(); }}
-              disabled={isJoined || isJoining}
-              className={cn(
-                "micro-caps text-[10px] px-4 py-2 rounded-full transition-all duration-300",
-                isJoined 
-                  ? "bg-gold/20 text-gold border border-gold/40 cursor-default" 
-                  : "bg-white text-void hover:bg-green-400 hover:text-void hover:shadow-lg hover:shadow-green-400/20 font-medium"
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3 text-[10px] micro-caps text-white/40">
+              <span className="flex items-center gap-1"><Users size={10} /> {moment.participant_count ?? 0}</span>
+              <span>{distanceDisplay}</span>
+              <span>{timeDisplay}</span>
+            </div>
+            
+            <div className="flex gap-2">
+              {!isJoined && (
+                <button
+                  onClick={(e) => { 
+                    e.preventDefault();
+                    e.stopPropagation(); 
+                    onReject(); 
+                  }}
+                  className="micro-caps text-[10px] px-4 py-2 rounded-full 
+                    border border-white/20 text-marble/60 
+                    hover:border-red-500 hover:text-red-400 hover:bg-red-500/10 
+                    transition-all duration-300"
+                >
+                  Reject
+                </button>
               )}
-            >
-              {isJoining ? '...' : isJoined ? 'Joined' : 'Join'}
-            </button>
+              <button
+                onClick={(e) => { 
+                  e.preventDefault();
+                  e.stopPropagation(); 
+                  onJoin(); 
+                }}
+                disabled={isJoined || isJoining}
+                className={cn(
+                  "micro-caps text-[10px] px-4 py-2 rounded-full transition-all duration-300",
+                  isJoined 
+                    ? "bg-gold/20 text-gold border border-gold/40 cursor-default" 
+                    : "bg-white text-void hover:bg-green-400 hover:text-void hover:shadow-lg hover:shadow-green-400/20 font-medium"
+                )}
+              >
+                {isJoining ? '...' : isJoined ? 'Joined' : 'Join'}
+              </button>
+            </div>
           </div>
         </div>
-      </div>
-    </motion.div>
+      </motion.div>
+    </Link>
   )
 }
 
@@ -319,14 +329,16 @@ export default function TodayPage() {
                 </span>
               </motion.div>
 
-              <motion.h2 
-                initial={{ opacity: 0, y: 30 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.6 }}
-                className="font-serif text-4xl md:text-8xl text-white mb-6 leading-[0.9] tracking-tight"
-              >
-                {heroMoment.title}
-              </motion.h2>
+              <Link to={`/app/moment/${heroMoment.id}`}>
+                <motion.h2 
+                  initial={{ opacity: 0, y: 30 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.6 }}
+                  className="font-serif text-4xl md:text-8xl text-white mb-6 leading-[0.9] tracking-tight hover:text-gold-pale transition-colors cursor-pointer"
+                >
+                  {heroMoment.title}
+                </motion.h2>
+              </Link>
 
               <motion.div 
                 initial={{ opacity: 0 }}

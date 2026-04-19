@@ -15,6 +15,7 @@ const EventsPage = lazy(() => import("./pages/EventsPage"));
 const ChatPage = lazy(() => import("./pages/ChatPage"));
 const ProfilePage = lazy(() => import("./pages/ProfilePage"));
 const SignalsPage = lazy(() => import("./pages/SignalsPage"));
+const MomentDetailPage = lazy(() => import("./pages/MomentDetailPage"));
 
 const PageLoader = () => (
   <div className="flex-1 flex items-center justify-center bg-void min-h-screen">
@@ -55,6 +56,7 @@ export default function App() {
               <Route path="events" element={<EventsPage />} />
               <Route path="chat" element={<ChatPage />} />
               <Route path="signals" element={<SignalsPage />} />
+              <Route path="moment/:id" element={<MomentDetailPage />} />
               <Route path="profile" element={<ProfilePage />} />
             </Route>
 

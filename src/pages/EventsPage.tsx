@@ -43,103 +43,106 @@ const EventCard: React.FC<EventCardProps> = ({ event, index, isJoined, isJoining
       transition={{ delay: index * 0.06 }}
       className="relative overflow-hidden rounded-2xl group cursor-pointer"
     >
-      {/* Background image */}
-      <div className="absolute inset-0">
-        <img
-          src={`https://picsum.photos/seed/${event.id}-event/1200/400`}
-          className="w-full h-full object-cover transition-transform 
-            duration-700 group-hover:scale-105"
-          onError={(e) => { 
-            e.currentTarget.style.opacity = '0'
-          }}
-        />
-        <div className="absolute inset-0 bg-gradient-to-r 
-          from-void via-void/80 to-void/20" />
-      </div>
-
-      {/* Content */}
-      <div className="relative z-10 p-6 md:p-8 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-6 md:gap-8"
-        style={{ minHeight: '180px' }}>
-        
-        <div className="flex-1 md:max-w-lg">
-          {/* Badge */}
-          <div className="flex items-center gap-3 mb-3">
-            <span className="micro-caps text-xs px-3 py-1 rounded-full
-              bg-gold/10 border border-gold/30 text-gold">
-              Event
-            </span>
-            <span className="micro-caps text-xs text-marble/40">
-              {distanceDisplay}
-            </span>
-          </div>
-
-          {/* Title */}
-          <h3 className="font-serif text-2xl md:text-3xl text-marble mb-2 md:mb-3 
-            group-hover:text-gold-pale transition-colors duration-300">
-            {event.title}
-          </h3>
-
-          {/* Description */}
-          {event.description && (
-            <p className="text-sm text-marble/50 mb-4 line-clamp-2 max-w-md">
-              {event.description}
-            </p>
-          )}
-
-          {/* Tags */}
-          {event.tags && event.tags.length > 0 && (
-            <div className="flex flex-wrap gap-1.5 md:gap-2 mb-4 md:mb-5">
-              {event.tags.map(tag => (
-                <span key={tag} className="text-[9px] md:text-xs micro-caps px-2 py-0.5
-                  hairline-all rounded-full text-marble/30">
-                  {tag}
-                </span>
-              ))}
-            </div>
-          )}
-
-          {/* Meta row */}
-          <div className="flex flex-wrap items-center gap-4 md:gap-5">
-            <span className="flex items-center gap-1.5 text-[10px] md:text-xs text-marble/30">
-              <Users className="w-3.5 h-3.5" />
-              {event.participant_count ?? 0} / {event.capacity_limit}
-            </span>
-            <span className="flex items-center gap-1.5 text-[10px] md:text-xs text-marble/30">
-              <Calendar className="w-3.5 h-3.5" />
-              {formattedDate}
-            </span>
-            <span className="flex items-center gap-1.5 text-[10px] md:text-xs text-marble/30">
-              <Clock className="w-3.5 h-3.5" />
-              {hoursLeft}h left
-            </span>
-          </div>
-        </div>
-
-        {/* Join button */}
-        <div className="shrink-0">
-          <button
-            onClick={(e) => {
-              e.stopPropagation()
-              onJoin()
+      <Link to={`/app/moment/${event.id}`}>
+        {/* Background image */}
+        <div className="absolute inset-0">
+          <img
+            src={`https://picsum.photos/seed/${event.id}-event/1200/400`}
+            className="w-full h-full object-cover transition-transform 
+              duration-700 group-hover:scale-105"
+            onError={(e) => { 
+              e.currentTarget.style.opacity = '0'
             }}
-            disabled={isJoined || isJoining}
-            className={cn(
-              'micro-caps text-xs md:text-sm px-6 md:px-8 py-3 rounded-full transition-all w-full md:w-auto text-center justify-center flex items-center',
-              isJoined
-                ? 'bg-gold/10 text-gold border border-gold/30 cursor-default'
-                : 'bg-gold text-void hover:bg-gold-pale disabled:opacity-50 font-bold'
-            )}
-          >
-            {isJoining ? (
-              <Loader className="w-4 h-4 animate-spin" />
-            ) : isJoined ? (
-              'Attending'
-            ) : (
-              'Attend'
-            )}
-          </button>
+          />
+          <div className="absolute inset-0 bg-gradient-to-r 
+            from-void via-void/80 to-void/20" />
         </div>
-      </div>
+
+        {/* Content */}
+        <div className="relative z-10 p-6 md:p-8 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-6 md:gap-8"
+          style={{ minHeight: '180px' }}>
+          
+          <div className="flex-1 md:max-w-lg">
+            {/* Badge */}
+            <div className="flex items-center gap-3 mb-3">
+              <span className="micro-caps text-xs px-3 py-1 rounded-full
+                bg-gold/10 border border-gold/30 text-gold">
+                Event
+              </span>
+              <span className="micro-caps text-xs text-marble/40">
+                {distanceDisplay}
+              </span>
+            </div>
+
+            {/* Title */}
+            <h3 className="font-serif text-2xl md:text-3xl text-marble mb-2 md:mb-3 
+              group-hover:text-gold-pale transition-colors duration-300">
+              {event.title}
+            </h3>
+
+            {/* Description */}
+            {event.description && (
+              <p className="text-sm text-marble/50 mb-4 line-clamp-2 max-w-md">
+                {event.description}
+              </p>
+            )}
+
+            {/* Tags */}
+            {event.tags && event.tags.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 md:gap-2 mb-4 md:mb-5">
+                {event.tags.map(tag => (
+                  <span key={tag} className="text-[9px] md:text-xs micro-caps px-2 py-0.5
+                    hairline-all rounded-full text-marble/30">
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            )}
+
+            {/* Meta row */}
+            <div className="flex flex-wrap items-center gap-4 md:gap-5">
+              <span className="flex items-center gap-1.5 text-[10px] md:text-xs text-marble/30">
+                <Users className="w-3.5 h-3.5" />
+                {event.participant_count ?? 0} / {event.capacity_limit}
+              </span>
+              <span className="flex items-center gap-1.5 text-[10px] md:text-xs text-marble/30">
+                <Calendar className="w-3.5 h-3.5" />
+                {formattedDate}
+              </span>
+              <span className="flex items-center gap-1.5 text-[10px] md:text-xs text-marble/30">
+                <Clock className="w-3.5 h-3.5" />
+                {hoursLeft}h left
+              </span>
+            </div>
+          </div>
+
+          {/* Join button */}
+          <div className="shrink-0">
+            <button
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onJoin()
+              }}
+              disabled={isJoined || isJoining}
+              className={cn(
+                'micro-caps text-xs md:text-sm px-6 md:px-8 py-3 rounded-full transition-all w-full md:w-auto text-center justify-center flex items-center',
+                isJoined
+                  ? 'bg-gold/10 text-gold border border-gold/30 cursor-default'
+                  : 'bg-gold text-void hover:bg-gold-pale disabled:opacity-50 font-bold'
+              )}
+            >
+              {isJoining ? (
+                <Loader className="w-4 h-4 animate-spin" />
+              ) : isJoined ? (
+                'Attending'
+              ) : (
+                'Attend'
+              )}
+            </button>
+          </div>
+        </div>
+      </Link>
     </motion.div>
   )
 }
