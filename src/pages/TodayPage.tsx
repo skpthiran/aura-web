@@ -8,6 +8,7 @@ import { useNearbyMoments } from '../hooks/useNearbyMoments'
 import { joinMoment } from '../lib/db/moments'
 import { Moment } from '../types'
 import { cn } from '../lib/utils'
+import { usePageTitle } from '../hooks/usePageTitle'
 
 interface MomentGridCardProps {
   moment: Moment
@@ -60,6 +61,9 @@ const MomentGridCard: React.FC<MomentGridCardProps> = ({
         src={`https://picsum.photos/seed/${moment.id}/800/1200`}
         className="absolute inset-0 h-full w-full object-cover transition-transform duration-[3s] group-hover:scale-110"
         alt={moment.title}
+        onError={(e) => { 
+          e.currentTarget.style.opacity = '0'
+        }}
       />
       <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent" />
       
@@ -118,6 +122,7 @@ const MomentGridCard: React.FC<MomentGridCardProps> = ({
 }
 
 export default function TodayPage() {
+  usePageTitle('Pulse')
   const { user } = useAuth()
   const { location } = useUserLocation()
   const [activeTab, setActiveTab] = useState('All')
@@ -182,9 +187,20 @@ export default function TodayPage() {
 
   if (loading && moments.length === 0) {
     return (
-      <div className="flex-1 min-h-screen bg-void flex flex-col items-center justify-center gap-6">
-        <Loader className="w-10 h-10 text-gold animate-spin" />
-        <p className="micro-caps text-[10px] text-gold tracking-[0.5em] animate-pulse">SCANNING VICINITY</p>
+      <div className="relative flex-1" style={{ height: '100vh', minHeight: '700px' }}>
+        <div className="absolute inset-0 bg-gradient-to-br from-void via-obsidian to-black animate-pulse" />
+        <div className="absolute top-8 left-10 right-10">
+          <div className="h-3 w-32 bg-white/5 rounded-full mb-4" />
+          <div className="h-24 w-64 bg-white/5 rounded-xl" />
+        </div>
+        <div className="absolute bottom-10 left-10 right-10">
+          <div className="h-4 w-48 bg-white/5 rounded-full mb-3" />
+          <div className="h-16 w-3/4 bg-white/5 rounded-xl mb-6" />
+          <div className="flex gap-3">
+            <div className="h-10 w-24 bg-white/5 rounded-full" />
+            <div className="h-10 w-32 bg-white/5 rounded-full" />
+          </div>
+        </div>
       </div>
     )
   }
@@ -201,6 +217,9 @@ export default function TodayPage() {
             src={`https://picsum.photos/seed/${heroMoment.id}/1920/1200`}
             className="absolute inset-0 h-full w-full object-cover"
             alt="Hero"
+            onError={(e) => { 
+              e.currentTarget.style.opacity = '0'
+            }}
           />
           <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-transparent to-black" />
           <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-90" />
@@ -296,7 +315,7 @@ export default function TodayPage() {
                   Featured Signal
                 </span>
                 <span className="micro-caps text-xs px-4 py-1.5 bg-white/5 border border-white/10 text-white/50 rounded-full backdrop-blur-md">
-                  {heroMoment.location_name || 'Nearby'}
+                  Nearby
                 </span>
               </motion.div>
 
@@ -323,6 +342,7 @@ export default function TodayPage() {
                         src={`https://i.pravatar.cc/100?u=${heroMoment.id}-${i}`}
                         className="w-8 h-8 md:w-10 md:h-10 rounded-full border-2 border-void" 
                         alt="p"
+                        onError={(e) => { e.currentTarget.style.display = 'none' }}
                       />
                     ))}
                   </div>

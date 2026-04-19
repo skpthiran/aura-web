@@ -19,12 +19,14 @@ import {
   Info
 } from 'lucide-react'
 import { cn } from '../lib/utils'
+import { usePageTitle } from '../hooks/usePageTitle'
 
 // Import premium background assets
 import momentBg from '../assets/moment-bg.png'
 import eventBg from '../assets/event-bg.png'
 
 export default function CreatePage() {
+  usePageTitle('Broadcast')
   const [step, setStep] = useState<1 | 2>(1)
   const [momentType, setMomentType] = useState<'moment' | 'event' | null>(null)
   const [title, setTitle] = useState('')

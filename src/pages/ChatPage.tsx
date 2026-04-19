@@ -7,8 +7,10 @@ import { supabase } from '../lib/supabase'
 import { Send, MessageSquare, Zap, Calendar, User, ArrowLeft } from 'lucide-react'
 import { cn } from '../lib/utils'
 import { Link } from 'react-router-dom'
+import { usePageTitle } from '../hooks/usePageTitle'
 
 export default function ChatPage() {
+  usePageTitle('Frequency')
   const { user } = useAuth()
   const [joinedMoments, setJoinedMoments] = useState<any[]>([])
   const [activeMomentId, setActiveMomentId] = useState<string | null>(null)
@@ -276,7 +278,11 @@ export default function ChatPage() {
                         shrink-0 mt-1">
                         {msg.profiles?.avatar_url ? (
                           <img src={msg.profiles.avatar_url} 
-                            className="w-full h-full object-cover rounded-full" />
+                            className="w-full h-full object-cover rounded-full" 
+                            onError={(e) => {
+                              e.currentTarget.style.display = 'none'
+                            }}
+                          />
                         ) : (
                           <User className="w-4 h-4 text-marble/30" />
                         )}

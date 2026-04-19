@@ -8,6 +8,7 @@ import { useNearbyEvents } from '../hooks/useNearbyEvents'
 import { joinMoment } from '../lib/db/moments'
 import { Moment } from '../types'
 import { cn } from '../lib/utils'
+import { usePageTitle } from '../hooks/usePageTitle'
 
 interface EventCardProps {
   event: Moment
@@ -48,6 +49,9 @@ const EventCard: React.FC<EventCardProps> = ({ event, index, isJoined, isJoining
           src={`https://picsum.photos/seed/${event.id}-event/1200/400`}
           className="w-full h-full object-cover transition-transform 
             duration-700 group-hover:scale-105"
+          onError={(e) => { 
+            e.currentTarget.style.opacity = '0'
+          }}
         />
         <div className="absolute inset-0 bg-gradient-to-r 
           from-void via-void/80 to-void/20" />
@@ -141,6 +145,7 @@ const EventCard: React.FC<EventCardProps> = ({ event, index, isJoined, isJoining
 }
 
 export default function EventsPage() {
+  usePageTitle('Colosseum')
   const { user } = useAuth()
   const { location } = useUserLocation()
   const [radius, setRadius] = useState<number>(50000) // default 50km
@@ -184,7 +189,7 @@ export default function EventsPage() {
             </p>
           </div>
           <button
-            onClick={refetch}
+            onClick={() => refetch()}
             className="w-9 h-9 glass-panel rounded-full hairline-all
               flex items-center justify-center text-marble/40 
               hover:text-gold transition-colors cursor-pointer"

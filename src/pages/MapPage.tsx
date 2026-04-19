@@ -9,8 +9,10 @@ import { joinMoment } from '../lib/db/moments'
 import { Crosshair, Search, Flame, Target, Users, Settings2, Target as Radar, Loader, Shield } from 'lucide-react'
 import { cn } from '../lib/utils'
 import { Moment } from '../types'
+import { usePageTitle } from '../hooks/usePageTitle'
 
 export default function MapPage() {
+  usePageTitle('Forum')
   const { location, error: locationError } = useUserLocation()
   const [mapRadius, setMapRadius] = useState<number>(50000) // default 50km
   
@@ -319,6 +321,9 @@ export default function MapPage() {
                   src={`https://picsum.photos/seed/${selectedMoment.id}/1000/600`} 
                   className="w-full h-full object-cover mix-blend-luminosity grayscale contrast-125" 
                   referrerPolicy="no-referrer" 
+                  onError={(e) => { 
+                    e.currentTarget.style.opacity = '0'
+                  }}
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-card via-card/40 to-transparent" />
                 <div className="absolute inset-0 bg-gradient-to-r from-card/80 to-transparent" />

@@ -6,6 +6,7 @@ import { Bell, Zap, Calendar, Users, MessageSquare,
   MapPin, RefreshCw } from 'lucide-react'
 import { cn } from '../lib/utils'
 import { Link } from 'react-router-dom'
+import { usePageTitle } from '../hooks/usePageTitle'
 
 interface Signal {
   id: string
@@ -19,6 +20,7 @@ interface Signal {
 }
 
 export default function SignalsPage() {
+  usePageTitle('Signals')
   const { user } = useAuth()
   const [signals, setSignals] = useState<Signal[]>([])
   const [loading, setLoading] = useState(true)

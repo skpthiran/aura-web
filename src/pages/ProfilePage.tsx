@@ -6,8 +6,10 @@ import { updateProfile } from '../lib/db/profiles'
 import { Camera, Edit3, Save, X, LogOut, User, 
   MapPin, Calendar, Zap } from 'lucide-react'
 import { cn } from '../lib/utils'
+import { usePageTitle } from '../hooks/usePageTitle'
 
 export default function ProfilePage() {
+  usePageTitle('Identity')
   const { user, profile, signOut, refreshProfile } = useAuth()
   const navigate = useNavigate()
   const [editing, setEditing] = useState(false)
@@ -76,7 +78,11 @@ export default function ProfilePage() {
                 justify-center">
                 {profile?.avatar_url ? (
                   <img src={profile.avatar_url} 
-                    className="w-full h-full object-cover" />
+                    className="w-full h-full object-cover" 
+                    onError={(e) => {
+                      e.currentTarget.style.display = 'none'
+                    }}
+                  />
                 ) : (
                   <User className="w-8 h-8 text-marble/30" />
                 )}
