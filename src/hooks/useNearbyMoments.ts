@@ -4,7 +4,7 @@ import { getNearbyMoments, getAllActiveMoments } from '../lib/db/moments'
 import { UserLocation } from '../types'
 
 export function useNearbyMoments(
-  location: UserLocation | null, 
+  location: UserLocation | null,
   radiusMeters: number = 50000
 ) {
   const [moments, setMoments] = useState<Moment[]>([])
@@ -12,56 +12,54 @@ export function useNearbyMoments(
   const [error, setError] = useState<string | null>(null)
   const locationRef = useRef(location)
   const radiusRef = useRef(radiusMeters)
-  const initialFetchDone = useRef(false)
+  const fetchingRef = useRef(false)
 
   useEffect(() => {
     locationRef.current = location
   }, [location])
 
-  const fetchMoments = useCallback(async () => {
+  useEffect(() => {
+    radiusRef.current = radiusMeters
+  }, [radiusMeters])
+
+  const fetchMoments = useCallback(async (radius?: number) => {
+    if (fetchingRef.current) return
+    fetchingRef.current = true
     setLoading(true)
     setError(null)
     try {
       const loc = locationRef.current
+      const r = radius ?? radiusRef.current
       let data: Moment[]
-      if (loc) {
-        // For global, fetch all
-        if (radiusRef.current >= 99999999) {
+      
+      if (r >= 99999999) {
+        // Global — fetch everything
+        data = await getAllActiveMoments()
+      } else if (loc) {
+        data = await getNearbyMoments(loc.latitude, loc.longitude, r)
+        if (data.length === 0) {
           data = await getAllActiveMoments()
-        } else {
-          data = await getNearbyMoments(
-            loc.latitude,
-            loc.longitude,
-            radiusRef.current
-          )
-          // If no local moments, fallback to global to not show empty screen
-          if (data.length === 0) {
-            data = await getAllActiveMoments()
-          }
         }
       } else {
         data = await getAllActiveMoments()
       }
       setMoments(data)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch moments')
+      setError(err instanceof Error ? err.message : 'Failed to fetch')
     } finally {
       setLoading(false)
+      fetchingRef.current = false
     }
-  }, []) 
+  }, [])
 
-  // Re-fetch when radius changes
+  // Fetch when radius changes — pass new radius directly
   useEffect(() => {
-    radiusRef.current = radiusMeters
-    fetchMoments()
+    fetchMoments(radiusMeters)
   }, [radiusMeters, fetchMoments])
 
+  // Periodic refresh
   useEffect(() => {
-    if (!initialFetchDone.current) {
-      initialFetchDone.current = true
-      fetchMoments()
-    }
-    const interval = setInterval(fetchMoments, 30000)
+    const interval = setInterval(() => fetchMoments(), 30000)
     return () => clearInterval(interval)
   }, [fetchMoments])
 

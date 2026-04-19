@@ -10,59 +10,50 @@ export function useNearbyEvents(
   const [events, setEvents] = useState<Moment[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const initialFetchDone = useRef(false)
   const locationRef = useRef(location)
-  const radiusRef = useRef(radiusMeters)
+  const fetchingRef = useRef(false)
 
-  // Update ref without triggering re-render
   useEffect(() => {
     locationRef.current = location
   }, [location])
 
-  const fetchEvents = useCallback(async () => {
+  const fetchEvents = useCallback(async (radius?: number) => {
+    if (fetchingRef.current) return
+    fetchingRef.current = true
     setLoading(true)
     setError(null)
     try {
       const loc = locationRef.current
+      const r = radius ?? radiusMeters
       let data: Moment[]
-      if (loc) {
-        // For global, fetch all
-        if (radiusRef.current >= 99999999) {
+      
+      if (r >= 99999999) {
+        data = await getAllActiveMoments()
+      } else if (loc) {
+        data = await getNearbyMoments(loc.latitude, loc.longitude, r)
+        if (data.length === 0) {
           data = await getAllActiveMoments()
-        } else {
-          data = await getNearbyMoments(
-            loc.latitude,
-            loc.longitude,
-            radiusRef.current
-          )
-          if (data.length === 0) {
-            data = await getAllActiveMoments()
-          }
         }
       } else {
         data = await getAllActiveMoments()
       }
       setEvents(data.filter(m => m.moment_type === 'event'))
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch events')
+      setError(err instanceof Error ? err.message : 'Failed to fetch')
     } finally {
       setLoading(false)
+      fetchingRef.current = false
     }
-  }, []) 
+  }, [radiusMeters])
 
-  // Re-fetch when radius changes
+  // Fetch when radius changes
   useEffect(() => {
-    radiusRef.current = radiusMeters
-    fetchEvents()
+    fetchEvents(radiusMeters)
   }, [radiusMeters, fetchEvents])
 
+  // Periodic refresh
   useEffect(() => {
-    // Only fetch once on mount, then every 60 seconds
-    if (!initialFetchDone.current) {
-      initialFetchDone.current = true
-      fetchEvents()
-    }
-    const interval = setInterval(fetchEvents, 60000)
+    const interval = setInterval(() => fetchEvents(), 60000)
     return () => clearInterval(interval)
   }, [fetchEvents])
 
