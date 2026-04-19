@@ -22,6 +22,12 @@ export default function MomentDetailPage() {
   const [joining, setJoining] = useState(false)
   const [isJoined, setIsJoined] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [creator, setCreator] = useState<{
+    id: string
+    full_name: string | null
+    username: string | null
+    avatar_url: string | null
+  } | null>(null)
   
   usePageTitle(moment ? moment.title : 'Signal Intel')
 
@@ -46,6 +52,16 @@ export default function MomentDetailPage() {
             .single()
           
           if (participant) setIsJoined(true)
+        }
+
+        // Fetch creator profile
+        if (data.creator_id) {
+          const { data: creatorData } = await supabase
+            .from('profiles')
+            .select('id, full_name, username, avatar_url')
+            .eq('id', data.creator_id)
+            .single()
+          if (creatorData) setCreator(creatorData)
         }
       } catch (err) {
         console.error('Failed to fetch moment:', err)
@@ -209,6 +225,52 @@ export default function MomentDetailPage() {
                 </div>
               )}
             </div>
+
+            {creator && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.05 }}
+                className="mb-6"
+              >
+                <Link to={`/app/user/${creator.id}`}>
+                  <div className="flex items-center gap-3 glass-panel hairline-all
+                    rounded-2xl px-4 py-3 hover:border-white/20 transition-all
+                    cursor-pointer group">
+                    <div className="w-10 h-10 rounded-full bg-marble/10
+                      border border-white/15 overflow-hidden flex items-center 
+                      justify-center shrink-0">
+                      {creator.avatar_url ? (
+                        <img src={creator.avatar_url}
+                          className="w-full h-full object-cover"
+                          onError={(e) => { e.currentTarget.style.display='none' }}
+                        />
+                      ) : (
+                        <span className="font-serif text-sm text-marble/50">
+                          {(creator.full_name ?? 'A')[0].toUpperCase()}
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="micro-caps text-xs text-marble/40 mb-0.5">
+                        Created by
+                      </p>
+                      <p className="text-sm text-marble group-hover:text-gold-pale
+                        transition-colors truncate font-medium">
+                        {creator.full_name ?? 'Anonymous'}
+                      </p>
+                      {creator.username && (
+                        <p className="micro-caps text-xs text-marble/30">
+                          @{creator.username}
+                        </p>
+                      )}
+                    </div>
+                    <span className="text-marble/20 group-hover:text-marble/50
+                      transition-colors text-sm">→</span>
+                  </div>
+                </Link>
+              </motion.div>
+            )}
 
             {/* INTEL GRID */}
             <div className="grid grid-cols-2 gap-4 mb-10">
