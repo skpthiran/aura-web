@@ -16,13 +16,6 @@ const NAV_ITEMS = [
   { path: "/app/signals", label: "Signals", icon: Bell },
 ];
 
-const mobileNavItems = [
-  { to: '/app/today', icon: Compass, label: 'Pulse' },
-  { to: '/app/map', icon: MapIcon, label: 'Forum' },
-  { to: '/app/create', icon: Plus, label: '' },
-  { to: '/app/search', icon: Search, label: 'Search' },
-  { to: '/app/chat', icon: MessageSquare, label: 'Chat' },
-];
 
 export default function AppLayout() {
   const location = useLocation();
@@ -86,55 +79,64 @@ export default function AppLayout() {
       {/* Premium Mobile Top Bar */}
       <div className="lg:hidden fixed top-0 left-0 right-0 z-50"
         style={{ paddingTop: 'env(safe-area-inset-top)' }}>
-        <div className="flex items-center justify-between px-5 py-3
-          bg-black/80 backdrop-blur-2xl border-b border-white/6">
-          
-          {/* Logo Branding */}
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-full border border-gold/60
-              flex items-center justify-center bg-gold/5">
-              <span className="font-serif text-base text-gold leading-none">A</span>
+        <div className="flex items-center justify-between px-4 py-3
+          bg-black/70 backdrop-blur-3xl"
+          style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+
+          {/* Logo */}
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 rounded-full border border-gold/50
+              flex items-center justify-center bg-gold/8">
+              <span className="font-serif text-sm text-gold leading-none">A</span>
             </div>
-            <span className="font-serif text-lg text-white tracking-[0.2em]">
+            <span className="font-serif text-base text-white/90 tracking-[0.15em]">
               AURA
             </span>
           </div>
 
-          {/* Right Actions */}
-          <div className="flex items-center gap-2.5">
-            {/* Notification system */}
-            <NavLink to="/app/signals">
-              <button 
-                onClick={() => navigate('/app/signals')}
-                className="relative w-9 h-9 rounded-full bg-white/5 border border-white/10
-                flex items-center justify-center text-marble/60
-                hover:text-marble transition-all group"
-              >
-                <Bell className="w-4 h-4" />
-                {unreadCount > 0 && (
-                  <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-[16px]
-                    rounded-full bg-crimson-bright ring-2 ring-black
-                    flex items-center justify-center
-                    micro-caps text-[9px] text-white font-bold px-1 animate-pulse shadow-[0_0_10px_rgba(255,8,0,0.5)]">
-                    {unreadCount > 9 ? '9+' : unreadCount}
-                  </span>
-                )}
-              </button>
+          {/* Right — search, bell, avatar */}
+          <div className="flex items-center gap-1">
+
+            {/* Search */}
+            <NavLink to="/app/search">
+              {({ isActive }) => (
+                <div className={cn(
+                  'w-9 h-9 rounded-full flex items-center justify-center transition-colors',
+                  isActive ? 'text-gold' : 'text-white/40 hover:text-white/80'
+                )}>
+                  <Search className="w-[18px] h-[18px]" />
+                </div>
+              )}
             </NavLink>
-            
-            {/* Direct profile access */}
-            <button 
-              onClick={() => setIsProfileMenuOpen(true)}
-              className="w-9 h-9 rounded-full border border-white/15
-                bg-marble/5 overflow-hidden flex items-center justify-center
-                hover:border-gold/40 transition-all">
-              {profile?.avatar_url ? (
-                <img src={profile.avatar_url} 
-                  className="w-full h-full object-cover" alt="Profile" />
-              ) : (
-                <User className="w-4 h-4 text-marble/30" />
+
+            {/* Notification bell */}
+            <button
+              onClick={() => navigate('/app/signals')}
+              className="relative w-9 h-9 rounded-full flex items-center 
+                justify-center text-white/40 hover:text-white/80 transition-colors"
+            >
+              <Bell className="w-[18px] h-[18px]" />
+              {unreadCount > 0 && (
+                <span className="absolute top-1.5 right-1.5 min-w-[7px] h-[7px]
+                  rounded-full bg-red-500 ring-[1.5px] ring-black" />
               )}
             </button>
+
+            {/* Avatar / Profile */}
+            <NavLink to="/app/profile">
+              <div className="w-8 h-8 rounded-full border border-white/15
+                bg-white/8 overflow-hidden flex items-center justify-center ml-1">
+                {profile?.avatar_url ? (
+                  <img src={profile.avatar_url}
+                    className="w-full h-full object-cover"
+                    onError={(e) => { e.currentTarget.style.display = 'none' }} />
+                ) : (
+                  <span className="font-serif text-xs text-white/60 leading-none">
+                    {(profile?.full_name ?? user?.email ?? 'A')[0].toUpperCase()}
+                  </span>
+                )}
+              </div>
+            </NavLink>
           </div>
         </div>
       </div>
@@ -258,49 +260,53 @@ export default function AppLayout() {
         </AnimatePresence>
       </main>
 
-      {/* Premium Floating Mobile Nav */}
-      <div className="lg:hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-50 w-[92%] max-w-[420px]"
+      {/* Redesigned Mobile Bottom Nav */}
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50"
         style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
-        <nav className="glass-panel py-2 px-3 rounded-[24px] border border-white/10
-          shadow-[0_20px_50px_rgba(0,0,0,0.5)] flex items-center justify-between">
-          
-          {mobileNavItems.map(({ to, icon: Icon, label }) => {
-            const isActive = location.pathname === to;
-            
-            if (to === '/app/create') {
-              return (
-                <NavLink key={to} to={to}>
-                  <div className={cn(
-                    "w-12 h-12 rounded-full flex items-center justify-center transition-all duration-500",
-                    isActive 
-                      ? "bg-gold text-void shadow-[0_0_20px_rgba(212,175,55,0.4)]" 
-                      : "bg-void border border-gold/30 text-gold hover:border-gold/60"
-                  )}>
-                    <Plus className="w-6 h-6" />
-                  </div>
-                </NavLink>
-              );
-            }
-
-            return (
-              <NavLink key={to} to={to} className="flex-1">
-                <div className={cn(
-                  "flex flex-col items-center gap-1 transition-all duration-300",
-                  isActive ? "text-gold" : "text-marble/30 hover:text-marble/50"
-                )}>
-                  <Icon className="w-[18px] h-[18px]" strokeWidth={isActive ? 2 : 1.5} />
-                  <span className="micro-caps text-[8px] tracking-wider">{label}</span>
-                  {isActive && (
-                    <motion.div 
-                      layoutId="mobile-active-dot"
-                      className="w-1 h-1 rounded-full bg-gold shadow-[0_0_8px_rgba(212,175,55,0.8)] mt-0.5"
-                    />
-                  )}
-                </div>
+        <div style={{ background: 'rgba(0,0,0,0.82)', borderTop: '1px solid rgba(255,255,255,0.07)' }}
+          className="backdrop-blur-3xl px-2 pt-1.5 pb-2">
+          <div className="flex items-center justify-around">
+            {[
+              { to: '/app/today', icon: Compass, label: 'Pulse' },
+              { to: '/app/map', icon: MapIcon, label: 'Forum' },
+              { to: '/app/create', icon: Plus, label: '' },
+              { to: '/app/events', icon: Building2, label: 'Events' },
+              { to: '/app/chat', icon: MessageSquare, label: 'Chat' },
+            ].map(({ to, icon: Icon, label }) => (
+              <NavLink key={to} to={to}>
+                {({ isActive }) => (
+                  to === '/app/create' ? (
+                    <div className={cn(
+                      'w-12 h-12 rounded-full flex items-center justify-center -mt-4',
+                      'border-2 transition-all duration-300 shadow-lg',
+                      isActive
+                        ? 'bg-gold border-gold shadow-gold/30'
+                        : 'bg-void border-gold/70 shadow-gold/10'
+                    )}>
+                      <Icon className={cn(
+                        'w-5 h-5 transition-colors',
+                        isActive ? 'text-void' : 'text-gold'
+                      )} />
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center gap-1 px-3 py-1 min-w-[52px]">
+                      <Icon className={cn(
+                        'w-[22px] h-[22px] transition-colors duration-200',
+                        isActive ? 'text-gold' : 'text-white/25'
+                      )} />
+                      <span className={cn(
+                        'text-[9px] tracking-wider uppercase font-medium leading-none',
+                        isActive ? 'text-gold' : 'text-white/20'
+                      )}>
+                        {label}
+                      </span>
+                    </div>
+                  )
+                )}
               </NavLink>
-            );
-          })}
-        </nav>
+            ))}
+          </div>
+        </div>
       </div>
 
       {/* Profile Popover / Sheet */}
