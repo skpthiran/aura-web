@@ -124,7 +124,7 @@ const MomentCard: React.FC<MomentCardProps> = ({
             {!isJoined && (
               <button
                 onClick={(e) => { e.stopPropagation(); onReject(); }}
-                className="micro-caps text-[10px] px-5 py-2.5 rounded-full border border-white/10 text-marble/40 hover:border-white/30 hover:text-marble transition-all backdrop-blur-sm"
+                className="micro-caps text-xs px-4 py-2 rounded-full border border-white/20 text-marble/60 hover:border-red-500 hover:text-red-400 hover:bg-red-500/10 transition-all duration-300"
               >
                 REJECT
               </button>
@@ -133,10 +133,10 @@ const MomentCard: React.FC<MomentCardProps> = ({
               onClick={(e) => { e.stopPropagation(); onJoin(); }}
               disabled={isJoined || isJoining}
               className={cn(
-                "relative micro-caps text-[10px] px-6 py-2.5 rounded-full transition-all overflow-hidden flex items-center gap-2",
+                "micro-caps text-xs px-4 py-2 rounded-full transition-all duration-300",
                 isJoined 
-                  ? "bg-gold/10 text-gold border border-gold/30"
-                  : "bg-marble text-void hover:bg-white"
+                  ? "bg-gold/20 text-gold border border-gold/30 cursor-default"
+                  : "bg-marble text-void hover:bg-green-400 hover:text-void hover:shadow-lg hover:shadow-green-400/20 font-medium"
               )}
             >
               {isJoining ? (
@@ -160,9 +160,9 @@ const MomentCard: React.FC<MomentCardProps> = ({
 }
 
 export default function TodayPage() {
-  const [activeTab, setActiveTab] = useState('LIVE NOW')
+  const [activeTab, setActiveTab] = useState('Now')
   const { location } = useUserLocation()
-  const { moments, loading, error } = useNearbyMoments(location)
+  const { moments, loading, error } = useNearbyMoments(location, activeTab)
   const { user } = useAuth()
   
   const [joiningId, setJoiningId] = useState<string | null>(null)
@@ -188,7 +188,7 @@ export default function TodayPage() {
 
   const displayedMoments = moments.filter(m => !rejectedIds.has(m.id))
 
-  const tabs = ['LIVE NOW', 'LATER TONIGHT', 'THIS WEEKEND']
+  const tabs = ['Now', 'This Week', 'This Month']
 
   return (
     <div className="min-h-screen bg-void flex-1 overflow-y-auto">

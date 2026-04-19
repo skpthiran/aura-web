@@ -33,21 +33,28 @@ export async function createMoment(payload: {
   capacity_limit: number
   moment_type: 'moment' | 'event'
   tags?: string[]
+  expires_at?: string
 }): Promise<Moment> {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error('Not authenticated')
 
+  const insertData: Record<string, unknown> = {
+    creator_id: user.id,
+    title: payload.title,
+    description: payload.description,
+    location: `POINT(${payload.lng} ${payload.lat})`,
+    capacity_limit: payload.capacity_limit,
+    moment_type: payload.moment_type,
+    tags: payload.tags ?? []
+  }
+
+  if (payload.expires_at) {
+    insertData.expires_at = payload.expires_at
+  }
+
   const { data, error } = await supabase
     .from('moments')
-    .insert({
-      creator_id: user.id,
-      title: payload.title,
-      description: payload.description,
-      location: `POINT(${payload.lng} ${payload.lat})`,
-      capacity_limit: payload.capacity_limit,
-      moment_type: payload.moment_type,
-      tags: payload.tags ?? []
-    })
+    .insert(insertData)
     .select()
     .single()
 

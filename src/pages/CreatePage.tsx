@@ -6,20 +6,23 @@ import 'maplibre-gl/dist/maplibre-gl.css'
 import { useAuth } from '../contexts/AuthContext'
 import { useUserLocation } from '../hooks/useUserLocation'
 import { createMoment } from '../lib/db/moments'
-import { MOMENT_EXPIRY_HOURS, MAX_MOMENT_CAPACITY, MAPTILER_STYLE } from '../lib/constants'
+import { MAX_MOMENT_CAPACITY, MAPTILER_STYLE } from '../lib/constants'
 import { 
   MapPin, 
-  Clock, 
-  Users, 
-  Tag, 
   Zap, 
   Calendar, 
   ArrowRight, 
   ArrowLeft,
   Loader2,
-  X
+  X,
+  Clock,
+  Info
 } from 'lucide-react'
 import { cn } from '../lib/utils'
+
+// Import premium background assets
+import momentBg from '../assets/moment-bg.png'
+import eventBg from '../assets/event-bg.png'
 
 export default function CreatePage() {
   const [step, setStep] = useState<1 | 2>(1)
@@ -29,6 +32,7 @@ export default function CreatePage() {
   const [capacity, setCapacity] = useState(50)
   const [tags, setTags] = useState<string[]>([])
   const [tagInput, setTagInput] = useState('')
+  const [expiresAt, setExpiresAt] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -44,6 +48,11 @@ export default function CreatePage() {
 
   const effectiveLat = customLat ?? location?.latitude ?? null
   const effectiveLng = customLng ?? location?.longitude ?? null
+
+  // Date constraints for scheduling events
+  const now = new Date()
+  const minDate = new Date(now.getTime() + 60 * 60 * 1000).toISOString().slice(0, 16) // +1 hour
+  const maxDate = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 16) // +30 days
 
   useEffect(() => {
     if (step === 2 && mapPickerRef.current && !mapPickerInstance.current) {
@@ -65,18 +74,17 @@ export default function CreatePage() {
         
         mapPickerInstance.current = map
         
-        // Force resize after style loads
         map.on('load', () => {
           map.resize()
           
           const el = document.createElement('div')
           el.style.cssText = `
-            width: 20px;
-            height: 20px;
+            width: 24px;
+            height: 24px;
             background: #d4af37;
-            border: 2px solid white;
+            border: 3px solid white;
             border-radius: 50%;
-            box-shadow: 0 0 0 4px rgba(212,175,55,0.3);
+            box-shadow: 0 0 20px rgba(212,175,55,0.6);
             cursor: grab;
           `
           
@@ -124,7 +132,8 @@ export default function CreatePage() {
         lng: effectiveLng,
         capacity_limit: capacity,
         moment_type: momentType as 'moment' | 'event',
-        tags
+        tags,
+        expires_at: momentType === 'event' && expiresAt ? new Date(expiresAt).toISOString() : undefined
       })
       
       navigate('/app/map')
@@ -148,22 +157,29 @@ export default function CreatePage() {
   }
 
   return (
-    <div className="flex-1 overflow-y-auto w-full">
-      <div className="max-w-2xl mx-auto p-6 py-10">
+    <div className="flex-1 overflow-y-auto w-full bg-void">
+      <div className="max-w-4xl mx-auto p-6 py-12">
         {/* Header */}
-        <div className="mb-10 relative">
+        <div className="mb-12 relative flex items-center justify-between">
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <div className="w-8 h-[1px] bg-gold/50" />
+              <p className="micro-caps text-gold tracking-[0.3em] text-[10px]">Signal Protocol</p>
+            </div>
+            <h1 className="font-serif text-5xl text-marble tracking-tight leading-none">
+              {step === 1 ? 'Choose Format' : 'Configure Signal'}
+            </h1>
+          </div>
+          
           {step === 2 && (
             <button 
               onClick={() => setStep(1)}
-              className="absolute -left-12 top-1 text-marble/40 hover:text-marble transition-colors p-2"
+              className="group flex items-center gap-3 px-5 py-2.5 rounded-full border border-white/10 text-marble/40 hover:text-marble hover:border-white/30 transition-all bg-white/5"
             >
-              <ArrowLeft className="w-5 h-5" />
+              <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
+              <span className="micro-caps text-[10px]">Change Format</span>
             </button>
           )}
-          <p className="micro-caps text-gold mb-2">Create Signal</p>
-          <h1 className="font-serif text-4xl text-marble tracking-tight">
-            {step === 1 ? 'Choose Format' : 'Configure Signal'}
-          </h1>
         </div>
         
         {/* Step content */}
@@ -171,60 +187,74 @@ export default function CreatePage() {
           {step === 1 ? (
             <motion.div
               key="step1"
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 20 }}
-              transition={{ duration: 0.3 }}
-              className="space-y-6"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="grid grid-cols-1 md:grid-cols-2 gap-8"
             >
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Ignite Moment Card */}
-                <div 
-                  onClick={() => {
-                    setMomentType('moment')
-                    setStep(2)
-                  }}
-                  className="group relative bg-obsidian border border-white/10 p-8 cursor-pointer overflow-hidden transition-all hover:border-crimson/40 hover:shadow-[0_0_40px_rgba(220,20,60,0.1)]"
-                >
-                  <div className="flex justify-between items-start mb-8">
-                    <Zap className="w-8 h-8 text-crimson" />
-                    <span className="micro-caps text-[10px] text-marble/20 tracking-[0.3em]">PROTOCOL 01</span>
+              {/* Ignite Moment Card */}
+              <motion.div 
+                whileHover={{ y: -10 }}
+                onClick={() => {
+                  setMomentType('moment')
+                  setStep(2)
+                }}
+                className="relative h-[500px] rounded-3xl overflow-hidden cursor-pointer group border border-white/5 hover:border-crimson/40 transition-colors shadow-2xl"
+              >
+                <img src={momentBg} className="absolute inset-0 w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110" alt="Moment Background" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-transparent z-10" />
+                
+                <div className="absolute inset-0 z-20 p-10 flex flex-col justify-between">
+                  <div className="flex justify-between items-start">
+                    <div className="w-12 h-12 rounded-2xl bg-crimson/20 border border-crimson/40 flex items-center justify-center backdrop-blur-md">
+                      <Zap className="w-6 h-6 text-crimson-bright animate-pulse" />
+                    </div>
+                    <span className="micro-caps text-[10px] text-marble/40 tracking-[0.4em]">INIT_MOMENT</span>
                   </div>
                   
-                  <h3 className="font-serif text-3xl text-marble mb-3">Ignite Moment</h3>
-                  <p className="text-sm text-marble/40 leading-relaxed font-light mb-8">
-                    EPHEMERAL BROADCAST. Visible to recipients in radius for 6 hours. Zero trace after dissipation.
-                  </p>
-
-                  <div className="flex items-center gap-2 micro-caps text-[10px] text-gold group-hover:gap-4 transition-all">
-                    INITIALIZE <ArrowRight className="w-3 h-3" />
+                  <div>
+                    <h3 className="font-serif text-4xl text-marble mb-4 group-hover:text-crimson-bright transition-colors">Ignite Moment</h3>
+                    <p className="text-marble/50 font-light leading-relaxed mb-8">
+                      EPHEMERAL BROADCAST. Spontaneous and immediate. Visible to nearby recipients for 6 hours. Zero trace after dissipation.
+                    </p>
+                    <div className="flex items-center gap-3 micro-caps text-[10px] text-marble border-t border-white/10 pt-6 group-hover:text-gold transition-colors">
+                      START BROADCAST <ArrowRight className="w-4 h-4 group-hover:translate-x-2 transition-transform" />
+                    </div>
                   </div>
                 </div>
+              </motion.div>
 
-                {/* Establish Event Card */}
-                <div 
-                  onClick={() => {
-                    setMomentType('event')
-                    setStep(2)
-                  }}
-                  className="group relative bg-obsidian border border-white/10 p-8 cursor-pointer overflow-hidden transition-all hover:border-gold/40 hover:shadow-[0_0_40px_rgba(212,175,55,0.1)]"
-                >
-                  <div className="flex justify-between items-start mb-8">
-                    <Calendar className="w-8 h-8 text-gold" />
-                    <span className="micro-caps text-[10px] text-marble/20 tracking-[0.3em]">PROTOCOL 02</span>
+              {/* Establish Event Card */}
+              <motion.div 
+                whileHover={{ y: -10 }}
+                onClick={() => {
+                  setMomentType('event')
+                  setStep(2)
+                }}
+                className="relative h-[500px] rounded-3xl overflow-hidden cursor-pointer group border border-white/5 hover:border-gold/40 transition-colors shadow-2xl"
+              >
+                <img src={eventBg} className="absolute inset-0 w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110" alt="Event Background" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-transparent z-10" />
+                
+                <div className="absolute inset-0 z-20 p-10 flex flex-col justify-between">
+                  <div className="flex justify-between items-start">
+                    <div className="w-12 h-12 rounded-2xl bg-gold/20 border border-gold/40 flex items-center justify-center backdrop-blur-md">
+                      <Calendar className="w-6 h-6 text-gold" />
+                    </div>
+                    <span className="micro-caps text-[10px] text-marble/40 tracking-[0.4em]">INIT_EVENT</span>
                   </div>
                   
-                  <h3 className="font-serif text-3xl text-marble mb-3">Establish Event</h3>
-                  <p className="text-sm text-marble/40 leading-relaxed font-light mb-8">
-                    STRUCTURED GATHERING. Persists in discovery feed. Ideal for curated collectives and summits.
-                  </p>
-
-                  <div className="flex items-center gap-2 micro-caps text-[10px] text-gold group-hover:gap-4 transition-all">
-                    INITIALIZE <ArrowRight className="w-3 h-3" />
+                  <div>
+                    <h3 className="font-serif text-4xl text-marble mb-4 group-hover:text-gold transition-colors">Establish Event</h3>
+                    <p className="text-marble/50 font-light leading-relaxed mb-8">
+                      STRUCTURED GATHERING. Scheduled for the future. Persists in discovery. Perfect for summits, workshops, and galas.
+                    </p>
+                    <div className="flex items-center gap-3 micro-caps text-[10px] text-marble border-t border-white/10 pt-6 group-hover:text-gold transition-colors">
+                      CONFIGURE SUMMIT <ArrowRight className="w-4 h-4 group-hover:translate-x-2 transition-transform" />
+                    </div>
                   </div>
                 </div>
-              </div>
-
+              </motion.div>
             </motion.div>
           ) : (
             <motion.div
@@ -232,166 +262,144 @@ export default function CreatePage() {
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
-              transition={{ duration: 0.3 }}
-              className="space-y-8"
+              className="space-y-10"
             >
               {error && (
-                <div className="p-4 rounded-lg bg-crimson/10 border border-crimson/20 text-crimson text-sm flex items-center gap-3">
-                  <Zap className="w-4 h-4 rotate-180" />
+                <div className="p-4 rounded-2xl bg-crimson/5 border border-crimson/20 text-crimson-bright text-xs flex items-center gap-3 animate-shake">
+                  <Zap className="w-4 h-4" />
                   {error}
                 </div>
               )}
 
-              {/* Configuration Fields */}
-              <div className="space-y-12">
-                {/* Title Input */}
-                <div className="space-y-4 pb-8 hairline-b">
-                  <label className="micro-caps text-marble/40 text-[10px] tracking-[0.3em]">SIGNAL IDENTIFIER</label>
-                  <div className="relative">
+              {/* Core Info */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
+                <div className="space-y-8">
+                  <div className="space-y-4">
+                    <label className="micro-caps text-marble/30 text-[10px] tracking-[0.3em] flex items-center gap-2">
+                       IDENTIFIER
+                    </label>
                     <input
                       type="text"
-                      required
                       maxLength={80}
                       value={title}
                       onChange={(e) => setTitle(e.target.value)}
                       placeholder="ENTER SIGNAL TITLE..."
-                      className="w-full bg-void/50 border border-white/10 rounded-xl py-4 px-6 text-marble text-lg outline-none focus:border-gold/50 transition-all placeholder:text-marble/20"
+                      className="w-full bg-void/50 border-b border-white/10 py-4 text-marble text-2xl outline-none focus:border-gold transition-all placeholder:text-marble/10 font-serif"
                     />
-                    <span className="absolute right-6 top-1/2 -translate-y-1/2 text-[10px] font-mono text-marble/20">
-                      {title.length} / 80
-                    </span>
                   </div>
-                </div>
 
-                {/* Description Input */}
-                <div className="space-y-4 pb-8 hairline-b">
-                  <label className="micro-caps text-marble/40 text-[10px] tracking-[0.3em]">CONTEXT & INTENT</label>
-                  <div className="relative">
+                  <div className="space-y-4">
+                    <label className="micro-caps text-marble/30 text-[10px] tracking-[0.3em]">NARRATIVE</label>
                     <textarea
                       rows={4}
                       maxLength={500}
                       value={description}
                       onChange={(e) => setDescription(e.target.value)}
-                      placeholder="ESTABLISH THE TONE..."
-                      className="w-full bg-void/50 border border-white/10 rounded-xl p-6 text-marble text-sm outline-none focus:border-gold/30 transition-all resize-none placeholder:text-marble/20"
+                      placeholder="ESTABLISH CONTEXT..."
+                      className="w-full bg-white/5 border border-white/10 rounded-2xl p-6 text-marble text-sm outline-none focus:border-gold/30 transition-all resize-none placeholder:text-marble/10"
                     />
-                    <span className="absolute right-6 bottom-6 text-[10px] font-mono text-marble/20">
-                      {description.length} / 500
-                    </span>
+                  </div>
+
+                  {momentType === 'event' && (
+                    <div className="space-y-4 p-6 rounded-2xl bg-gold/5 border border-gold/20">
+                      <label className="micro-caps text-gold text-[10px] tracking-[0.3em] flex items-center gap-2">
+                        <Clock className="w-3 h-3" /> TEMPORAL SCHEDULE
+                      </label>
+                      <input
+                        type="datetime-local"
+                        value={expiresAt}
+                        min={minDate}
+                        max={maxDate}
+                        onChange={(e) => setExpiresAt(e.target.value)}
+                        className="w-full bg-void border border-gold/20 rounded-xl px-4 py-3 text-gold text-sm outline-none focus:border-gold transition-all"
+                      />
+                      <p className="text-[9px] text-gold-pale/40 italic">
+                        * Scheduling available for the next 30 days
+                      </p>
+                    </div>
+                  )}
+
+                  <div className="space-y-6">
+                    <div className="flex justify-between items-end">
+                      <label className="micro-caps text-marble/30 text-[10px] tracking-[0.3em]">CAPACITY LIMIT</label>
+                      <span className="text-xl font-serif text-marble">{capacity}</span>
+                    </div>
+                    <input
+                      type="range"
+                      min="2"
+                      max={MAX_MOMENT_CAPACITY}
+                      value={capacity}
+                      onChange={(e) => setCapacity(parseInt(e.target.value))}
+                      className="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-gold"
+                    />
                   </div>
                 </div>
 
-                {/* Capacity Parameter */}
-                <div className="space-y-6 pb-8 hairline-b">
-                  <div className="flex justify-between items-end">
-                    <label className="micro-caps text-marble/40 text-[10px] tracking-[0.3em]">CAPACITY LIMIT</label>
-                    <span className="text-xl font-serif text-marble">{capacity}</span>
-                  </div>
-                  <input
-                    type="range"
-                    min="2"
-                    max={MAX_MOMENT_CAPACITY}
-                    step="1"
-                    value={capacity}
-                    onChange={(e) => setCapacity(parseInt(e.target.value))}
-                    className="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-gold"
-                  />
-                </div>
-
-                {/* Location Picker */}
-                <div className="space-y-6 pb-8 hairline-b">
-                  <label className="micro-caps text-marble/40 text-[10px] tracking-[0.3em]">GEOSPATIAL ANCHOR</label>
-                  <div 
-                    className="relative rounded-2xl overflow-hidden border border-white/10 bg-void/50 group"
-                    style={{ height: '280px' }}
-                  >
-                    <div ref={mapPickerRef} className="w-full h-full" />
-                    
-                    {/* Coordinate Overlay */}
-                    <div className="absolute bottom-4 left-4 right-4 glass-panel px-4 py-3 rounded-xl border-white/5 flex justify-between items-center pointer-events-none">
-                      <div className="flex gap-4">
-                        <div>
-                          <p className="text-[10px] text-marble/20 micro-caps">Latitude</p>
-                          <p className="text-xs font-mono text-gold">
-                            {effectiveLat?.toFixed(6) ?? '---'}
-                          </p>
+                <div className="space-y-8">
+                  <div className="space-y-4">
+                    <label className="micro-caps text-marble/30 text-[10px] tracking-[0.3em]">GEOSPATIAL ANCHOR</label>
+                    <div className="relative rounded-3xl overflow-hidden border border-white/10 h-[380px] group">
+                      <div ref={mapPickerRef} className="w-full h-full" />
+                      <div className="absolute bottom-6 left-6 right-6 glass-panel p-4 rounded-2xl border-white/10 flex justify-between items-center">
+                        <div className="flex gap-6">
+                          <div>
+                            <p className="text-[8px] text-marble/20 micro-caps mb-1">LATITUDE</p>
+                            <p className="text-xs font-mono text-gold leading-none">{effectiveLat?.toFixed(6) ?? '---'}</p>
+                          </div>
+                          <div className="w-[1px] h-6 bg-white/10" />
+                          <div>
+                            <p className="text-[8px] text-marble/20 micro-caps mb-1">LONGITUDE</p>
+                            <p className="text-xs font-mono text-gold leading-none">{effectiveLng?.toFixed(6) ?? '---'}</p>
+                          </div>
                         </div>
-                        <div>
-                          <p className="text-[10px] text-marble/20 micro-caps">Longitude</p>
-                          <p className="text-xs font-mono text-gold">
-                            {effectiveLng?.toFixed(6) ?? '---'}
-                          </p>
-                        </div>
+                        {customLat && <div className="w-2 h-2 rounded-full bg-crimson animate-pulse" />}
                       </div>
-                      {customLat && (
-                        <span className="micro-caps text-[10px] text-crimson animate-pulse">
-                          CUSTOM OVERRIDE
-                        </span>
-                      )}
                     </div>
                   </div>
-                  <p className="text-[10px] text-marble/30 mt-3 flex items-center gap-2">
-                    <MapPin className="w-3 h-3" />
-                    Tap map or drag marker to recalibrate anchor coordinates
-                  </p>
-                </div>
-              </div>
 
-
-              {/* Tags System */}
-              <div className="space-y-4">
-                <label className="micro-caps text-gold/60 text-[10px] tracking-[0.2em]">Tags (Optional)</label>
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={tagInput}
-                    onChange={(e) => setTagInput(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addTag())}
-                    placeholder="Enter keywords..."
-                    className="flex-1 bg-void border border-white/10 rounded-lg px-4 py-2 text-sm text-marble outline-none focus:border-gold/30"
-                  />
-                  <button
-                    type="button"
-                    onClick={addTag}
-                    disabled={!tagInput.trim() || tags.length >= 5}
-                    className="px-4 bg-white/5 text-marble/60 rounded-lg hover:bg-white/10 disabled:opacity-30 transition-colors"
-                  >
-                    <ArrowRight className="w-4 h-4" />
-                  </button>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  <AnimatePresence>
-                    {tags.map((tag) => (
-                      <motion.span
-                        key={tag}
-                        initial={{ opacity: 0, scale: 0.8 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0, scale: 0.8 }}
-                        className="hairline-all rounded-full px-3 py-1 micro-caps text-[9px] text-gold-pale bg-gold/5 flex items-center gap-1.5"
-                      >
-                        {tag}
-                        <button onClick={() => removeTag(tag)}>
-                          <X className="w-3 h-3 hover:text-marble transition-colors" />
-                        </button>
-                      </motion.span>
-                    ))}
-                  </AnimatePresence>
+                  <div className="space-y-4">
+                    <label className="micro-caps text-marble/30 text-[10px] tracking-[0.3em]">TAXONOMY (MAX 5)</label>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={tagInput}
+                        onChange={(e) => setTagInput(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addTag())}
+                        placeholder="Add keywords..."
+                        className="flex-1 bg-white/5 border border-white/10 rounded-xl px-5 py-3 text-sm text-marble outline-none focus:border-gold/30"
+                      />
+                      <button onClick={addTag} disabled={!tagInput.trim() || tags.length >= 5} className="px-5 bg-gold/10 text-gold rounded-xl hover:bg-gold/20 disabled:opacity-30 transition-all">
+                        <ArrowRight className="w-5 h-5" />
+                      </button>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {tags.map((tag) => (
+                        <span key={tag} className="px-3 py-1.5 rounded-full bg-gold/5 border border-gold/20 text-[10px] micro-caps text-gold-pale flex items-center gap-2">
+                          #{tag}
+                          <button onClick={() => removeTag(tag)}><X className="w-3 h-3 hover:text-marble" /></button>
+                        </span>
+                      ))}
+                    </div>
+                  </div>
                 </div>
               </div>
 
               {/* Submit Action */}
               <button
-                disabled={loading || !title.trim() || !effectiveLat}
+                disabled={loading || !title.trim() || !effectiveLat || (momentType === 'event' && !expiresAt)}
                 onClick={handleSubmit}
-                className="w-full bg-marble text-void py-5 rounded-xl micro-caps tracking-[0.2em] font-bold text-xs disabled:opacity-30 transition-all hover:bg-gold-pale flex items-center justify-center gap-3 group mt-12 mb-8 shadow-2xl"
+                className="w-full h-20 bg-marble text-void rounded-2xl micro-caps tracking-[0.3em] font-bold text-sm disabled:opacity-20 transition-all hover:bg-gold-pale flex items-center justify-center gap-4 group relative overflow-hidden"
               >
                 {loading ? (
-                  <Loader2 className="w-5 h-5 animate-spin" />
+                  <Loader2 className="w-6 h-6 animate-spin" />
                 ) : (
                   <>
-                    Broadcast Signal
-                    <Zap className="w-5 h-5 group-hover:scale-125 transition-transform text-void" />
+                    INITIALIZE BROADCAST
+                    <Zap className="w-6 h-6 group-hover:scale-125 transition-transform" />
                   </>
+                )}
+                {!loading && (
+                   <div className="absolute inset-x-0 bottom-0 h-1 bg-gold/30" />
                 )}
               </button>
             </motion.div>
