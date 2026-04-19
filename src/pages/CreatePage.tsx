@@ -45,6 +45,7 @@ export default function CreatePage() {
   const mapPickerRef = useRef<HTMLDivElement>(null)
   const mapPickerInstance = useRef<MapLibreMap | null>(null)
   const pickerMarkerRef = useRef<Marker | null>(null)
+  const initialCoordsRef = useRef<{lat: number, lng: number} | null>(null)
 
   const effectiveLat = customLat ?? location?.latitude ?? null
   const effectiveLng = customLng ?? location?.longitude ?? null
@@ -55,14 +56,29 @@ export default function CreatePage() {
   const maxDate = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 16) // +30 days
 
   useEffect(() => {
+    if (step === 1) {
+      initialCoordsRef.current = null
+    }
+  }, [step])
+
+  useEffect(() => {
     if (step !== 2) return
+    
+    // Store initial coords once — never update map position after init
+    if (!initialCoordsRef.current) {
+      initialCoordsRef.current = {
+        lat: location?.latitude ?? 6.9271,
+        lng: location?.longitude ?? 79.8612
+      }
+    }
     
     let map: MapLibreMap | null = null
     let initialized = false
     let attempts = 0
+    const coords = initialCoordsRef.current
     
     const tryInit = () => {
-      if (initialized) return  // prevent double init
+      if (initialized) return
       attempts++
       const container = mapPickerRef.current
       if (!container) {
@@ -80,16 +96,13 @@ export default function CreatePage() {
         return
       }
       
-      initialized = true  // mark as initialized
-      
-      const centerLat = location?.latitude ?? 6.9271
-      const centerLng = location?.longitude ?? 79.8612
+      initialized = true
       
       try {
         map = new MapLibreMap({
           container,
           style: MAPTILER_STYLE,
-          center: [centerLng, centerLat],
+          center: [coords.lng, coords.lat],
           zoom: 13,
           attributionControl: false,
           fadeDuration: 0,
@@ -113,7 +126,7 @@ export default function CreatePage() {
           `
           
           const marker = new Marker({ element: el, draggable: true })
-            .setLngLat([centerLng, centerLat])
+            .setLngLat([coords.lng, coords.lat])
             .addTo(map!)
           
           pickerMarkerRef.current = marker
@@ -140,15 +153,13 @@ export default function CreatePage() {
     
     return () => {
       clearTimeout(timer)
-      initialized = false
       if (map) {
         map.remove()
         mapPickerInstance.current = null
         pickerMarkerRef.current = null
       }
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [step, location?.latitude, location?.longitude])
+  }, [step])
 
   const handleSubmit = async () => {
     if (!effectiveLat || !effectiveLng || !user) return
