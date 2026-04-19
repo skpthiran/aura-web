@@ -139,6 +139,22 @@ export default function MomentDetailPage() {
   const isEvent = moment.moment_type === 'event'
   const timeRemaining = moment.expires_at ? new Date(moment.expires_at).getTime() - Date.now() : 0
   const hoursLeft = Math.max(0, Math.floor(timeRemaining / (1000 * 60 * 60)))
+  const isExpired = timeRemaining <= 0
+
+  // Calculate duration if both exist
+  let durationText = ''
+  if (moment.start_time && moment.end_time) {
+    const start = new Date(moment.start_time)
+    const end = new Date(moment.end_time)
+    const diffMs = end.getTime() - start.getTime()
+    const diffHrs = Math.floor(diffMs / (1000 * 60 * 60))
+    const diffMins = Math.round((diffMs % (1000 * 60 * 60)) / (1000 * 60))
+    if (diffHrs > 0) {
+      durationText = `${diffHrs}h ${diffMins > 0 ? `${diffMins}m` : ''}`
+    } else {
+      durationText = `${diffMins}m`
+    }
+  }
 
   return (
     <div className="flex-1 bg-void min-h-screen relative overflow-x-hidden safe-area-pb">
@@ -272,28 +288,94 @@ export default function MomentDetailPage() {
               </motion.div>
             )}
 
-            {/* INTEL GRID */}
-            <div className="grid grid-cols-2 gap-4 mb-10">
-              <div className="glass-panel p-6 rounded-2xl flex flex-col gap-4">
-                <div className="w-10 h-10 rounded-xl bg-gold/10 flex items-center justify-center">
-                  <Clock className="w-5 h-5 text-gold" />
+            {/* Timing section */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.2 }}
+              className="glass-panel hairline-all rounded-2xl overflow-hidden mb-6"
+            >
+              {/* Start time row */}
+              {moment.start_time ? (
+                <div className="flex items-center gap-4 px-5 py-4 hairline-b">
+                  <div className="w-9 h-9 rounded-xl bg-gold/10 border border-gold/20
+                    flex items-center justify-center shrink-0">
+                    <Calendar className="w-4 h-4 text-gold" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="micro-caps text-xs text-marble/40 mb-0.5">
+                      {isEvent ? 'Event Starts' : 'Starts'}
+                    </p>
+                    <p className="text-marble text-sm font-medium">
+                      {new Date(moment.start_time).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })} at {new Date(moment.start_time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+                    </p>
+                  </div>
                 </div>
-                <div>
-                   <p className="micro-caps text-[10px] text-marble/30 mb-1">TIME REMAINING</p>
-                   <p className="text-xl text-marble font-medium">{hoursLeft > 0 ? `${hoursLeft} Hours` : 'Expiring Soon'}</p>
+              ) : null}
+
+              {/* End / Duration row */}
+              <div className="flex items-center gap-4 px-5 py-4 bg-white/[0.02]">
+                <div className="w-9 h-9 rounded-xl bg-marble/5 border border-white/10
+                  flex items-center justify-center shrink-0">
+                  <Clock className="w-4 h-4 text-marble/40" />
+                </div>
+                
+                <div className="flex-1 flex items-center justify-between">
+                  <div>
+                    <p className="micro-caps text-[10px] text-marble/20 mb-0.5">
+                      {isEvent ? 'Approx. Duration' : 'Signal Duration'}
+                    </p>
+                    <p className="text-marble text-sm">
+                      {durationText || (hoursLeft > 0 ? `${hoursLeft} hours remaining` : 'Expiring soon')}
+                    </p>
+                  </div>
+
+                  <div className="text-right">
+                    <p className="micro-caps text-[10px] text-marble/20 mb-0.5">Status</p>
+                    <div className="flex items-center gap-1.5 justify-end">
+                      <div className={cn(
+                        "w-1.5 h-1.5 rounded-full",
+                        isExpired ? "bg-marble/20" : "bg-gold animate-pulse"
+                      )} />
+                      <span className={cn(
+                        "text-[10px] micro-caps font-bold tracking-widest",
+                        isExpired ? "text-marble/30" : "text-gold"
+                      )}>
+                        {isExpired ? 'SIGNAL EXPIRED' : 'LIVE ON NETWORK'}
+                      </span>
+                    </div>
+                  </div>
                 </div>
               </div>
-              
-              <div className="glass-panel p-6 rounded-2xl flex flex-col gap-4">
-                <div className="w-10 h-10 rounded-xl bg-crimson/10 flex items-center justify-center">
-                  <Users className="w-5 h-5 text-crimson-bright" />
-                </div>
-                <div>
-                   <p className="micro-caps text-[10px] text-marble/30 mb-1">PARTICIPANTS</p>
-                   <p className="text-xl text-marble font-medium">{moment.participant_count || 0} / {moment.capacity_limit || '∞'}</p>
-                </div>
+            </motion.div>
+
+            {/* Stats row */}
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.15 }}
+              className="grid grid-cols-2 gap-3 mb-6"
+            >
+              <div className="glass-panel hairline-all rounded-2xl p-4 text-center">
+                <Users className="w-4 h-4 text-gold mx-auto mb-2" />
+                <p className="font-serif text-2xl text-marble">
+                  {moment.participant_count || 0}
+                </p>
+                <p className="micro-caps text-xs text-marble/30">
+                  / {moment.capacity_limit || '∞'} spots
+                </p>
               </div>
-            </div>
+              <div className="glass-panel hairline-all rounded-2xl p-4 text-center">
+                {isEvent
+                  ? <Calendar className="w-4 h-4 text-gold mx-auto mb-2" />
+                  : <Zap className="w-4 h-4 text-gold mx-auto mb-2" />
+                }
+                <p className="font-serif text-2xl text-marble">
+                  {isEvent ? 'Event' : 'Moment'}
+                </p>
+                <p className="micro-caps text-xs text-marble/30">type</p>
+              </div>
+            </motion.div>
 
             {/* Venue */}
             {(moment as any).venue && (
