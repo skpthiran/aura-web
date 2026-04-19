@@ -17,6 +17,7 @@ const ProfilePage = lazy(() => import("./pages/ProfilePage"));
 const SignalsPage = lazy(() => import("./pages/SignalsPage"));
 const MomentDetailPage = lazy(() => import("./pages/MomentDetailPage"));
 const PublicProfilePage = lazy(() => import("./pages/PublicProfilePage"));
+const SearchPage = lazy(() => import("./pages/SearchPage"));
 
 const PageLoader = () => (
   <div className="flex-1 flex items-center justify-center bg-void min-h-screen">
@@ -55,6 +56,7 @@ export default function App() {
               <Route path="map" element={<MapPage />} />
               <Route path="create" element={<CreatePage />} />
               <Route path="events" element={<EventsPage />} />
+              <Route path="search" element={<SearchPage />} />
               <Route path="chat" element={<ChatPage />} />
               <Route path="signals" element={<SignalsPage />} />
               <Route path="moment/:id" element={<MomentDetailPage />} />

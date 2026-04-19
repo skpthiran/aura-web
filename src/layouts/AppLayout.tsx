@@ -1,13 +1,15 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Outlet, NavLink, Link, useLocation, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "motion/react";
-import { Compass, Map as MapIcon, Plus, Building2, MessageSquare, Landmark, MessageSquareText, Bell, User, Shield, Settings, LogOut, Loader2 } from "lucide-react";
+import { Compass, Map as MapIcon, Plus, Building2, MessageSquare, Landmark, MessageSquareText, Bell, User, Shield, Settings, LogOut, Loader2, Search } from "lucide-react";
 import { cn } from "../lib/utils";
 import { useAuth } from "../contexts/AuthContext";
+import { supabase } from "../lib/supabase";
 
 const NAV_ITEMS = [
   { path: "/app/today", label: "Pulse", icon: Compass },
   { path: "/app/map", label: "Forum", icon: MapIcon },
+  { path: "/app/search", label: "Search", icon: Search },
   { path: "/app/create", label: "Summon", icon: Plus, isAction: true },
   { path: "/app/events", label: "Colosseum", icon: Landmark },
   { path: "/app/chat", label: "Agora", icon: MessageSquareText },
@@ -17,8 +19,8 @@ const NAV_ITEMS = [
 const mobileNavItems = [
   { to: '/app/today', icon: Compass, label: 'Pulse' },
   { to: '/app/map', icon: MapIcon, label: 'Forum' },
-  { to: '/app/create', icon: Plus, label: 'Create' },
-  { to: '/app/events', icon: Building2, label: 'Events' },
+  { to: '/app/create', icon: Plus, label: '' },
+  { to: '/app/search', icon: Search, label: 'Search' },
   { to: '/app/chat', icon: MessageSquare, label: 'Chat' },
 ];
 
@@ -28,6 +30,44 @@ export default function AppLayout() {
   const { user, profile, signOut } = useAuth();
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    if (!user) return;
+    fetchUnreadCount();
+    const interval = setInterval(fetchUnreadCount, 60000);
+    return () => clearInterval(interval);
+  }, [user]);
+
+  const fetchUnreadCount = async () => {
+    if (!user) return;
+    try {
+      // Count joins on user's moments in last 24h
+      const since = new Date(Date.now() - 86400000).toISOString();
+
+      const { data: myMoments } = await supabase
+        .from('moments')
+        .select('id')
+        .eq('creator_id', user.id);
+
+      let count = 0;
+      if (myMoments && myMoments.length > 0) {
+        const ids = myMoments.map((m: any) => m.id);
+        const { count: joinCount } = await supabase
+          .from('participants')
+          .select('*', { count: 'exact', head: true })
+          .in('moment_id', ids)
+          .neq('user_id', user.id)
+          .eq('status', 'joined')
+          .gt('created_at', since);
+        count += joinCount ?? 0;
+      }
+
+      setUnreadCount(count);
+    } catch (err) {
+      console.error('Error fetching unread count:', err);
+    }
+  };
 
   const handleSignOut = async () => {
     try {
@@ -68,12 +108,21 @@ export default function AppLayout() {
           <div className="flex items-center gap-2.5">
             {/* Notification system */}
             <NavLink to="/app/signals">
-              <button className="w-9 h-9 rounded-full bg-white/5 border border-white/10
+              <button 
+                onClick={() => navigate('/app/signals')}
+                className="relative w-9 h-9 rounded-full bg-white/5 border border-white/10
                 flex items-center justify-center text-marble/60
-                hover:text-marble transition-all relative">
+                hover:text-marble transition-all group"
+              >
                 <Bell className="w-4 h-4" />
-                <div className="absolute top-2 right-2 w-1.5 h-1.5 
-                  rounded-full bg-crimson-bright shadow-[0_0_8px_rgba(255,8,0,0.4)]" />
+                {unreadCount > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-[16px]
+                    rounded-full bg-crimson-bright ring-2 ring-black
+                    flex items-center justify-center
+                    micro-caps text-[9px] text-white font-bold px-1 animate-pulse shadow-[0_0_10px_rgba(255,8,0,0.5)]">
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                  </span>
+                )}
               </button>
             </NavLink>
             
@@ -144,11 +193,18 @@ export default function AppLayout() {
                   </div>
 
                   <span className={cn(
-                    "micro-caps tracking-[0.2em] mt-0.5 transition-colors text-[11px]",
+                    "micro-caps tracking-[0.2em] mt-0.5 transition-colors text-[11px] flex-1",
                     isActive ? "text-gold-pale font-medium" : "text-marble/70"
                   )}>
                     {item.label}
                   </span>
+
+                  {/* Desktop Unread Badge */}
+                  {item.label === 'Signals' && unreadCount > 0 && (
+                    <span className="ml-auto min-w-[18px] h-[18px] rounded-full bg-crimson-bright flex items-center justify-center micro-caps text-[10px] text-white px-1 shadow-[0_0_10px_rgba(255,8,0,0.4)]">
+                      {unreadCount}
+                    </span>
+                  )}
                 </>
               )}
             </NavLink>
