@@ -143,7 +143,17 @@ const EventCard: React.FC<EventCardProps> = ({ event, index, isJoined, isJoining
 export default function EventsPage() {
   const { user } = useAuth()
   const { location } = useUserLocation()
-  const { events, loading, refetch } = useNearbyEvents(location)
+  const [radius, setRadius] = useState<number>(50000) // default 50km
+  
+  const radiusOptions = [
+    { label: '5 KM', value: 5000 },
+    { label: '50 KM', value: 50000 },
+    { label: 'Province', value: 150000 },
+    { label: 'Country', value: 500000 },
+    { label: 'Global', value: 99999999 },
+  ]
+
+  const { events, loading, refetch } = useNearbyEvents(location, radius)
   const [joiningId, setJoiningId] = useState<string | null>(null)
   const [joinedIds, setJoinedIds] = useState<Set<string>>(new Set())
 
@@ -181,6 +191,25 @@ export default function EventsPage() {
           >
             <RefreshCw className="w-3.5 h-3.5" />
           </button>
+        </div>
+
+        {/* Radius Selector */}
+        <div className="flex items-center gap-2 mb-8 overflow-x-auto scrollbar-hide pb-2">
+          <span className="micro-caps text-[9px] text-white/20 shrink-0">Radius:</span>
+          {radiusOptions.map(opt => (
+            <button
+              key={opt.value}
+              onClick={() => setRadius(opt.value)}
+              className={cn(
+                "micro-caps text-[9px] px-4 py-2 rounded-full border transition-all duration-300 whitespace-nowrap",
+                radius === opt.value
+                  ? "bg-gold/10 border-gold/40 text-gold"
+                  : "border-white/5 text-white/30 hover:border-white/20"
+              )}
+            >
+              {opt.label}
+            </button>
+          ))}
         </div>
 
         {/* Loading */}

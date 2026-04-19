@@ -12,7 +12,17 @@ import { Moment } from '../types'
 
 export default function MapPage() {
   const { location, error: locationError } = useUserLocation()
-  const { moments, loading: momentsLoading, refetch: refetchMoments } = useNearbyMoments(location)
+  const [radius, setRadius] = useState<number>(50000) // default 50km
+  
+  const radiusOptions = [
+    { label: '5 KM', value: 5000 },
+    { label: '50 KM', value: 50000 },
+    { label: 'Province', value: 150000 },
+    { label: 'Country', value: 500000 },
+    { label: 'Global', value: 99999999 },
+  ]
+
+  const { moments, loading: momentsLoading, refetch: refetchMoments } = useNearbyMoments(location, radius)
 
   const [selectedMoment, setSelectedMoment] = useState<Moment | null>(null)
   const [isJoining, setIsJoining] = useState(false)
@@ -201,21 +211,41 @@ export default function MapPage() {
              />
            </div>
 
-           {/* Filter Pills */}
-           <div className="flex gap-2 mt-2">
-             {['All', 'Moments', 'Events'].map(f => (
-               <button
-                 key={f}
-                 onClick={() => setMapFilter(f as any)}
-                 className={cn(
-                   "glass-panel hairline-all px-4 py-1.5 micro-caps text-[9px] transition-all duration-300",
-                   mapFilter === f ? "bg-gold/20 text-gold border-gold/40" : "text-marble/40 hover:text-marble/70"
-                 )}
-               >
-                 {f}
-               </button>
-             ))}
-           </div>
+            {/* Filter Pills */}
+            <div className="flex flex-col gap-2 mt-2">
+              <div className="flex gap-2">
+                {['All', 'Moments', 'Events'].map(f => (
+                  <button
+                    key={f}
+                    onClick={() => setMapFilter(f as any)}
+                    className={cn(
+                      "glass-panel hairline-all px-4 py-1.5 micro-caps text-[9px] transition-all duration-300",
+                      mapFilter === f ? "bg-gold/20 text-gold border-gold/40" : "text-marble/40 hover:text-marble/70"
+                    )}
+                  >
+                    {f}
+                  </button>
+                ))}
+              </div>
+              
+              <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide pb-1">
+                <span className="micro-caps text-[7px] text-white/20 shrink-0">RANGE:</span>
+                {radiusOptions.map(opt => (
+                  <button
+                    key={opt.value}
+                    onClick={() => setRadius(opt.value)}
+                    className={cn(
+                      "micro-caps text-[8px] px-3 py-1 rounded-sm border transition-all duration-300 whitespace-nowrap",
+                      radius === opt.value
+                        ? "bg-gold/10 border-gold/40 text-gold"
+                        : "border-white/5 text-white/30 hover:border-white/20"
+                    )}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
 
            {locationError && (
               <div className="mt-2 md:mt-4 glass-panel border-crimson/30 bg-crimson/5 px-3 py-1.5 md:px-4 md:py-2 flex items-center gap-2 md:gap-3 animate-pulse">
@@ -248,7 +278,9 @@ export default function MapPage() {
             <span className="micro-caps text-[9px] md:text-[10px] text-marble/60 tracking-[0.2em]">{moments.length} ACTIVE SIGNALS</span>
           </div>
           <div className="w-px h-3 bg-white/10" />
-          <span className="micro-caps text-[9px] md:text-[10px] text-gold-pale tracking-[0.2em]">LIVE RADIUS: 2.0KM</span>
+          <span className="micro-caps text-[9px] md:text-[10px] text-gold-pale tracking-[0.2em]">
+            LIVE RADIUS: {radius >= 99999999 ? 'GLOBAL' : `${radius / 1000}KM`}
+          </span>
         </div>
       </div>
 

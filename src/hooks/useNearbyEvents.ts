@@ -3,12 +3,16 @@ import { Moment } from '../types'
 import { getNearbyMoments, getAllActiveMoments } from '../lib/db/moments'
 import { UserLocation } from '../types'
 
-export function useNearbyEvents(location: UserLocation | null) {
+export function useNearbyEvents(
+  location: UserLocation | null,
+  radiusMeters: number = 50000
+) {
   const [events, setEvents] = useState<Moment[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const initialFetchDone = useRef(false)
   const locationRef = useRef(location)
+  const radiusRef = useRef(radiusMeters)
 
   // Update ref without triggering re-render
   useEffect(() => {
@@ -22,13 +26,18 @@ export function useNearbyEvents(location: UserLocation | null) {
       const loc = locationRef.current
       let data: Moment[]
       if (loc) {
-        data = await getNearbyMoments(
-          loc.latitude,
-          loc.longitude,
-          50000
-        )
-        if (data.length === 0) {
+        // For global, fetch all
+        if (radiusRef.current >= 99999999) {
           data = await getAllActiveMoments()
+        } else {
+          data = await getNearbyMoments(
+            loc.latitude,
+            loc.longitude,
+            radiusRef.current
+          )
+          if (data.length === 0) {
+            data = await getAllActiveMoments()
+          }
         }
       } else {
         data = await getAllActiveMoments()
@@ -39,7 +48,13 @@ export function useNearbyEvents(location: UserLocation | null) {
     } finally {
       setLoading(false)
     }
-  }, []) // NO location dependency
+  }, []) 
+
+  // Re-fetch when radius changes
+  useEffect(() => {
+    radiusRef.current = radiusMeters
+    fetchEvents()
+  }, [radiusMeters, fetchEvents])
 
   useEffect(() => {
     // Only fetch once on mount, then every 60 seconds

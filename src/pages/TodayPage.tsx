@@ -121,7 +121,17 @@ export default function TodayPage() {
   const { user } = useAuth()
   const { location } = useUserLocation()
   const [activeTab, setActiveTab] = useState('All')
-  const { moments, loading } = useNearbyMoments(location)
+  const [radius, setRadius] = useState<number>(50000) // default 50km
+  
+  const radiusOptions = [
+    { label: '5 KM', value: 5000 },
+    { label: '50 KM', value: 50000 },
+    { label: 'Province', value: 150000 },
+    { label: 'Country', value: 500000 },
+    { label: 'Global', value: 99999999 },
+  ]
+
+  const { moments, loading } = useNearbyMoments(location, radius)
   
   const [joiningId, setJoiningId] = useState<string | null>(null)
   const [joinedIds, setJoinedIds] = useState<Set<string>>(new Set())
@@ -244,7 +254,27 @@ export default function TodayPage() {
                   </button>
                 ))}
               </div>
-              <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-void/40 backdrop-blur-md border border-white/5">
+
+              {/* Radius Selector */}
+              <div className="flex items-center gap-2 max-w-full overflow-x-auto scrollbar-hide pb-2">
+                <span className="micro-caps text-[8px] text-white/20 shrink-0 ml-2">RADIUS:</span>
+                {radiusOptions.map(opt => (
+                  <button
+                    key={opt.value}
+                    onClick={() => setRadius(opt.value)}
+                    className={cn(
+                      "micro-caps text-[8px] px-3 py-1.5 rounded-full border transition-all duration-300 whitespace-nowrap",
+                      radius === opt.value
+                        ? "bg-gold/10 border-gold/40 text-gold"
+                        : "border-white/5 text-white/30 hover:border-white/20"
+                    )}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-void/40 backdrop-blur-md border border-white/5 self-start md:self-end">
                 <div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse shadow-[0_0_8px_rgba(74,222,128,0.5)]" />
                 <span className="micro-caps text-[9px] text-white/40 tracking-widest">{filteredMoments.length} Signals Intercepted</span>
               </div>
