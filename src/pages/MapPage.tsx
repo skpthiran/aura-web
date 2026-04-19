@@ -32,6 +32,7 @@ export default function MapPage() {
   usePageTitle('Forum')
   const { location, error: locationError } = useUserLocation()
   const [mapRadius, setMapRadius] = useState<number>(50000) // default 50km
+  const [mapLoaded, setMapLoaded] = useState(false)
   
   const radiusOptions = [
     { label: '5 KM', value: 5000 },
@@ -68,71 +69,74 @@ export default function MapPage() {
 
   // Radius Circle Visualization
   const updateRadiusCircle = useCallback(() => {
-    if (!mapRef.current || !location || mapRadius >= 99999999) {
-      if (mapRef.current?.getLayer('radius-circle')) {
-        mapRef.current.setLayoutProperty('radius-circle', 'visibility', 'none')
-        mapRef.current.setLayoutProperty('radius-outline', 'visibility', 'none')
-      }
+    const map = mapRef.current
+    if (!map || !mapLoaded) return
+
+    // Safe layer/source removal
+    const safeRemove = () => {
+      try {
+        if (map.getLayer('radius-fill')) map.removeLayer('radius-fill')
+        if (map.getLayer('radius-outline')) map.removeLayer('radius-outline')
+        if (map.getSource('radius-source')) map.removeSource('radius-source')
+      } catch {}
+    }
+
+    if (!location || mapRadius >= 99999999) {
+      safeRemove()
       return
     }
 
-    const map = mapRef.current
-    const center = [location.longitude, location.latitude]
-    const radiusInKm = mapRadius / 1000
+    const radiusKm = mapRadius / 1000
     const points = 64
-    const coords = []
+    const coords: [number, number][] = Array.from({ length: points + 1 }, (_, i) => {
+      const angle = (i / points) * 2 * Math.PI
+      const lat = location.latitude + (radiusKm / 111.32) * Math.cos(angle)
+      const lng = location.longitude +
+        (radiusKm / (111.32 * Math.cos(location.latitude * Math.PI / 180))) * Math.sin(angle)
+      return [lng, lat]
+    })
 
-    for (let i = 0; i < points; i++) {
-      const angle = (i / points) * (2 * Math.PI)
-      const lat = location.latitude + (radiusInKm / 111.32) * Math.cos(angle)
-      const lng = location.longitude + (radiusInKm / (111.32 * Math.cos(location.latitude * Math.PI / 180))) * Math.sin(angle)
-      coords.push([lng, lat])
-    }
-    coords.push(coords[0])
-
-    const geojson: any = {
-      type: 'Feature',
+    const geojsonData = {
+      type: 'Feature' as const,
+      properties: {},
       geometry: {
-        type: 'Polygon',
+        type: 'Polygon' as const,
         coordinates: [coords]
       }
     }
 
-    if (map.getSource('radius')) {
-      (map.getSource('radius') as any).setData(geojson)
-      map.setLayoutProperty('radius-circle', 'visibility', 'visible')
-      map.setLayoutProperty('radius-outline', 'visibility', 'visible')
-    } else {
-      map.addSource('radius', {
-        type: 'geojson',
-        data: geojson
-      })
-
-      map.addLayer({
-        id: 'radius-circle',
-        type: 'fill',
-        source: 'radius',
-        layout: {},
-        paint: {
-          'fill-color': '#D4AF37',
-          'fill-opacity': 0.05
-        }
-      })
-
-      map.addLayer({
-        id: 'radius-outline',
-        type: 'line',
-        source: 'radius',
-        layout: {},
-        paint: {
-          'line-color': '#D4AF37',
-          'line-width': 1,
-          'line-dasharray': [2, 2],
-          'line-opacity': 0.3
-        }
-      })
+    try {
+      if (map.getSource('radius-source')) {
+        (map.getSource('radius-source') as any).setData(geojsonData)
+      } else {
+        map.addSource('radius-source', { type: 'geojson', data: geojsonData })
+        map.addLayer({
+          id: 'radius-fill',
+          type: 'fill',
+          source: 'radius-source',
+          paint: { 'fill-color': '#C9A84C', 'fill-opacity': 0.04 }
+        })
+        map.addLayer({
+          id: 'radius-outline',
+          type: 'line',
+          source: 'radius-source',
+          paint: {
+            'line-color': '#C9A84C',
+            'line-opacity': 0.3,
+            'line-width': 1.5,
+            'line-dasharray': [4, 4]
+          }
+        })
+      }
+    } catch (err) {
+      console.warn('Radius circle error:', err)
     }
-  }, [location, mapRadius])
+  }, [location, mapRadius, mapLoaded])
+
+  // New useEffect to call updateRadiusCircle
+  useEffect(() => {
+    updateRadiusCircle()
+  }, [updateRadiusCircle])
 
   const [selectedMoment, setSelectedMoment] = useState<Moment | null>(null)
   const [isJoining, setIsJoining] = useState(false)
@@ -161,6 +165,7 @@ export default function MapPage() {
     })
 
     mapRef.current = map
+    map.on('load', () => setMapLoaded(true))
 
     const handleResize = () => mapRef.current?.resize()
     window.addEventListener('resize', handleResize)
@@ -218,9 +223,6 @@ export default function MapPage() {
       // Clear old
       momentMarkersRef.current.forEach(m => m.remove())
       momentMarkersRef.current = []
-
-      // Visual Radius Circle
-      updateRadiusCircle()
 
       // Add new
       filteredMoments.forEach(m => {
