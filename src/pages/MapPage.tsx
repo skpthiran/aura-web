@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'motion/react'
 import { Map as MapLibreMap, Marker } from 'maplibre-gl'
@@ -11,6 +11,22 @@ import { Crosshair, Search, Flame, Target, Users, Settings2, Target as Radar, Lo
 import { cn } from '../lib/utils'
 import { Moment } from '../types'
 import { usePageTitle } from '../hooks/usePageTitle'
+
+// Distance utility
+function haversineKm(
+  lat1: number, lng1: number,
+  lat2: number, lng2: number
+): number {
+  const R = 6371
+  const dLat = (lat2 - lat1) * Math.PI / 180
+  const dLng = (lng2 - lng1) * Math.PI / 180
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(lat1 * Math.PI / 180) *
+    Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLng / 2) ** 2
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+}
 
 export default function MapPage() {
   usePageTitle('Forum')
@@ -26,6 +42,97 @@ export default function MapPage() {
   ]
 
   const { moments, loading: momentsLoading, refetch: refetchMoments } = useNearbyMoments(location, mapRadius)
+
+  // Combined Filtering: Type + Strict Radius
+  const filteredMoments = moments.filter(m => {
+    // 1. Filter by type
+    if (mapFilter !== 'All') {
+      const isEvent = m.moment_type === 'event'
+      if (mapFilter === 'Moments' && isEvent) return false
+      if (mapFilter === 'Events' && !isEvent) return false
+    }
+    
+    // 2. Filter by strict radius
+    if (mapRadius < 99999999 && location) {
+      const distKm = haversineKm(
+        location.latitude,
+        location.longitude,
+        m.lat,
+        m.lng
+      )
+      if (distKm > (mapRadius / 1000)) return false
+    }
+    
+    return true
+  })
+
+  // Radius Circle Visualization
+  const updateRadiusCircle = useCallback(() => {
+    if (!mapRef.current || !location || mapRadius >= 99999999) {
+      if (mapRef.current?.getLayer('radius-circle')) {
+        mapRef.current.setLayoutProperty('radius-circle', 'visibility', 'none')
+        mapRef.current.setLayoutProperty('radius-outline', 'visibility', 'none')
+      }
+      return
+    }
+
+    const map = mapRef.current
+    const center = [location.longitude, location.latitude]
+    const radiusInKm = mapRadius / 1000
+    const points = 64
+    const coords = []
+
+    for (let i = 0; i < points; i++) {
+      const angle = (i / points) * (2 * Math.PI)
+      const lat = location.latitude + (radiusInKm / 111.32) * Math.cos(angle)
+      const lng = location.longitude + (radiusInKm / (111.32 * Math.cos(location.latitude * Math.PI / 180))) * Math.sin(angle)
+      coords.push([lng, lat])
+    }
+    coords.push(coords[0])
+
+    const geojson: any = {
+      type: 'Feature',
+      geometry: {
+        type: 'Polygon',
+        coordinates: [coords]
+      }
+    }
+
+    if (map.getSource('radius')) {
+      (map.getSource('radius') as any).setData(geojson)
+      map.setLayoutProperty('radius-circle', 'visibility', 'visible')
+      map.setLayoutProperty('radius-outline', 'visibility', 'visible')
+    } else {
+      map.addSource('radius', {
+        type: 'geojson',
+        data: geojson
+      })
+
+      map.addLayer({
+        id: 'radius-circle',
+        type: 'fill',
+        source: 'radius',
+        layout: {},
+        paint: {
+          'fill-color': '#D4AF37',
+          'fill-opacity': 0.05
+        }
+      })
+
+      map.addLayer({
+        id: 'radius-outline',
+        type: 'line',
+        source: 'radius',
+        layout: {},
+        paint: {
+          'line-color': '#D4AF37',
+          'line-width': 1,
+          'line-dasharray': [2, 2],
+          'line-opacity': 0.3
+        }
+      })
+    }
+  }, [location, mapRadius])
 
   const [selectedMoment, setSelectedMoment] = useState<Moment | null>(null)
   const [isJoining, setIsJoining] = useState(false)
@@ -112,16 +219,11 @@ export default function MapPage() {
       momentMarkersRef.current.forEach(m => m.remove())
       momentMarkersRef.current = []
 
-      // Filter moments
-      const filtered = moments.filter(m => {
-        if (mapFilter === 'All') return true
-        if (mapFilter === 'Moments') return m.moment_type === 'moment'
-        if (mapFilter === 'Events') return m.moment_type === 'event'
-        return true
-      })
+      // Visual Radius Circle
+      updateRadiusCircle()
 
       // Add new
-      filtered.forEach(m => {
+      filteredMoments.forEach(m => {
         const el = document.createElement('div')
         el.className = 'flex items-center justify-center cursor-pointer group'
         el.id = `marker-${m.id}`
@@ -154,7 +256,7 @@ export default function MapPage() {
     } else {
       map.once('load', syncMarkers)
     }
-  }, [moments, mapFilter])
+  }, [filteredMoments, updateRadiusCircle])
 
 
   const handleFlyToUser = () => {
@@ -279,7 +381,7 @@ export default function MapPage() {
         <div className="glass-panel border-white/5 px-4 md:px-6 py-2 flex items-center gap-3 md:gap-4 whitespace-nowrap">
           <div className="flex items-center gap-2">
             <div className="w-1.5 h-1.5 md:w-2 md:h-2 rounded-full bg-gold-pale animate-pulse" />
-            <span className="micro-caps text-[9px] md:text-[10px] text-marble/60 tracking-[0.2em]">{moments.length} ACTIVE SIGNALS</span>
+            <span className="micro-caps text-[9px] md:text-[10px] text-marble/60 tracking-[0.2em]">{filteredMoments.length} ACTIVE SIGNALS</span>
           </div>
           <div className="w-px h-3 bg-white/10" />
           <span className="micro-caps text-[9px] md:text-[10px] text-gold-pale tracking-[0.2em]">
