@@ -47,50 +47,50 @@ export default function AppLayout() {
 
   return (
     <div className="min-h-screen bg-void text-marble flex flex-col lg:flex-row overflow-hidden relative selection:bg-gold/20">
-      {/* Mobile Top Bar */}
-      <div className="lg:hidden fixed top-0 left-0 right-0 z-50
-        bg-void/95 backdrop-blur-xl border-b border-white/10
-        flex items-center justify-between px-5 py-3 safe-area-pt">
-        
-        {/* Logo */}
-        <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-full border border-gold/40 
-            flex items-center justify-center">
-            <span className="font-serif text-sm text-gold">A</span>
-          </div>
-          <span className="font-serif text-marble text-lg tracking-wide">
-            Aura
-          </span>
-        </div>
-        
-        {/* Right side: notifications + profile */}
-        <div className="flex items-center gap-3">
-          {/* Notification bell */}
-          <NavLink to="/app/signals">
-            <button className="w-9 h-9 rounded-full glass-panel hairline-all
-              flex items-center justify-center text-marble/40 
-              hover:text-marble transition-colors relative">
-              <Bell className="w-4 h-4" />
-              {/* Notification dot */}
-              <div className="absolute top-1.5 right-1.5 w-1.5 h-1.5 
-                rounded-full bg-crimson-bright" />
-            </button>
-          </NavLink>
+      {/* Premium Mobile Top Bar */}
+      <div className="lg:hidden fixed top-0 left-0 right-0 z-50"
+        style={{ paddingTop: 'env(safe-area-inset-top)' }}>
+        <div className="flex items-center justify-between px-5 py-3
+          bg-black/80 backdrop-blur-2xl border-b border-white/6">
           
-          {/* Profile avatar */}
-          <Link to="/app/profile">
-            <div className="w-9 h-9 rounded-full border border-white/20
-              bg-marble/10 overflow-hidden flex items-center justify-center">
+          {/* Logo Branding */}
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-full border border-gold/60
+              flex items-center justify-center bg-gold/5">
+              <span className="font-serif text-base text-gold leading-none">A</span>
+            </div>
+            <span className="font-serif text-lg text-white tracking-[0.2em]">
+              AURA
+            </span>
+          </div>
+
+          {/* Right Actions */}
+          <div className="flex items-center gap-2.5">
+            {/* Notification system */}
+            <NavLink to="/app/signals">
+              <button className="w-9 h-9 rounded-full bg-white/5 border border-white/10
+                flex items-center justify-center text-marble/60
+                hover:text-marble transition-all relative">
+                <Bell className="w-4 h-4" />
+                <div className="absolute top-2 right-2 w-1.5 h-1.5 
+                  rounded-full bg-crimson-bright shadow-[0_0_8px_rgba(255,8,0,0.4)]" />
+              </button>
+            </NavLink>
+            
+            {/* Direct profile access */}
+            <button 
+              onClick={() => setIsProfileMenuOpen(true)}
+              className="w-9 h-9 rounded-full border border-white/15
+                bg-marble/5 overflow-hidden flex items-center justify-center
+                hover:border-gold/40 transition-all">
               {profile?.avatar_url ? (
                 <img src={profile.avatar_url} 
                   className="w-full h-full object-cover" alt="Profile" />
               ) : (
-                <span className="font-serif text-sm text-marble/60">
-                  {(profile?.full_name ?? user?.email ?? 'A')[0].toUpperCase()}
-                </span>
+                <User className="w-4 h-4 text-marble/30" />
               )}
-            </div>
-          </Link>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -191,7 +191,7 @@ export default function AppLayout() {
       </aside>
 
       {/* Main Content Area */}
-      <main className="flex-1 flex flex-col overflow-y-auto pt-16 lg:pt-0 pb-20 lg:pb-0 relative z-10 scroll-smooth h-[100dvh]">
+      <main className="flex-1 flex flex-col overflow-y-auto pt-16 lg:pt-0 pb-28 lg:pb-0 relative z-10 scroll-smooth h-[100dvh]">
         <AnimatePresence mode="popLayout">
           <motion.div
             key={location.pathname}
@@ -206,39 +206,50 @@ export default function AppLayout() {
         </AnimatePresence>
       </main>
 
-      {/* Mobile Nav Bar */}
-      <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-50
-        bg-void/95 backdrop-blur-xl border-t border-white/10 safe-area-pb">
-        <div className="flex items-center justify-around px-2 pt-2 pb-2">
-          {mobileNavItems.map(({ to, icon: Icon, label }) => (
-            <NavLink key={to} to={to}>
-              {({ isActive }) => (
+      {/* Premium Floating Mobile Nav */}
+      <div className="lg:hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-50 w-[92%] max-w-[420px]"
+        style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
+        <nav className="glass-panel py-2 px-3 rounded-[24px] border border-white/10
+          shadow-[0_20px_50px_rgba(0,0,0,0.5)] flex items-center justify-between">
+          
+          {mobileNavItems.map(({ to, icon: Icon, label }) => {
+            const isActive = location.pathname === to;
+            
+            if (to === '/app/create') {
+              return (
+                <NavLink key={to} to={to}>
+                  <div className={cn(
+                    "w-12 h-12 rounded-full flex items-center justify-center transition-all duration-500",
+                    isActive 
+                      ? "bg-gold text-void shadow-[0_0_20px_rgba(212,175,55,0.4)]" 
+                      : "bg-void border border-gold/30 text-gold hover:border-gold/60"
+                  )}>
+                    <Plus className="w-6 h-6" />
+                  </div>
+                </NavLink>
+              );
+            }
+
+            return (
+              <NavLink key={to} to={to} className="flex-1">
                 <div className={cn(
-                  `flex flex-col items-center gap-1 px-3 py-2 rounded-xl 
-                  transition-all duration-300`,
-                  isActive ? 'text-gold' : 'text-marble/30'
+                  "flex flex-col items-center gap-1 transition-all duration-300",
+                  isActive ? "text-gold" : "text-marble/30 hover:text-marble/50"
                 )}>
-                  {to === '/app/create' ? (
-                    <div className={cn(
-                      'w-11 h-11 rounded-full flex items-center justify-center border',
-                      isActive 
-                        ? 'bg-gold border-gold text-void' 
-                        : 'border-gold/40 text-gold'
-                    )}>
-                      <Icon className="w-5 h-5" />
-                    </div>
-                  ) : (
-                    <>
-                      <Icon className="w-5 h-5" />
-                      <span className="micro-caps text-[10px]">{label}</span>
-                    </>
+                  <Icon className="w-[18px] h-[18px]" strokeWidth={isActive ? 2 : 1.5} />
+                  <span className="micro-caps text-[8px] tracking-wider">{label}</span>
+                  {isActive && (
+                    <motion.div 
+                      layoutId="mobile-active-dot"
+                      className="w-1 h-1 rounded-full bg-gold shadow-[0_0_8px_rgba(212,175,55,0.8)] mt-0.5"
+                    />
                   )}
                 </div>
-              )}
-            </NavLink>
-          ))}
-        </div>
-      </nav>
+              </NavLink>
+            );
+          })}
+        </nav>
+      </div>
 
       {/* Profile Popover / Sheet */}
       <AnimatePresence>

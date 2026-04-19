@@ -217,9 +217,9 @@ export default function TodayPage() {
 
   return (
     <div className="flex-1 bg-void min-h-screen overflow-x-hidden">
-      {/* 100VH MAGAZINE HERO */}
+      {/* 100SVH MAGAZINE HERO */}
       {heroMoment ? (
-        <section className="relative h-screen w-full overflow-hidden">
+        <section className="relative h-[100svh] w-full overflow-hidden">
           <motion.img
             initial={{ scale: 1.1 }}
             animate={{ scale: 1 }}
@@ -234,20 +234,21 @@ export default function TodayPage() {
           <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-transparent to-black" />
           <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-90" />
           
-          {/* FLOATING PULSE TITLE */}
-          <div className="absolute inset-x-0 top-[20%] flex items-center justify-center pointer-events-none z-10">
+          {/* FLOATING PULSE TITLE - Adjusted for mobile overlap */}
+          <div className="absolute inset-x-0 top-[15%] md:top-[20%] flex items-center justify-center pointer-events-none z-10">
             <motion.h1 
               initial={{ opacity: 0, y: 40 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1] }}
-              className="text-[30vw] md:text-[20vw] font-serif text-marble/5 tracking-tighter leading-none select-none"
+              className="text-[35vw] md:text-[20vw] font-serif text-marble/5 tracking-tighter leading-none select-none"
             >
               Pulse
             </motion.h1>
           </div>
 
-          {/* RESTORED CORE HEADER */}
-          <div className="absolute top-0 left-0 right-0 p-6 md:p-12 z-30 flex flex-col md:flex-row items-start md:items-end justify-between pointer-events-none safe-area-pt">
+          {/* REFINED HEADER & FILTERS */}
+          <div className="absolute top-0 left-0 right-0 z-30 flex flex-col pointer-events-none safe-area-pt">
+            <div className="p-6 md:p-12 flex flex-col md:flex-row items-start md:items-end justify-between">
             <div className="pointer-events-auto">
               <motion.p 
                 initial={{ opacity: 0, x: -20 }}
@@ -266,51 +267,56 @@ export default function TodayPage() {
               </motion.h1>
             </div>
             
-            <div className="flex flex-col items-start md:items-end gap-4 md:gap-6 mt-6 md:mt-0 pointer-events-auto">
-              <div className="flex gap-1 md:gap-2 glass-panel hairline-all p-1.5 rounded-full bg-black/60 backdrop-blur-xl max-w-full overflow-x-auto no-scrollbar">
-                {['All', 'Moments', 'Events'].map(tab => (
-                  <button
-                    key={tab}
-                    onClick={() => setActiveTab(tab)}
-                    className={cn(
-                      "micro-caps text-[9px] md:text-[10px] px-4 md:px-6 py-2 md:py-2.5 rounded-full transition-all duration-300 whitespace-nowrap",
-                      activeTab === tab 
-                        ? "bg-white text-void font-medium shadow-md" 
-                        : "bg-black/60 backdrop-blur-md border border-white/25 text-white/70 hover:text-white"
-                    )}
-                  >
-                    {tab}
-                  </button>
-                ))}
+            <div className="mt-2 md:mt-0 flex flex-col items-start md:items-end gap-4 md:gap-6 pointer-events-auto">
+              {/* Consolidated Filter Strip (Mobile Optimized) */}
+              <div className="w-screen md:w-auto -ml-6 md:ml-0 px-6 md:px-0 overflow-x-auto no-scrollbar">
+                <div className="flex items-center gap-3 glass-panel hairline-all p-1.5 rounded-full bg-black/40 backdrop-blur-2xl w-max">
+                  {/* Type Tabs */}
+                  <div className="flex gap-1 border-r border-white/10 pr-3 mr-1">
+                    {['All', 'Moments', 'Events'].map(tab => (
+                      <button
+                        key={tab}
+                        onClick={() => setActiveTab(tab)}
+                        className={cn(
+                          "micro-caps text-[9px] px-4 py-2 rounded-full transition-all duration-300 whitespace-nowrap",
+                          activeTab === tab 
+                            ? "bg-white text-void font-bold shadow-md" 
+                            : "text-white/40 hover:text-white"
+                        )}
+                      >
+                        {tab}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Radius Options */}
+                  <div className="flex gap-1.5 items-center">
+                    <span className="micro-caps text-[8px] text-white/20 ml-2 tracking-widest">RANGE</span>
+                    {radiusOptions.map(opt => (
+                      <button
+                        key={opt.value}
+                        onClick={() => setRadius(opt.value)}
+                        className={cn(
+                          'micro-caps text-[9px] px-3.5 py-2 rounded-full whitespace-nowrap transition-all duration-300',
+                          radius === opt.value
+                            ? 'bg-gold/20 text-gold border border-gold/40'
+                            : 'text-white/40 hover:text-white hover:bg-white/5'
+                        )}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </div>
 
-              {/* Radius Selector */}
-              <div className="flex items-center gap-2 px-4 md:px-10 pb-6 overflow-x-auto scrollbar-hide">
-                <span className="micro-caps text-xs text-white/50 shrink-0 bg-black/50 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/20">
-                  Range
-                </span>
-                {radiusOptions.map(opt => (
-                  <button
-                    key={opt.value}
-                    onClick={() => setRadius(opt.value)}
-                    className={cn(
-                      'micro-caps text-xs px-5 py-2 rounded-full whitespace-nowrap shrink-0 transition-all duration-300',
-                      radius === opt.value
-                        ? 'bg-gold text-void font-bold shadow-lg shadow-gold/30'
-                        : 'bg-black/60 backdrop-blur-md border border-white/30 text-white/80 hover:border-gold/50 hover:text-gold'
-                    )}
-                  >
-                    {opt.label}
-                  </button>
-                ))}
-              </div>
-
-              <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-void/40 backdrop-blur-md border border-white/5 self-start md:self-end">
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-void/40 backdrop-blur-md border border-white/5 self-start md:self-end hidden md:flex">
                 <div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse shadow-[0_0_8px_rgba(74,222,128,0.5)]" />
                 <span className="micro-caps text-[9px] text-white/40 tracking-widest">{filteredMoments.length} Signals Intercepted</span>
               </div>
             </div>
           </div>
+        </div>
 
           {/* HERO CONTENT FOOTER */}
           <div className="absolute bottom-0 left-0 right-0 p-8 md:p-16 z-20">
