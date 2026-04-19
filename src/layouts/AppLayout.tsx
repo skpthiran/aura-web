@@ -40,33 +40,30 @@ export default function AppLayout() {
   }, [user]);
 
   const fetchUnreadCount = async () => {
-    if (!user) return;
+    if (!user) return
     try {
-      const since = new Date(Date.now() - 86400000).toISOString();
       const { data: myMoments } = await supabase
         .from('moments')
         .select('id')
-        .eq('creator_id', user.id);
-
+        .eq('creator_id', user.id)
       if (!myMoments || myMoments.length === 0) {
-        setUnreadCount(0);
-        return;
+        setUnreadCount(0)
+        return  
       }
-
-      const ids = myMoments.map((mom: any) => mom.id);
-      const { count: joinCount } = await supabase
+      const ids: string[] = myMoments.map((x: { id: string }) => x.id)
+      const since = new Date(Date.now() - 86400000).toISOString()
+      const { count } = await supabase
         .from('participants')
         .select('id', { count: 'exact', head: true })
         .in('moment_id', ids)
         .neq('user_id', user.id)
         .eq('status', 'joined')
-        .gte('created_at', since);
-
-      setUnreadCount(joinCount ?? 0);
+        .gte('created_at', since)
+      setUnreadCount(count ?? 0)
     } catch {
-      setUnreadCount(0);
+      setUnreadCount(0)
     }
-  };
+  }
 
   const handleSignOut = async () => {
     try {

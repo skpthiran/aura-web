@@ -214,16 +214,16 @@ export default function MapPage() {
 
     const syncMarkers = () => {
       // Clear old
-      momentMarkersRef.current.forEach(mom => mom.remove())
+      momentMarkersRef.current.forEach(sig => sig.remove())
       momentMarkersRef.current = []
 
       // Add new
-      visibleMoments.forEach(mom => {
+      visibleMoments.forEach(sig => {
         const el = document.createElement('div')
         el.className = 'flex items-center justify-center cursor-pointer group'
-        el.id = `marker-${mom.id}`
+        el.id = `marker-${sig.id}`
         
-        const isEvent = mom.moment_type === 'event'
+        const isEvent = sig.moment_type === 'event'
         el.innerHTML = `
           <div class="relative w-10 h-10 flex items-center justify-center bg-obsidian rounded-sm border border-white/20 shadow-2xl transition-all group-hover:scale-110 group-hover:border-gold/50">
             <div class="absolute inset-0 bg-gold/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
@@ -233,12 +233,12 @@ export default function MapPage() {
         `
 
         el.addEventListener('click', () => {
-          setSelectedMoment(mom)
+          setSelectedMoment(sig)
           setHasJoined(false)
         })
 
         const marker = new Marker({ element: el })
-          .setLngLat([mom.lng, mom.lat])
+          .setLngLat([sig.lng, sig.lat])
           .addTo(map)
         
         momentMarkersRef.current.push(marker)
