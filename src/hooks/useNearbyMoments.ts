@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Moment } from '../types'
-import { getNearbyMoments } from '../lib/db/moments'
-import { DEFAULT_RADIUS_METERS } from '../lib/constants'
+import { getNearbyMoments, getAllActiveMoments } from '../lib/db/moments'
 import { UserLocation } from '../types'
 
 export function useNearbyMoments(location: UserLocation | null, filterType: string = 'All') {
@@ -10,15 +9,23 @@ export function useNearbyMoments(location: UserLocation | null, filterType: stri
   const [error, setError] = useState<string | null>(null)
 
   const fetchMoments = useCallback(async () => {
-    if (!location) return
     setLoading(true)
     setError(null)
     try {
-      const data = await getNearbyMoments(
-        location.latitude,
-        location.longitude,
-        DEFAULT_RADIUS_METERS
-      )
+      let data: Moment[]
+      if (location) {
+        data = await getNearbyMoments(
+          location.latitude,
+          location.longitude,
+          50000
+        )
+        // If RPC returns empty, fall back to all moments
+        if (data.length === 0) {
+          data = await getAllActiveMoments()
+        }
+      } else {
+        data = await getAllActiveMoments()
+      }
       
       const now = new Date()
       let filtered = data
@@ -38,7 +45,7 @@ export function useNearbyMoments(location: UserLocation | null, filterType: stri
           return d > now && d < nextMonth
         })
       }
-      // If filterType is 'All' or anything else, return unfiltered data
+      
       setMoments(filtered)
     } catch (err) {
       console.error('Error fetching moments:', err)
@@ -49,11 +56,10 @@ export function useNearbyMoments(location: UserLocation | null, filterType: stri
   }, [location, filterType])
 
   useEffect(() => {
-    if (!location) return
     fetchMoments()
     const interval = setInterval(fetchMoments, 30000)
     return () => clearInterval(interval)
-  }, [fetchMoments, location])
+  }, [fetchMoments])
 
   return { moments, loading, error, refetch: fetchMoments }
 }

@@ -4,7 +4,7 @@ import { Moment } from '../../types'
 export async function getNearbyMoments(
   lat: number,
   lng: number,
-  radiusMeters: number = 5000
+  radiusMeters: number = 50000
 ): Promise<Moment[]> {
   const { data, error } = await supabase.rpc('nearby_moments', {
     p_lat: lat,
@@ -13,6 +13,23 @@ export async function getNearbyMoments(
   })
   if (error) throw error
   return data as Moment[]
+}
+
+export async function getAllActiveMoments(): Promise<Moment[]> {
+  const { data, error } = await supabase
+    .from('moments')
+    .select('*')
+    .eq('is_active', true)
+    .gt('expires_at', new Date().toISOString())
+    .order('created_at', { ascending: false })
+  
+  if (error) throw error
+  
+  return (data ?? []).map(m => ({
+    ...m,
+    distance_meters: undefined,
+    participant_count: 0
+  })) as Moment[]
 }
 
 export async function getMomentById(id: string): Promise<Moment | null> {
