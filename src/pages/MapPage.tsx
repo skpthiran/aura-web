@@ -210,21 +210,7 @@ export default function MapPage() {
                className="bg-transparent border-none outline-none font-mono text-[9px] md:text-[11px] text-marble w-full uppercase tracking-[0.15em] md:tracking-widest placeholder:text-marble/30"
              />
            </div>
-            {/* Filter Pills */}
-            <div className="flex gap-2 mt-4">
-              {['All', 'Moments', 'Events'].map(f => (
-                <button
-                  key={f}
-                  onClick={() => setMapFilter(f as any)}
-                  className={cn(
-                    "glass-panel hairline-all px-4 py-1.5 micro-caps text-[9px] transition-all duration-300",
-                    mapFilter === f ? "bg-gold/20 text-gold border-gold/40" : "text-marble/40 hover:text-marble/70"
-                  )}
-                >
-                  {f}
-                </button>
-              ))}
-            </div>
+
 
             {locationError && (
                <div className="mt-2 md:mt-4 glass-panel border-crimson/30 bg-crimson/5 px-3 py-1.5 md:px-4 md:py-2 flex items-center gap-2 md:gap-3 animate-pulse">
@@ -249,14 +235,26 @@ export default function MapPage() {
         </div>
       </div>
 
+      {/* Filter Pills */}
+      <div className="absolute top-44 lg:top-48 left-6 lg:left-8 z-20 flex gap-2 pointer-events-auto">
+        {['All', 'Moments', 'Events'].map(f => (
+          <button
+            key={f}
+            onClick={() => setMapFilter(f as any)}
+            className={cn(
+              "glass-panel hairline-all px-5 py-2 micro-caps text-[10px] transition-all duration-300",
+              mapFilter === f ? "bg-gold/20 text-gold border-gold/40" : "text-marble/40 hover:text-marble/70"
+            )}
+          >
+            {f}
+          </button>
+        ))}
+      </div>
+
       {/* Radius Selector */}
-      <div className="absolute top-32 left-4 z-20 flex items-center gap-2
-        overflow-x-auto max-w-[calc(100vw-80px)] scrollbar-hide">
-        <span className="micro-caps text-xs text-white/60 shrink-0
-          bg-black/70 backdrop-blur-md px-3 py-1.5 rounded-full
-          border border-white/30">
-          Range
-        </span>
+      <div className="absolute bottom-40 lg:bottom-24 left-1/2 -translate-x-1/2 z-20
+        flex items-center gap-2 overflow-x-auto scrollbar-hide
+        max-w-[calc(100vw-40px)] pb-1">
         {radiusOptions.map(opt => (
           <button
             key={opt.value}
