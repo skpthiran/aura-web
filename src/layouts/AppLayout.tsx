@@ -55,11 +55,11 @@ export default function AppLayout() {
         const ids = myMoments.map((m: any) => m.id);
         const { count: joinCount } = await supabase
           .from('participants')
-          .select('*', { count: 'exact', head: true })
+          .select('id', { count: 'exact', head: true })
           .in('moment_id', ids)
           .neq('user_id', user.id)
           .eq('status', 'joined')
-          .gt('created_at', since);
+          .gte('created_at', since);
         count += joinCount ?? 0;
       }
 
