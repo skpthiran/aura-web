@@ -16,20 +16,27 @@ export async function getNearbyMoments(
 }
 
 export async function getAllActiveMoments(): Promise<Moment[]> {
-  const { data, error } = await supabase
-    .from('moments')
-    .select('*')
-    .eq('is_active', true)
-    .gt('expires_at', new Date().toISOString())
-    .order('created_at', { ascending: false })
+  // Use center of Sri Lanka with 500km radius to get everything
+  const { data, error } = await supabase.rpc('nearby_moments', {
+    p_lat: 7.8731,
+    p_lng: 80.7718,
+    p_radius: 500000
+  })
   
-  if (error) throw error
+  if (error) {
+    // fallback to basic query without lat/lng
+    const { data: fallback, error: e2 } = await supabase
+      .from('moments')
+      .select('*')
+      .eq('is_active', true)
+      .gt('expires_at', new Date().toISOString())
+      .order('created_at', { ascending: false })
+    
+    if (e2) throw e2
+    return (fallback ?? []) as Moment[]
+  }
   
-  return (data ?? []).map(m => ({
-    ...m,
-    distance_meters: undefined,
-    participant_count: 0
-  })) as Moment[]
+  return data as Moment[]
 }
 
 export async function getMomentById(id: string): Promise<Moment | null> {

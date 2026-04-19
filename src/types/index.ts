@@ -19,8 +19,8 @@ export interface Moment {
   created_at: string
   moment_type: 'moment' | 'event'
   tags: string[]
-  lat: number
-  lng: number
+  lat?: number
+  lng?: number
   distance_meters?: number
   participant_count?: number
 }
