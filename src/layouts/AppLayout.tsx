@@ -66,14 +66,16 @@ export default function AppLayout() {
         {/* Right side: notifications + profile */}
         <div className="flex items-center gap-3">
           {/* Notification bell */}
-          <button className="w-9 h-9 rounded-full glass-panel hairline-all
-            flex items-center justify-center text-marble/40 
-            hover:text-marble transition-colors relative">
-            <Bell className="w-4 h-4" />
-            {/* Notification dot */}
-            <div className="absolute top-1.5 right-1.5 w-1.5 h-1.5 
-              rounded-full bg-crimson-bright" />
-          </button>
+          <NavLink to="/app/signals">
+            <button className="w-9 h-9 rounded-full glass-panel hairline-all
+              flex items-center justify-center text-marble/40 
+              hover:text-marble transition-colors relative">
+              <Bell className="w-4 h-4" />
+              {/* Notification dot */}
+              <div className="absolute top-1.5 right-1.5 w-1.5 h-1.5 
+                rounded-full bg-crimson-bright" />
+            </button>
+          </NavLink>
           
           {/* Profile avatar */}
           <Link to="/app/profile">
@@ -93,103 +95,98 @@ export default function AppLayout() {
       </div>
 
       {/* Premium Architectural Left Rail */}
-      <aside className="hidden lg:flex flex-col w-[100px] hairline-r bg-void/90 backdrop-blur-3xl py-10 z-20 items-center shrink-0 border-white/5">
+      <aside className="hidden lg:flex flex-col w-[280px] hairline-r bg-void/90 backdrop-blur-3xl py-10 z-20 shrink-0 border-white/5">
         
         {/* Top Logo */}
-        <Link to="/app" className="mb-16 group relative w-full flex justify-center cursor-pointer">
+        <Link to="/app" className="mb-12 px-8 group relative w-full flex items-center gap-4 cursor-pointer">
           <div className="w-10 h-10 rounded-full hairline-all flex items-center justify-center group-hover:border-gold/50 group-hover:bg-white/5 group-hover:shadow-[0_0_20px_rgba(212,175,55,0.15)] transition-all duration-500">
             <span className="font-serif text-lg text-gold-pale transition-transform duration-500 group-hover:scale-110">A</span>
           </div>
-
-          {/* Luxury Hover Capsule: Logo */}
-          <div className="absolute left-[76px] top-1/2 -translate-y-1/2 h-9 px-4 flex items-center rounded-full bg-void border border-white/10 shadow-[0_15px_40px_rgba(0,0,0,1)] backdrop-blur-xl opacity-0 scale-95 origin-left -translate-x-3 group-hover:opacity-100 group-hover:scale-100 group-hover:translate-x-0 transition-all duration-400 ease-[0.16,1,0.3,1] pointer-events-none whitespace-nowrap z-50">
-            <span className="w-1.5 h-1.5 rounded-full mr-3 shadow-[0_0_8px_currentColor] bg-gold text-gold" />
-            <span className="micro-caps tracking-[0.2em] mt-0.5 text-marble/90 uppercase">AURA OS</span>
+          <div className="flex flex-col">
+            <span className="font-serif text-xl text-marble tracking-wide">Aura</span>
+            <span className="micro-caps text-[9px] text-gold-pale/50 tracking-[0.3em]">VERSION 2.0.4</span>
           </div>
         </Link>
         
-        <nav className="flex flex-col gap-6 flex-1 items-center w-full">
+        <nav className="flex flex-col gap-2 flex-1 w-full px-4">
           {NAV_ITEMS.map((item) => (
             <NavLink 
               key={item.path} 
               to={item.path}
-              className="group relative flex items-center justify-center w-full h-10 mb-1"
+              className={({ isActive }) => cn(
+                "group relative flex items-center w-full px-4 py-3 rounded-xl transition-all duration-500",
+                isActive && !item.isAction 
+                  ? "bg-white/5 text-gold-pale shadow-[inset_0_0_10px_rgba(255,255,255,0.02),0_10px_20px_rgba(0,0,0,0.5)] border border-white/10" 
+                  : "text-marble/40 hover:text-marble hover:bg-white/5 border border-transparent hover:border-white/5 hover:shadow-[0_0_15px_rgba(255,255,255,0.03)]"
+              )}
             >
               {({ isActive }) => (
                  <>
-                  {/* Active Edge Indicator */}
+                  {/* Active Indicator Bar */}
                   {isActive && !item.isAction && (
                     <motion.div 
-                      layoutId="rail-indicator" 
-                      className="absolute left-0 top-1/2 -translate-y-1/2 w-[2px] h-6 bg-gold-pale rounded-r-sm shadow-[0_0_12px_rgba(212,175,55,0.6)]" 
+                      layoutId="active-bar" 
+                      className="absolute left-0 w-[3px] h-6 bg-gold-pale rounded-r-full shadow-[0_0_12px_rgba(212,175,55,0.6)]" 
                     />
                   )}
 
                   {/* Icon Container */}
                   <div className={cn(
-                    "flex items-center justify-center w-10 h-10 rounded-full transition-all duration-500 relative",
+                    "flex items-center justify-center w-9 h-9 rounded-full transition-all duration-500 mr-4",
                     item.isAction 
-                      ? "hairline-all bg-void text-gold group-hover:bg-gold/5 group-hover:shadow-[0_0_20px_rgba(212,175,55,0.2)]" 
-                      : isActive 
-                        ? "bg-white/5 text-gold-pale shadow-[inset_0_0_10px_rgba(255,255,255,0.02),0_10px_20px_rgba(0,0,0,0.5)] border border-white/10" 
-                        : "text-marble/40 group-hover:text-marble group-hover:bg-white/5 border border-transparent group-hover:border-white/5 group-hover:shadow-[0_0_15px_rgba(255,255,255,0.03)]"
+                      ? "hairline-all bg-void text-gold border-gold/40 shadow-[0_0_15px_rgba(212,175,55,0.1)]" 
+                      : ""
                   )}>
                     <item.icon 
-                       className={cn("w-[22px] h-[22px] transition-all duration-500", isActive && !item.isAction && "drop-shadow-[0_0_8px_rgba(212,175,55,0.4)]")} 
+                       className={cn("w-[20px] h-[20px] transition-all duration-500", isActive && !item.isAction && "drop-shadow-[0_0_8px_rgba(212,175,55,0.4)]")} 
                        strokeWidth={isActive ? 2 : 1.5} 
                     />
                   </div>
 
-                  {/* Luxury Hover Capsule: Navigation Labels */}
-                  <div className="absolute left-[76px] top-1/2 -translate-y-1/2 h-9 px-4 flex items-center rounded-full bg-void border border-white/10 shadow-[0_15px_40px_rgba(0,0,0,1)] backdrop-blur-xl opacity-0 scale-95 origin-left -translate-x-3 group-hover:opacity-100 group-hover:scale-100 group-hover:translate-x-0 transition-all duration-400 ease-[0.16,1,0.3,1] pointer-events-none whitespace-nowrap z-[60]">
-                    <span 
-                      className={cn(
-                        "w-1.5 h-1.5 rounded-full mr-3 shadow-[0_0_8px_currentColor] transition-colors", 
-                        isActive ? "bg-gold text-gold" : "bg-marble/30 text-marble/30 group-hover:bg-marble/60 group-hover:text-marble/60"
-                      )} 
-                    />
-                    <span className={cn(
-                      "micro-caps tracking-[0.2em] mt-0.5 transition-colors",
-                      isActive ? "text-gold-pale" : "text-marble/90"
-                    )}>
-                      {item.label}
-                    </span>
-                  </div>
+                  <span className={cn(
+                    "micro-caps tracking-[0.2em] mt-0.5 transition-colors text-[11px]",
+                    isActive ? "text-gold-pale font-medium" : "text-marble/70"
+                  )}>
+                    {item.label}
+                  </span>
                 </>
               )}
             </NavLink>
           ))}
         </nav>
 
-        {/* Bottom utility: Avatar */}
-        <div className="relative mt-8 mb-4 w-full flex justify-center group cursor-pointer">
-          <button 
-            onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
-            className={cn(
-              "w-10 h-10 rounded-full bg-deep hairline-all overflow-hidden flex items-center justify-center transition-all duration-500 relative outline-none",
-              isProfileMenuOpen 
-                ? "border-gold shadow-[0_0_20px_rgba(212,175,55,0.3)] scale-110" 
-                : "group-hover:border-gold/50 group-hover:shadow-[0_0_20px_rgba(255,255,255,0.1)] group-hover:scale-110"
-            )}
-          >
-            <div className="absolute inset-0 bg-gold/10 opacity-0 group-hover:opacity-100 transition-opacity z-10" />
-            {profile?.avatar_url ? (
-              <img src={profile.avatar_url} alt="Avatar" className={cn(
-                "w-full h-full object-cover transition-all duration-500 relative z-0",
-                 isProfileMenuOpen ? "grayscale-0 opacity-100" : "grayscale opacity-80 group-hover:grayscale-0 group-hover:opacity-100"
-              )} referrerPolicy="no-referrer" />
-            ) : (
-              <User className="w-5 h-5 text-marble/20" />
-            )}
-          </button>
-          
-          {/* Luxury Hover Capsule: Avatar */}
-          {!isProfileMenuOpen && (
-            <div className="absolute left-[76px] top-1/2 -translate-y-1/2 h-9 px-4 flex items-center rounded-full bg-void border border-white/10 shadow-[0_15px_40px_rgba(0,0,0,1)] backdrop-blur-xl opacity-0 scale-95 origin-left -translate-x-3 group-hover:opacity-100 group-hover:scale-100 group-hover:translate-x-0 transition-all duration-400 ease-[0.16,1,0.3,1] pointer-events-none whitespace-nowrap z-[60]">
-              <span className="w-1.5 h-1.5 rounded-full mr-3 shadow-[0_0_8px_currentColor] bg-marble/30 text-marble/30 group-hover:bg-marble/60 group-hover:text-marble/60" />
-              <span className="micro-caps tracking-[0.2em] mt-0.5 text-marble/90 uppercase">Identity</span>
+        {/* User Profile Section at bottom of desktop sidebar */}
+        <div className="p-4 hairline-t">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-full border border-white/20
+              bg-marble/10 overflow-hidden flex items-center justify-center shrink-0">
+              {profile?.avatar_url ? (
+                <img src={profile.avatar_url}
+                  className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+              ) : (
+                <span className="font-serif text-sm text-marble/60">
+                  {(profile?.full_name ?? user?.email ?? 'A')[0].toUpperCase()}
+                </span>
+              )}
             </div>
-          )}
+            <div className="flex-1 min-w-0">
+              <p className="text-sm text-marble truncate font-medium">
+                {profile?.full_name ?? 'Anonymous'}
+              </p>
+              <p className="micro-caps text-xs text-marble/30 truncate">
+                {profile?.username 
+                  ? `@${profile.username}` 
+                  : user?.email?.split('@')[0] ?? 'user'}
+              </p>
+            </div>
+            <Link to="/app/profile">
+              <div className="w-7 h-7 rounded-full glass-panel hairline-all
+                flex items-center justify-center text-marble/30
+                hover:text-gold transition-colors">
+                <span className="text-xs transition-transform hover:translate-x-0.5">→</span>
+              </div>
+            </Link>
+          </div>
         </div>
       </aside>
 
