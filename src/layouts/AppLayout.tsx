@@ -42,30 +42,29 @@ export default function AppLayout() {
   const fetchUnreadCount = async () => {
     if (!user) return;
     try {
-      // Count joins on user's moments in last 24h
       const since = new Date(Date.now() - 86400000).toISOString();
-
       const { data: myMoments } = await supabase
         .from('moments')
         .select('id')
         .eq('creator_id', user.id);
 
-      let count = 0;
-      if (myMoments && myMoments.length > 0) {
-        const ids = myMoments.map((m: any) => m.id);
-        const { count: joinCount } = await supabase
-          .from('participants')
-          .select('id', { count: 'exact', head: true })
-          .in('moment_id', ids)
-          .neq('user_id', user.id)
-          .eq('status', 'joined')
-          .gte('created_at', since);
-        count += joinCount ?? 0;
+      if (!myMoments || myMoments.length === 0) {
+        setUnreadCount(0);
+        return;
       }
 
-      setUnreadCount(count);
-    } catch (err) {
-      console.error('Error fetching unread count:', err);
+      const ids = myMoments.map((mom: any) => mom.id);
+      const { count: joinCount } = await supabase
+        .from('participants')
+        .select('id', { count: 'exact', head: true })
+        .in('moment_id', ids)
+        .neq('user_id', user.id)
+        .eq('status', 'joined')
+        .gte('created_at', since);
+
+      setUnreadCount(joinCount ?? 0);
+    } catch {
+      setUnreadCount(0);
     }
   };
 

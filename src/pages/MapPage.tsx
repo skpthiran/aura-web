@@ -41,31 +41,26 @@ export default function MapPage() {
     { label: 'Country', value: 500000 },
     { label: 'Global', value: 99999999 },
   ]
+  const [mapFilter, setMapFilter] = useState<'All' | 'Moments' | 'Events'>('All')
 
   const { moments, loading: momentsLoading, refetch: refetchMoments } = useNearbyMoments(location, mapRadius)
 
   // Combined Filtering: Type + Strict Radius
-  const filteredMoments = moments.filter(mom => {
-    // 1. Filter by type
-    if (mapFilter !== 'All') {
-      const isEvent = mom.moment_type === 'event'
-      if (mapFilter === 'Moments' && isEvent) return false
-      if (mapFilter === 'Events' && !isEvent) return false
-    }
-    
-    // 2. Filter by strict radius
+  // Build filtered list
+  const visibleMoments: typeof moments = []
+  for (let i = 0; i < moments.length; i++) {
+    const signal = moments[i]
     if (mapRadius < 99999999 && location) {
       const distKm = haversineKm(
-        location.latitude,
-        location.longitude,
-        mom.latitude,
-        mom.longitude
+        location.latitude, location.longitude,
+        signal.lat, signal.lng
       )
-      if (distKm > (mapRadius / 1000)) return false
+      if (distKm > mapRadius / 1000) continue
     }
-    
-    return true
-  })
+    if (mapFilter === 'Moments' && signal.moment_type !== 'moment') continue
+    if (mapFilter === 'Events' && signal.moment_type !== 'event') continue
+    visibleMoments.push(signal)
+  }
 
   // Radius Circle Visualization
   const updateRadiusCircle = useCallback(() => {
@@ -141,8 +136,6 @@ export default function MapPage() {
   const [selectedMoment, setSelectedMoment] = useState<Moment | null>(null)
   const [isJoining, setIsJoining] = useState(false)
   const [hasJoined, setHasJoined] = useState(false)
-  const [mapFilter, setMapFilter] = useState<'All' | 'Moments' | 'Events'>('All')
-  
   const mapContainer = useRef<HTMLDivElement>(null)
   const mapRef = useRef<MapLibreMap | null>(null)
   const userMarkerRef = useRef<Marker | null>(null)
@@ -225,7 +218,7 @@ export default function MapPage() {
       momentMarkersRef.current = []
 
       // Add new
-      filteredMoments.forEach(mom => {
+      visibleMoments.forEach(mom => {
         const el = document.createElement('div')
         el.className = 'flex items-center justify-center cursor-pointer group'
         el.id = `marker-${mom.id}`
@@ -258,7 +251,7 @@ export default function MapPage() {
     } else {
       map.once('load', syncMarkers)
     }
-  }, [filteredMoments, updateRadiusCircle])
+  }, [visibleMoments, updateRadiusCircle])
 
 
   const handleFlyToUser = () => {
@@ -383,7 +376,7 @@ export default function MapPage() {
         <div className="glass-panel border-white/5 px-4 md:px-6 py-2 flex items-center gap-3 md:gap-4 whitespace-nowrap">
           <div className="flex items-center gap-2">
             <div className="w-1.5 h-1.5 md:w-2 md:h-2 rounded-full bg-gold-pale animate-pulse" />
-            <span className="micro-caps text-[9px] md:text-[10px] text-marble/60 tracking-[0.2em]">{filteredMoments.length} ACTIVE SIGNALS</span>
+            <span className="micro-caps text-[9px] md:text-[10px] text-marble/60 tracking-[0.2em]">{visibleMoments.length} ACTIVE SIGNALS</span>
           </div>
           <div className="w-px h-3 bg-white/10" />
           <span className="micro-caps text-[9px] md:text-[10px] text-gold-pale tracking-[0.2em]">
