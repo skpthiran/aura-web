@@ -12,7 +12,7 @@ import { Moment } from '../types'
 
 export default function MapPage() {
   const { location, error: locationError } = useUserLocation()
-  const [radius, setRadius] = useState<number>(50000) // default 50km
+  const [mapRadius, setMapRadius] = useState<number>(50000) // default 50km
   
   const radiusOptions = [
     { label: '5 KM', value: 5000 },
@@ -22,7 +22,7 @@ export default function MapPage() {
     { label: 'Global', value: 99999999 },
   ]
 
-  const { moments, loading: momentsLoading, refetch: refetchMoments } = useNearbyMoments(location, radius)
+  const { moments, loading: momentsLoading, refetch: refetchMoments } = useNearbyMoments(location, mapRadius)
 
   const [selectedMoment, setSelectedMoment] = useState<Moment | null>(null)
   const [isJoining, setIsJoining] = useState(false)
@@ -210,49 +210,28 @@ export default function MapPage() {
                className="bg-transparent border-none outline-none font-mono text-[9px] md:text-[11px] text-marble w-full uppercase tracking-[0.15em] md:tracking-widest placeholder:text-marble/30"
              />
            </div>
-
             {/* Filter Pills */}
-            <div className="flex flex-col gap-2 mt-2">
-              <div className="flex gap-2">
-                {['All', 'Moments', 'Events'].map(f => (
-                  <button
-                    key={f}
-                    onClick={() => setMapFilter(f as any)}
-                    className={cn(
-                      "glass-panel hairline-all px-4 py-1.5 micro-caps text-[9px] transition-all duration-300",
-                      mapFilter === f ? "bg-gold/20 text-gold border-gold/40" : "text-marble/40 hover:text-marble/70"
-                    )}
-                  >
-                    {f}
-                  </button>
-                ))}
-              </div>
-              
-              <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide pb-1">
-                <span className="micro-caps text-[7px] text-white/20 shrink-0">RANGE:</span>
-                {radiusOptions.map(opt => (
-                  <button
-                    key={opt.value}
-                    onClick={() => setRadius(opt.value)}
-                    className={cn(
-                      "micro-caps text-[8px] px-3 py-1 rounded-sm border transition-all duration-300 whitespace-nowrap",
-                      radius === opt.value
-                        ? "bg-gold/10 border-gold/40 text-gold"
-                        : "border-white/5 text-white/30 hover:border-white/20"
-                    )}
-                  >
-                    {opt.label}
-                  </button>
-                ))}
-              </div>
+            <div className="flex gap-2 mt-4">
+              {['All', 'Moments', 'Events'].map(f => (
+                <button
+                  key={f}
+                  onClick={() => setMapFilter(f as any)}
+                  className={cn(
+                    "glass-panel hairline-all px-4 py-1.5 micro-caps text-[9px] transition-all duration-300",
+                    mapFilter === f ? "bg-gold/20 text-gold border-gold/40" : "text-marble/40 hover:text-marble/70"
+                  )}
+                >
+                  {f}
+                </button>
+              ))}
             </div>
 
-           {locationError && (
-              <div className="mt-2 md:mt-4 glass-panel border-crimson/30 bg-crimson/5 px-3 py-1.5 md:px-4 md:py-2 flex items-center gap-2 md:gap-3 animate-pulse">
-                <Shield className="w-3.5 h-3.5 text-crimson-bright" />
-                <span className="micro-caps text-crimson-bright text-[9px] md:text-[10px]">Location access restricted.</span>
-              </div>
-           )}
+            {locationError && (
+               <div className="mt-2 md:mt-4 glass-panel border-crimson/30 bg-crimson/5 px-3 py-1.5 md:px-4 md:py-2 flex items-center gap-2 md:gap-3 animate-pulse">
+                 <Shield className="w-3.5 h-3.5 text-crimson-bright" />
+                 <span className="micro-caps text-crimson-bright text-[9px] md:text-[10px]">Location access restricted.</span>
+               </div>
+            )}
         </div>
 
         <div className="flex flex-col gap-2 md:gap-3 pointer-events-auto">
@@ -270,6 +249,30 @@ export default function MapPage() {
         </div>
       </div>
 
+      {/* Radius Selector */}
+      <div className="absolute top-32 left-4 z-20 flex items-center gap-2
+        overflow-x-auto max-w-[calc(100vw-80px)] scrollbar-hide">
+        <span className="micro-caps text-xs text-white/60 shrink-0
+          bg-black/70 backdrop-blur-md px-3 py-1.5 rounded-full
+          border border-white/30">
+          Range
+        </span>
+        {radiusOptions.map(opt => (
+          <button
+            key={opt.value}
+            onClick={() => setMapRadius(opt.value)}
+            className={cn(
+              'micro-caps text-xs px-4 py-2 rounded-full whitespace-nowrap shrink-0 transition-all duration-300',
+              mapRadius === opt.value
+                ? 'bg-gold text-void font-bold shadow-lg shadow-gold/30'
+                : 'bg-black/70 backdrop-blur-md border border-white/30 text-white/70 hover:border-gold/50 hover:text-gold'
+            )}
+          >
+            {opt.label}
+          </button>
+        ))}
+      </div>
+
       {/* Moment Density Indicator */}
       <div className="absolute bottom-24 lg:bottom-8 left-1/2 -translate-x-1/2 z-20">
         <div className="glass-panel border-white/5 px-4 md:px-6 py-2 flex items-center gap-3 md:gap-4 whitespace-nowrap">
@@ -279,7 +282,7 @@ export default function MapPage() {
           </div>
           <div className="w-px h-3 bg-white/10" />
           <span className="micro-caps text-[9px] md:text-[10px] text-gold-pale tracking-[0.2em]">
-            LIVE RADIUS: {radius >= 99999999 ? 'GLOBAL' : `${radius / 1000}KM`}
+            LIVE RADIUS: {mapRadius >= 99999999 ? 'GLOBAL' : `${mapRadius / 1000}KM`}
           </span>
         </div>
       </div>

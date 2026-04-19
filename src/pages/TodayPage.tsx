@@ -238,7 +238,7 @@ export default function TodayPage() {
             </div>
             
             <div className="flex flex-col items-start md:items-end gap-4 md:gap-6 mt-6 md:mt-0 pointer-events-auto">
-              <div className="flex gap-1 md:gap-2 glass-panel hairline-all p-1 rounded-full bg-void/20 backdrop-blur-xl max-w-full overflow-x-auto no-scrollbar">
+              <div className="flex gap-1 md:gap-2 glass-panel hairline-all p-1.5 rounded-full bg-black/60 backdrop-blur-xl max-w-full overflow-x-auto no-scrollbar">
                 {['All', 'Moments', 'Events'].map(tab => (
                   <button
                     key={tab}
@@ -246,8 +246,8 @@ export default function TodayPage() {
                     className={cn(
                       "micro-caps text-[9px] md:text-[10px] px-4 md:px-6 py-2 md:py-2.5 rounded-full transition-all duration-300 whitespace-nowrap",
                       activeTab === tab 
-                        ? "bg-marble text-void font-bold shadow-lg" 
-                        : "text-marble/40 hover:text-marble/80"
+                        ? "bg-white text-void font-medium shadow-md" 
+                        : "bg-black/60 backdrop-blur-md border border-white/25 text-white/70 hover:text-white"
                     )}
                   >
                     {tab}
@@ -256,17 +256,19 @@ export default function TodayPage() {
               </div>
 
               {/* Radius Selector */}
-              <div className="flex items-center gap-2 max-w-full overflow-x-auto scrollbar-hide pb-2">
-                <span className="micro-caps text-[8px] text-white/20 shrink-0 ml-2">RADIUS:</span>
+              <div className="flex items-center gap-2 px-4 md:px-10 pb-6 overflow-x-auto scrollbar-hide">
+                <span className="micro-caps text-xs text-white/50 shrink-0 bg-black/50 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/20">
+                  Range
+                </span>
                 {radiusOptions.map(opt => (
                   <button
                     key={opt.value}
                     onClick={() => setRadius(opt.value)}
                     className={cn(
-                      "micro-caps text-[8px] px-3 py-1.5 rounded-full border transition-all duration-300 whitespace-nowrap",
+                      'micro-caps text-xs px-5 py-2 rounded-full whitespace-nowrap shrink-0 transition-all duration-300',
                       radius === opt.value
-                        ? "bg-gold/10 border-gold/40 text-gold"
-                        : "border-white/5 text-white/30 hover:border-white/20"
+                        ? 'bg-gold text-void font-bold shadow-lg shadow-gold/30'
+                        : 'bg-black/60 backdrop-blur-md border border-white/30 text-white/80 hover:border-gold/50 hover:text-gold'
                     )}
                   >
                     {opt.label}
