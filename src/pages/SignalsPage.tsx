@@ -36,46 +36,49 @@ export default function SignalsPage() {
       const results: Signal[] = []
 
       // 1. Get joins on user's moments
-      const { data: joins } = await supabase
-        .from('participants')
-        .select(`
-          id, created_at, status,
-          moments!inner(id, title, moment_type, creator_id)
-        `)
-        .eq('moments.creator_id', user.id)
-        .neq('user_id', user.id)
-        .eq('status', 'joined')
-        .order('created_at', { ascending: false })
-        .limit(20)
+      // Get user's created moments first to avoid complex RLS joins
+      const { data: myMoments } = await supabase
+        .from('moments')
+        .select('id, title, moment_type')
+        .eq('creator_id', user.id)
+        .eq('is_active', true)
 
-interface JoinRow {
-  id: string;
-  created_at: string;
-  status: string;
-  moments: {
-    id: string;
-    title: string;
-    moment_type: string;
-    creator_id: string;
-  } | null;
-}
+      if (myMoments && myMoments.length > 0) {
+        const myMomentIds = myMoments.map((m) => m.id)
+        
+        const { data: joins } = await supabase
+          .from('participants')
+          .select('id, created_at, moment_id, user_id')
+          .in('moment_id', myMomentIds)
+          .neq('user_id', user.id)
+          .eq('status', 'joined')
+          .order('created_at', { ascending: false })
+          .limit(20)
 
-      if (joins) {
-        (joins as unknown as JoinRow[]).forEach((j) => {
-          const m = j.moments
-          if (m) {
-            results.push({
-              id: `join-${j.id}`,
-              type: 'join',
-              title: `Someone joined "${m.title}"`,
-              subtitle: 'A new participant entered your signal',
-              timestamp: j.created_at,
-              read: false,
-              moment_id: m.id,
-              moment_type: m.moment_type
-            })
+        if (joins) {
+          interface JoinRow {
+            id: string;
+            created_at: string;
+            moment_id: string;
+            user_id: string;
           }
-        })
+
+          (joins as unknown as JoinRow[]).forEach((j) => {
+            const moment = myMoments.find((m) => m.id === j.moment_id)
+            if (moment) {
+              results.push({
+                id: `join-${j.id}`,
+                type: 'join',
+                title: `Someone joined "${moment.title}"`,
+                subtitle: 'A new participant entered your signal',
+                timestamp: j.created_at,
+                read: false,
+                moment_id: moment.id,
+                moment_type: moment.moment_type
+              })
+            }
+          })
+        }
       }
 
       // 2. Get messages on user's joined moments
@@ -86,7 +89,7 @@ interface JoinRow {
         .eq('status', 'joined')
 
       if (participantRows && participantRows.length > 0) {
-        const momentIds = participantRows.map((p: any) => p.moment_id)
+        const momentIds = participantRows.map((p) => p.moment_id)
         const { data: messages } = await supabase
           .from('chat_messages')
           .select(`
@@ -98,19 +101,19 @@ interface JoinRow {
           .order('created_at', { ascending: false })
           .limit(20)
 
-interface MessageRow {
-  id: string;
-  content: string;
-  created_at: string;
-  moment_id: string;
-  user_id: string;
-  moments: {
-    title: string;
-    moment_type: string;
-  } | null;
-}
-
         if (messages) {
+          interface MessageRow {
+            id: string;
+            content: string;
+            created_at: string;
+            moment_id: string;
+            user_id: string;
+            moments: {
+              title: string;
+              moment_type: string;
+            } | null;
+          }
+
           (messages as unknown as MessageRow[]).forEach((msg) => {
             const m = msg.moments
             results.push({
