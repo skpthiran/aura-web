@@ -121,7 +121,7 @@ export default function TodayPage() {
   const { user } = useAuth()
   const { location } = useUserLocation()
   const [activeTab, setActiveTab] = useState('Now')
-  const { moments, loading } = useNearbyMoments(location, activeTab)
+  const { moments, loading } = useNearbyMoments(location)
   
   const [joiningId, setJoiningId] = useState<string | null>(null)
   const [joinedIds, setJoinedIds] = useState<Set<string>>(new Set())

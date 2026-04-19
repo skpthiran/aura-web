@@ -1,28 +1,31 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { Moment } from '../types'
 import { getNearbyMoments, getAllActiveMoments } from '../lib/db/moments'
 import { UserLocation } from '../types'
 
-export function useNearbyEvents(location: UserLocation | null): {
-  events: Moment[]
-  loading: boolean
-  error: string | null
-  refetch: () => Promise<void>
-} {
+export function useNearbyEvents(location: UserLocation | null) {
   const [events, setEvents] = useState<Moment[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const initialFetchDone = useRef(false)
+  const locationRef = useRef(location)
+
+  // Update ref without triggering re-render
+  useEffect(() => {
+    locationRef.current = location
+  }, [location])
 
   const fetchEvents = useCallback(async () => {
     setLoading(true)
     setError(null)
     try {
+      const loc = locationRef.current
       let data: Moment[]
-      if (location) {
+      if (loc) {
         data = await getNearbyMoments(
-          location.latitude,
-          location.longitude,
-          50000 
+          loc.latitude,
+          loc.longitude,
+          50000
         )
         if (data.length === 0) {
           data = await getAllActiveMoments()
@@ -30,17 +33,20 @@ export function useNearbyEvents(location: UserLocation | null): {
       } else {
         data = await getAllActiveMoments()
       }
-      // Filter only events
       setEvents(data.filter(m => m.moment_type === 'event'))
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch events')
     } finally {
       setLoading(false)
     }
-  }, [location])
+  }, []) // NO location dependency
 
   useEffect(() => {
-    fetchEvents()
+    // Only fetch once on mount, then every 60 seconds
+    if (!initialFetchDone.current) {
+      initialFetchDone.current = true
+      fetchEvents()
+    }
     const interval = setInterval(fetchEvents, 60000)
     return () => clearInterval(interval)
   }, [fetchEvents])
