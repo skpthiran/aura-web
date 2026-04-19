@@ -3,6 +3,7 @@ import { User, Session } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase'
 import { Profile } from '../types'
 import { getProfile } from '../lib/db/profiles'
+import { expireOldMoments } from '../lib/db/moments'
 
 interface AuthContextType {
   user: User | null
@@ -32,6 +33,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(session?.user ?? null)
         
         if (session?.user) {
+          // Expire old moments silently
+          expireOldMoments()
+          
           // Load profile in background - don't block auth
           getProfile(session.user.id)
             .then(p => setProfile(p))

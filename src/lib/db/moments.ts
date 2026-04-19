@@ -109,3 +109,11 @@ export async function leaveMoment(momentId: string): Promise<void> {
 
   if (error) throw error
 }
+
+export async function expireOldMoments(): Promise<void> {
+  try {
+    await supabase.rpc('expire_old_moments')
+  } catch {
+    // Silent fail — not critical
+  }
+}
