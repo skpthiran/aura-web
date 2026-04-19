@@ -17,6 +17,7 @@ export default function MapPage() {
   const [selectedMoment, setSelectedMoment] = useState<Moment | null>(null)
   const [isJoining, setIsJoining] = useState(false)
   const [hasJoined, setHasJoined] = useState(false)
+  const [mapFilter, setMapFilter] = useState<'All' | 'Moments' | 'Events'>('All')
   
   const mapContainer = useRef<HTMLDivElement>(null)
   const mapRef = useRef<MapLibreMap | null>(null)
@@ -98,8 +99,16 @@ export default function MapPage() {
       momentMarkersRef.current.forEach(m => m.remove())
       momentMarkersRef.current = []
 
+      // Filter moments
+      const filtered = moments.filter(m => {
+        if (mapFilter === 'All') return true
+        if (mapFilter === 'Moments') return m.moment_type === 'moment'
+        if (mapFilter === 'Events') return m.moment_type === 'event'
+        return true
+      })
+
       // Add new
-      moments.forEach(m => {
+      filtered.forEach(m => {
         const el = document.createElement('div')
         el.className = 'flex items-center justify-center cursor-pointer group'
         el.id = `marker-${m.id}`
@@ -132,7 +141,7 @@ export default function MapPage() {
     } else {
       map.once('load', syncMarkers)
     }
-  }, [moments])
+  }, [moments, mapFilter])
 
 
   const handleFlyToUser = () => {
@@ -190,6 +199,22 @@ export default function MapPage() {
                placeholder="TARGET COORDINATES / EVENT SEARCH" 
                className="bg-transparent border-none outline-none font-mono text-[9px] md:text-[11px] text-marble w-full uppercase tracking-[0.15em] md:tracking-widest placeholder:text-marble/30"
              />
+           </div>
+
+           {/* Filter Pills */}
+           <div className="flex gap-2 mt-2">
+             {['All', 'Moments', 'Events'].map(f => (
+               <button
+                 key={f}
+                 onClick={() => setMapFilter(f as any)}
+                 className={cn(
+                   "glass-panel hairline-all px-4 py-1.5 micro-caps text-[9px] transition-all duration-300",
+                   mapFilter === f ? "bg-gold/20 text-gold border-gold/40" : "text-marble/40 hover:text-marble/70"
+                 )}
+               >
+                 {f}
+               </button>
+             ))}
            </div>
 
            {locationError && (

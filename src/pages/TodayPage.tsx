@@ -120,7 +120,7 @@ const MomentGridCard: React.FC<MomentGridCardProps> = ({
 export default function TodayPage() {
   const { user } = useAuth()
   const { location } = useUserLocation()
-  const [activeTab, setActiveTab] = useState('Now')
+  const [activeTab, setActiveTab] = useState('Today')
   const { moments, loading } = useNearbyMoments(location)
   
   const [joiningId, setJoiningId] = useState<string | null>(null)
@@ -157,18 +157,23 @@ export default function TodayPage() {
 
   const filteredMoments = useMemo(() => {
     const nowTime = Date.now()
-    const in24h = nowTime + 24 * 60 * 60 * 1000
-    const in7d = nowTime + 7 * 24 * 60 * 60 * 1000
-    const in30d = nowTime + 30 * 24 * 60 * 60 * 1000
+    const agoToday = new Date()
+    agoToday.setHours(0, 0, 0, 0)
+    
+    const ago7d = nowTime - 7 * 24 * 60 * 60 * 1000
+    const ago30d = nowTime - 30 * 24 * 60 * 60 * 1000
 
     return moments.filter(m => {
       if (rejectedIds.has(m.id)) return false
+      const createdTime = new Date(m.created_at).getTime()
       const expiresTime = new Date(m.expires_at).getTime()
-      if (expiresTime < nowTime) return false // already expired
       
-      if (activeTab === 'Now') return expiresTime <= in24h
-      if (activeTab === 'This Week') return expiresTime <= in7d
-      if (activeTab === 'This Month') return expiresTime <= in30d
+      // Always hide truly expired moments
+      if (expiresTime < nowTime) return false
+      
+      if (activeTab === 'Today') return createdTime >= agoToday.getTime()
+      if (activeTab === 'This Week') return createdTime >= ago7d
+      if (activeTab === 'This Month') return createdTime >= ago30d
       return true
     })
   }, [moments, rejectedIds, activeTab])
@@ -235,7 +240,7 @@ export default function TodayPage() {
             
             <div className="flex flex-col items-start md:items-end gap-4 md:gap-6 mt-6 md:mt-0 pointer-events-auto">
               <div className="flex gap-1 md:gap-2 glass-panel hairline-all p-1 rounded-full bg-void/20 backdrop-blur-xl max-w-full overflow-x-auto no-scrollbar">
-                {['Now', 'This Week', 'This Month'].map(tab => (
+                {['Today', 'This Week', 'This Month'].map(tab => (
                   <button
                     key={tab}
                     onClick={() => setActiveTab(tab)}
