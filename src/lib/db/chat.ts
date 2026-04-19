@@ -9,22 +9,31 @@ const messageSchema = z.object({
 })
 
 export async function getJoinedMoments(userId: string) {
-  const { data, error } = await supabase
+  // Step 1: get moment IDs user has joined
+  const { data: participantData, error: pError } = await supabase
     .from('participants')
-    .select(`
-      moment_id,
-      moments (
-        id,
-        title,
-        moment_type,
-        expires_at,
-        is_active
-      )
-    `)
+    .select('moment_id, status')
     .eq('user_id', userId)
     .eq('status', 'joined')
-  if (error) throw error
-  return data
+  
+  if (pError) throw pError
+  if (!participantData || participantData.length === 0) return []
+
+  const momentIds = participantData.map(p => p.moment_id)
+
+  // Step 2: get moment details
+  const { data: momentsData, error: mError } = await supabase
+    .from('moments')
+    .select('id, title, moment_type, expires_at, is_active')
+    .in('id', momentIds)
+    .eq('is_active', true)
+
+  if (mError) throw mError
+
+  return (momentsData ?? []).map(m => ({
+    moment_id: m.id,
+    moments: m
+  }))
 }
 
 export async function getChatMessages(momentId: string): Promise<ChatMessage[]> {

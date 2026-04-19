@@ -24,12 +24,16 @@ export default function ChatPage() {
     if (!user) return
     getJoinedMoments(user.id)
       .then(data => {
+        console.log('Joined moments data:', data)
         setJoinedMoments(data ?? [])
         if (data && data.length > 0) {
           setActiveMomentId(data[0].moment_id)
         }
       })
-      .catch(console.error)
+      .catch(error => {
+        console.log('Joined moments error:', error)
+        console.error(error)
+      })
       .finally(() => setLoadingMoments(false))
   }, [user])
 
