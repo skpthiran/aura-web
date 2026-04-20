@@ -41,8 +41,11 @@ const PremiumEventCard: React.FC<PremiumEventCardProps> = ({ event, index, isJoi
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.05 }}
-      className="relative w-full rounded-[28px] overflow-hidden cursor-pointer group shadow-2xl glass-panel hairline-all"
-      style={{ minHeight: 'clamp(200px, 28vh, 320px)' }}
+      className={cn(
+        "relative w-full rounded-[28px] overflow-hidden cursor-pointer group shadow-2xl glass-panel hairline-all",
+        index === 0 ? "lg:col-span-3 lg:min-h-[420px]" : "lg:col-span-1 lg:min-h-[280px]"
+      )}
+      style={{ minHeight: index === 0 ? '420px' : 'clamp(200px, 28vh, 320px)' }}
     >
       <Link to={`/app/moment/${event.id}`}>
         {/* Background image or gradient */}
@@ -68,9 +71,12 @@ const PremiumEventCard: React.FC<PremiumEventCardProps> = ({ event, index, isJoi
         </div>
 
         {/* BOTTOM content */}
-        <div className="absolute bottom-0 left-0 right-0 p-6">
+        <div className={cn("absolute bottom-0 left-0 right-0 p-6", index === 0 && "lg:p-10")}>
           <div className="mb-4">
-            <h2 className="text-white text-2xl font-serif tracking-widest uppercase mb-2 drop-shadow-2xl leading-tight">
+            <h2 className={cn(
+              "text-white text-2xl font-serif tracking-widest uppercase mb-2 drop-shadow-2xl leading-tight",
+              index === 0 && "lg:text-[32px]"
+            )}>
               {event.title}
             </h2>
             <p className="text-white/40 text-xs line-clamp-1 italic tracking-wide max-w-sm">
@@ -115,6 +121,7 @@ const PremiumEventCard: React.FC<PremiumEventCardProps> = ({ event, index, isJoi
               disabled={isJoined || isJoining}
               className={cn(
                 "px-8 py-3 rounded-full text-[11px] font-black tracking-[0.2em] uppercase transition-all active:scale-90",
+                index === 0 && "lg:px-10 lg:py-4 lg:text-[13px]",
                 isJoined 
                   ? "bg-white/5 border border-white/10 text-white/20"
                   : "bg-[#c9a84c] text-[#08080f] shadow-[0_0_30px_rgba(201,168,76,0.3)] hover:shadow-[0_0_40px_rgba(201,168,76,0.5)]"
@@ -246,97 +253,98 @@ export default function EventsPage() {
   }, [user, events])
 
   return (
-    <div className="flex flex-col h-screen bg-[#08080f] overflow-hidden">
-      <div className="flex-1 flex flex-col w-full max-w-screen-2xl mx-auto overflow-hidden">
+    <div className="flex flex-col h-screen bg-obsidian overflow-hidden">
+      <div className="flex-1 flex flex-col w-full max-w-screen-2xl mx-auto overflow-hidden lg:px-10 lg:pt-8">
         {/* HEADER — fixed, never scrolls */}
-        <div className="flex-shrink-0 px-8 pt-8 pb-4 lg:px-10 lg:pt-10">
-        <div className="flex items-start justify-between mb-2">
-          <div>
-            <p className="text-[10px] tracking-[0.3em] font-mono font-bold uppercase text-[#c9a84c]/60 mb-2">
-              Structured Gatherings
-            </p>
-            <h1 className="text-4xl lg:text-5xl font-serif tracking-[0.05em] uppercase text-white mb-2 shadow-sm">
-              Colosseum
-            </h1>
-            <div className="flex items-center gap-3">
-               <div className="w-1.5 h-1.5 rounded-full bg-[#c9a84c] animate-pulse shadow-[0_0_10px_rgba(201,168,76,0.8)]" />
-               <p className="text-[10px] tracking-[0.2em] uppercase text-white/30 font-medium">
-                 {events.length} Active Projections
-               </p>
+        <div className="flex-shrink-0 px-8 pt-8 pb-4 lg:px-0">
+          <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between mb-4 lg:mb-6">
+            <div>
+              <p className="text-[10px] tracking-[0.3em] font-mono font-bold uppercase text-[#c9a84c]/60 mb-2">
+                Structured Gatherings
+              </p>
+              <h1 className="text-4xl lg:text-5xl font-serif tracking-[0.05em] uppercase text-white mb-2 shadow-sm">
+                Colosseum
+              </h1>
+              <div className="hidden lg:block h-px bg-gradient-to-r from-gold/40 via-gold/10 to-transparent mt-3 mb-1" />
+              <div className="flex items-center gap-3">
+                 <div className="w-1.5 h-1.5 rounded-full bg-gold animate-pulse shadow-[0_0_10px_rgba(201,168,76,0.8)]" />
+                 <p className="text-[10px] tracking-[0.2em] uppercase text-white/30 font-medium">
+                   {events.length} Active Projections
+                 </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-4 mt-6 lg:mt-0">
+               {/* Radius Filter Dropdown */}
+               <div className="relative" data-radius-dropdown>
+                <button
+                  onClick={() => setRadiusOpen(o => !o)}
+                  className="flex items-center gap-2.5 px-5 py-2.5 rounded-full
+                    bg-white/[0.02] border border-white/10 text-white/50
+                    text-[10px] font-bold tracking-[0.15em] uppercase transition-all active:scale-95 hover:border-white/20"
+                >
+                  <Radar className="w-3.5 h-3.5 text-[#c9a84c]" />
+                  {radius >= 500 ? 'Global' : `${radius} KM`}
+                  <svg className={cn('w-3.5 h-3.5 transition-transform duration-300', radiusOpen && 'rotate-180')}
+                    viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                    <polyline points="6 9 12 15 18 9"></polyline>
+                  </svg>
+                </button>
+
+                <AnimatePresence>
+                  {radiusOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 15, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 15, scale: 0.95 }}
+                      className="absolute top-full mt-3 right-0 lg:right-0 left-0 lg:left-auto z-[100] bg-[#0a0a14]/95 backdrop-blur-2xl border
+                        border-white/10 rounded-2xl overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.8)] min-w-[160px]"
+                    >
+                      {RADIUS_OPTIONS.map(r => (
+                        <button
+                          key={r}
+                          onClick={() => { setRadius(r); setRadiusOpen(false) }}
+                          className={cn(
+                            'w-full px-6 py-4 text-left text-[10px] font-bold tracking-widest uppercase transition-colors',
+                            radius === r
+                              ? 'text-[#c9a84c] bg-[#c9a84c]/10'
+                              : 'text-white/40 hover:text-white hover:bg-white/5'
+                          )}
+                        >
+                          {r} KM
+                        </button>
+                      ))}
+                      <div className="h-px bg-white/5 mx-2" />
+                      <button
+                        onClick={() => { setRadius(999999); setRadiusOpen(false) }}
+                        className={cn(
+                          'w-full px-6 py-4 text-left text-[10px] font-bold tracking-widest uppercase transition-colors',
+                          radius >= 999999
+                            ? 'text-[#c9a84c] bg-[#c9a84c]/10'
+                            : 'text-white/40 hover:text-white hover:bg-white/5'
+                        )}
+                      >
+                        Global Range
+                      </button>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+
+              <button
+                onClick={() => refetch()}
+                className="w-11 h-11 rounded-full border border-white/5 bg-white/[0.02] 
+                  flex items-center justify-center text-white/20 
+                  hover:text-[#c9a84c] hover:border-[#c9a84c]/20 transition-all cursor-pointer active:scale-95 shadow-xl"
+              >
+                <RefreshCw className="w-4 h-4" />
+              </button>
             </div>
           </div>
-          <button
-            onClick={() => refetch()}
-            className="w-11 h-11 rounded-full border border-white/5 bg-white/[0.02] 
-              flex items-center justify-center text-white/20 
-              hover:text-[#c9a84c] hover:border-[#c9a84c]/20 transition-all cursor-pointer active:scale-95 shadow-xl"
-          >
-            <RefreshCw className="w-4 h-4" />
-          </button>
         </div>
-
-        {/* Filters bar */}
-        <div className="flex items-center gap-4 mt-8">
-           {/* Radius Filter Dropdown */}
-           <div className="relative" data-radius-dropdown>
-            <button
-              onClick={() => setRadiusOpen(o => !o)}
-              className="flex items-center gap-2.5 px-5 py-2.5 rounded-full
-                bg-white/[0.02] border border-white/10 text-white/50
-                text-[10px] font-bold tracking-[0.15em] uppercase transition-all active:scale-95 hover:border-white/20"
-            >
-              <Radar className="w-3.5 h-3.5 text-[#c9a84c]" />
-              {radius >= 500 ? 'Global' : `${radius} KM`}
-              <svg className={cn('w-3.5 h-3.5 transition-transform duration-300', radiusOpen && 'rotate-180')}
-                viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                <polyline points="6 9 12 15 18 9"></polyline>
-              </svg>
-            </button>
-
-            <AnimatePresence>
-              {radiusOpen && (
-                <motion.div
-                  initial={{ opacity: 0, y: 15, scale: 0.95 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: 15, scale: 0.95 }}
-                  className="absolute top-full mt-3 left-0 z-[100] bg-[#0a0a14]/95 backdrop-blur-2xl border
-                    border-white/10 rounded-2xl overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.8)] min-w-[160px]"
-                >
-                  {RADIUS_OPTIONS.map(r => (
-                    <button
-                      key={r}
-                      onClick={() => { setRadius(r); setRadiusOpen(false) }}
-                      className={cn(
-                        'w-full px-6 py-4 text-left text-[10px] font-bold tracking-widest uppercase transition-colors',
-                        radius === r
-                          ? 'text-[#c9a84c] bg-[#c9a84c]/10'
-                          : 'text-white/40 hover:text-white hover:bg-white/5'
-                      )}
-                    >
-                      {r} KM
-                    </button>
-                  ))}
-                  <div className="h-px bg-white/5 mx-2" />
-                  <button
-                    onClick={() => { setRadius(999999); setRadiusOpen(false) }}
-                    className={cn(
-                      'w-full px-6 py-4 text-left text-[10px] font-bold tracking-widest uppercase transition-colors',
-                      radius >= 999999
-                        ? 'text-[#c9a84c] bg-[#c9a84c]/10'
-                        : 'text-white/40 hover:text-white hover:bg-white/5'
-                    )}
-                  >
-                    Global Range
-                  </button>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-        </div>
-      </div>
 
         {/* EVENTS LIST — scrollable, fills remaining height */}
-        <div className="flex-1 overflow-y-auto px-8 pb-32 lg:px-10 scrollbar-hide pt-4">
+        <div className="flex-1 overflow-y-auto px-6 lg:px-0 pb-6 scrollbar-hide pt-4">
         {loading ? (
           <div className="flex flex-col items-center justify-center py-32 gap-6">
             <div className="relative w-12 h-12">
@@ -362,7 +370,7 @@ export default function EventsPage() {
             </Link>
           </motion.div>
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-5 content-start pb-32">
             <AnimatePresence mode="popLayout">
               {events
                 .filter(event => cardActions[event.id] !== 'rejected')
