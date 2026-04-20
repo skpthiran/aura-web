@@ -20,7 +20,6 @@ export default function MomentDetailPage() {
   const [joining, setJoining] = useState(false)
   const [joined, setJoined] = useState(false)
   const [copied, setCopied] = useState(false)
-  const [participantCount, setParticipantCount] = useState(0)
   const [creator, setCreator] = useState<{
     id: string
     full_name: string | null
@@ -34,27 +33,6 @@ export default function MomentDetailPage() {
     if (!id) return
     fetchMoment()
     checkIfJoined()
-
-    // Real-time participant counter
-    const channel = supabase
-      .channel(`participants:${id}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'participants',
-          filter: `moment_id=eq.${id}`
-        },
-        () => {
-          fetchParticipantCount()
-        }
-      )
-      .subscribe()
-
-    return () => {
-      supabase.removeChannel(channel)
-    }
   }, [id, user])
 
 
@@ -63,12 +41,7 @@ export default function MomentDetailPage() {
     try {
       const { data, error } = await supabase
         .from('moments')
-        .select(`
-          *,
-          creator:profiles!moments_creator_id_fkey(
-            id, username, avatar_url
-          )
-        `)
+        .select('*, creator:profiles(id, username, avatar_url)')
         .eq('id', id)
         .single()
       
@@ -77,8 +50,6 @@ export default function MomentDetailPage() {
       
       setMoment(data)
       if (data.creator) setCreator(data.creator)
-
-      await fetchParticipantCount()
     } catch (err) {
       // Error handled by state
     } finally {
@@ -86,15 +57,6 @@ export default function MomentDetailPage() {
     }
   }
 
-  const fetchParticipantCount = async () => {
-    if (!id) return
-    const { count } = await supabase
-      .from('participants')
-      .select('id', { count: 'exact', head: true })
-      .eq('moment_id', id)
-      .eq('status', 'joined')
-    setParticipantCount(count ?? 0)
-  }
 
 
   const checkIfJoined = async () => {
@@ -114,7 +76,6 @@ export default function MomentDetailPage() {
       setJoining(true)
       await joinMoment(id)
       setJoined(true)
-      setParticipantCount(prev => prev + 1)
     } finally {
       setJoining(false)
     }
@@ -126,7 +87,6 @@ export default function MomentDetailPage() {
       setJoining(true)
       await leaveMoment(id)
       setJoined(false)
-      setParticipantCount(prev => prev - 1)
     } finally {
       setJoining(false)
     }
@@ -144,6 +104,10 @@ export default function MomentDetailPage() {
       }
     } catch {}
   }
+
+  const allKeys = moment ? Object.keys(moment) : [];
+  console.log('ALL moment keys:', allKeys);
+  console.log('ALL moment values:', JSON.stringify(moment));
 
   if (loading) return <MomentDetailSkeleton />
   if (!moment) return (
@@ -227,7 +191,7 @@ export default function MomentDetailPage() {
           <div className="flex items-center gap-6 text-white/50">
             <div className="flex items-center gap-2">
               <Users className="w-4 h-4 text-gold/60" />
-              <span className="text-xs font-bold tracking-[0.1em]">{participantCount} Participating</span>
+              <span className="text-xs font-bold tracking-[0.1em]">{moment.attendee_count || 0} Participating</span>
             </div>
             <div className="w-1 h-1 rounded-full bg-white/20" />
             <div className="flex items-center gap-2">
@@ -260,7 +224,7 @@ export default function MomentDetailPage() {
              <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-4">
                 <p className="text-white/30 text-[8px] tracking-[0.2em] uppercase mb-1">Impact</p>
                 <div className="flex items-baseline gap-2">
-                   <span className="text-white font-black text-xl">{participantCount}</span>
+                   <span className="text-white font-black text-xl">{moment.attendee_count || 0}</span>
                    <span className="text-white/20 text-[10px] uppercase font-bold tracking-widest">Active</span>
                 </div>
              </div>
@@ -323,28 +287,6 @@ export default function MomentDetailPage() {
               </div>
             </section>
 
-            <section>
-               <button 
-                onClick={() => navigate('/app/chat')}
-                className="w-full group relative overflow-hidden rounded-2xl bg-white/[0.02] border border-white/5 p-6 hover:border-gold/20 transition-all duration-500"
-               >
-                 <div className="flex items-center justify-between relative z-10">
-                    <div className="flex items-center gap-4">
-                       <div className="w-10 h-10 rounded-xl bg-gold/10 border border-gold/20 flex items-center justify-center group-hover:scale-110 transition-transform">
-                          <MessageSquare className="w-4 h-4 text-gold" />
-                       </div>
-                       <div className="text-left">
-                          <p className="text-white font-bold tracking-widest uppercase text-xs">Signal Frequency</p>
-                          <p className="text-white/30 text-[9px] tracking-widest uppercase">Open secure channel</p>
-                       </div>
-                    </div>
-                    <div className="w-8 h-8 rounded-full border border-white/5 flex items-center justify-center group-hover:bg-gold/10 group-hover:border-gold/20">
-                       <ExternalLink className="w-3 h-3 text-white/20 group-hover:text-gold" />
-                    </div>
-                 </div>
-                 <div className="absolute inset-0 bg-gradient-to-r from-gold/0 via-gold/5 to-gold/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
-               </button>
-            </section>
           </div>
         </div>
 
@@ -362,21 +304,14 @@ export default function MomentDetailPage() {
             ) : (
               <button
                 onClick={handleJoin}
-                disabled={joining || (moment.capacity_limit > 0 && participantCount >= moment.capacity_limit)}
-                className="group relative w-full h-[70px] rounded-2xl bg-gold overflow-hidden transition-all duration-500 hover:shadow-[0_20px_50px_rgba(201,168,76,0.2)] active:scale-[0.98]"
+                disabled={joining || (moment.capacity_limit > 0 && (moment.attendee_count || 0) >= moment.capacity_limit)}
+                className="w-full py-4 rounded-2xl text-[#08080f] text-[12px] font-black tracking-[0.2em] uppercase transition-all duration-300 hover:opacity-90 active:scale-[0.98]"
+                style={{ background: 'linear-gradient(135deg, #c9a84c, #e2c06a, #c9a84c)' }}
               >
-                <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/30 to-white/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <span className="text-[#08080f] text-[13px] font-black tracking-[0.4em] uppercase">
-                    {joining ? <Loader className="w-5 h-5 animate-spin" /> : 
-                      (moment.capacity_limit > 0 && participantCount >= moment.capacity_limit ? "SIGNAL FULL" : "Join Moment")}
-                  </span>
-                </div>
+                {joining ? <Loader className="w-5 h-5 animate-spin" /> : 
+                  (moment.capacity_limit > 0 && (moment.attendee_count || 0) >= moment.capacity_limit ? "SIGNAL FULL" : "Join Moment")}
               </button>
             )}
-            <p className="text-center mt-4 text-[8px] tracking-[0.3em] uppercase text-white/15">
-              Secure cryptographic signature required to join
-            </p>
           </div>
         </div>
       </div>
