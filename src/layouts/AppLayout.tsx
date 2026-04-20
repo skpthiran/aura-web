@@ -39,28 +39,26 @@ export default function AppLayout() {
   const fetchUnreadCount = async () => {
     if (!user) return
     try {
-      const { data: myMoments } = await supabase
-        .from('moments')
-        .select('id')
-        .eq('creator_id', user.id)
-      if (!myMoments || myMoments.length === 0) {
-        setUnreadCount(0)
-        return  
-      }
-      const ids: string[] = myMoments.map((x: { id: string }) => x.id)
+      // Use a single query with a join to avoid large IN lists (prevents 400 error)
       const since = new Date(Date.now() - 86400000).toISOString()
+      
       const { count } = await supabase
         .from('participants')
-        .select('id', { count: 'exact', head: true })
-        .in('moment_id', ids)
-        .neq('user_id', user.id)
+        .select(`
+          id,
+          moment:moments!inner(id, creator_id)
+        `, { count: 'exact', head: true })
         .eq('status', 'joined')
+        .neq('user_id', user.id)
         .gte('created_at', since)
+        .eq('moment.creator_id', user.id)
+      
       setUnreadCount(count ?? 0)
     } catch {
       setUnreadCount(0)
     }
   }
+
 
   const handleSignOut = async () => {
     try {

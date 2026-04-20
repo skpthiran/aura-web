@@ -34,42 +34,68 @@ export default function MomentDetailPage() {
     if (!id) return
     fetchMoment()
     checkIfJoined()
+
+    // Real-time participant counter
+    const channel = supabase
+      .channel(`participants:${id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'participants',
+          filter: `moment_id=eq.${id}`
+        },
+        () => {
+          fetchParticipantCount()
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
   }, [id, user])
+
 
   const fetchMoment = async () => {
     setLoading(true)
     try {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('moments')
-        .select('*')
+        .select(`
+          *,
+          creator:profiles!moments_creator_id_fkey(
+            id, username, avatar_url
+          )
+        `)
         .eq('id', id)
         .single()
+      
+      if (error) throw error
       if (!data) return
       
-      console.log('Fetched moment data:', data)
-      console.log('image_url field specifically:', data?.image_url)
-      
       setMoment(data)
+      if (data.creator) setCreator(data.creator)
 
-      const { count: joinedCount } = await supabase
-        .from('participants')
-        .select('id', { count: 'exact', head: true })
-        .eq('moment_id', id)
-        .eq('status', 'joined')
-      setParticipantCount(joinedCount ?? 0)
-
-      if (data.creator_id) {
-        const { data: creatorData } = await supabase
-          .from('profiles')
-          .select('id, full_name, username, avatar_url')
-          .eq('id', data.creator_id)
-          .single()
-        if (creatorData) setCreator(creatorData)
-      }
+      await fetchParticipantCount()
+    } catch (err) {
+      // Error handled by state
     } finally {
       setLoading(false)
     }
   }
+
+  const fetchParticipantCount = async () => {
+    if (!id) return
+    const { count } = await supabase
+      .from('participants')
+      .select('id', { count: 'exact', head: true })
+      .eq('moment_id', id)
+      .eq('status', 'joined')
+    setParticipantCount(count ?? 0)
+  }
+
 
   const checkIfJoined = async () => {
     if (!user || !id) return
@@ -89,8 +115,6 @@ export default function MomentDetailPage() {
       await joinMoment(id)
       setJoined(true)
       setParticipantCount(prev => prev + 1)
-    } catch (error) {
-      console.error('Error joining:', error)
     } finally {
       setJoining(false)
     }
@@ -103,8 +127,6 @@ export default function MomentDetailPage() {
       await leaveMoment(id)
       setJoined(false)
       setParticipantCount(prev => prev - 1)
-    } catch (error) {
-      console.error('Error leaving:', error)
     } finally {
       setJoining(false)
     }
