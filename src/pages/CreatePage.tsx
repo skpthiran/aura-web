@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'motion/react'
 import { useAuth } from '../contexts/AuthContext'
@@ -8,9 +8,12 @@ import {
   Zap, Calendar, MapPin, Users, ChevronRight,
   ChevronLeft, Check, Loader2, X, Clock, Lock,
   Music, Utensils, Palette, Dumbbell, Laptop,
-  Heart, Sun, Moon, Coffee, Sparkles
+  Heart, Sun, Moon, Coffee, Sparkles, Loader
 } from 'lucide-react'
 import { cn } from '../lib/utils'
+import { Map as MapLibreMap, Marker } from 'maplibre-gl'
+import 'maplibre-gl/dist/maplibre-gl.css'
+import { MAPTILER_STYLE } from '../lib/constants'
 
 const STEPS = [
   { num: 1, label: 'Type' },
@@ -77,6 +80,10 @@ export default function CreatePage() {
   const [capacityLimit, setCapacityLimit] = useState(20)
   const [latitude, setLatitude] = useState<number | null>(null)
   const [longitude, setLongitude] = useState<number | null>(null)
+
+  const mapContainerRef = useRef<HTMLDivElement>(null)
+  const mapRef = useRef<MapLibreMap | null>(null)
+  const markerRef = useRef<Marker | null>(null)
 
   // Auto-detect location on mount
   useEffect(() => {
@@ -171,6 +178,66 @@ export default function CreatePage() {
       { timeout: 10000, enableHighAccuracy: true }
     )
   }
+
+  // Initialize map for Step 3
+  useEffect(() => {
+    if (step !== 3 || !mapContainerRef.current) return
+    if (mapRef.current) return // already initialized
+
+    const defaultLat = latitude ?? 6.9271
+    const defaultLng = longitude ?? 79.8612
+
+    const map = new MapLibreMap({
+      container: mapContainerRef.current,
+      style: MAPTILER_STYLE,
+      center: [defaultLng, defaultLat],
+      zoom: 14,
+    })
+
+    mapRef.current = map
+
+    // Draggable marker
+    const marker = new Marker({ color: '#C9A84C', draggable: true })
+      .setLngLat([defaultLng, defaultLat])
+      .addTo(map)
+
+    markerRef.current = marker
+
+    // Update coordinates on drag
+    marker.on('dragend', () => {
+      const lngLat = marker.getLngLat()
+      setLatitude(lngLat.lat)
+      setLongitude(lngLat.lng)
+    })
+
+    // Also update on map click — moves marker to clicked location
+    map.on('click', (e) => {
+      marker.setLngLat(e.lngLat)
+      setLatitude(e.lngLat.lat)
+      setLongitude(e.lngLat.lng)
+    })
+
+    // If we already have location, set it
+    if (latitude && longitude) {
+      map.setCenter([longitude, latitude])
+      marker.setLngLat([longitude, latitude])
+    }
+
+    return () => {
+      if (mapRef.current) {
+        mapRef.current.remove()
+        mapRef.current = null
+        markerRef.current = null
+      }
+    }
+  }, [step])
+
+  // Fly to user location when detected
+  useEffect(() => {
+    if (!mapRef.current || !markerRef.current || !latitude || !longitude) return
+    mapRef.current.flyTo({ center: [longitude, latitude], zoom: 15, duration: 1000 })
+    markerRef.current.setLngLat([longitude, latitude])
+  }, [latitude, longitude])
 
   return (
     <div className="flex-1 overflow-y-auto bg-void">
@@ -464,79 +531,76 @@ export default function CreatePage() {
               {/* ── STEP 3: LOCATION ── */}
               {step === 3 && (
                 <div className="flex flex-col gap-4">
-                  <p className="text-marble/40 text-sm">Your signal appears on the map at your current location.</p>
+                  <p className="text-marble/40 text-sm">
+                    Drag the pin to set your exact signal location.
+                  </p>
 
-                  {/* Location card */}
-                  <div className={cn(
-                    'rounded-2xl border transition-all duration-300 overflow-hidden',
-                    latitude ? 'border-green-500/30 shadow-[0_0_20px_rgba(34,197,94,0.05)]' : 'border-white/10'
-                  )}>
-                    {/* Map preview using OpenStreetMap tiles — no API key needed */}
-                    {latitude && longitude ? (
-                      <div className="relative w-full h-52 bg-[#1a1a2e] overflow-hidden">
-                        <iframe
-                          title="location-preview"
-                          className="w-full h-full border-0 pointer-events-none"
-                          src={`https://www.openstreetmap.org/export/embed.html?bbox=${longitude - 0.01},${latitude - 0.01},${longitude + 0.01},${latitude + 0.01}&layer=mapnik&marker=${latitude},${longitude}`}
-                          style={{ filter: 'invert(90%) hue-rotate(180deg) brightness(0.85) contrast(1.1)' }}
-                        />
-                        <div className="absolute inset-0 pointer-events-none"
-                          style={{ background: 'linear-gradient(to top, rgba(8,8,15,0.7) 0%, transparent 50%)' }} />
-                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                          <div className="w-5 h-5 rounded-full bg-gold border-2 border-white shadow-lg shadow-gold/60" />
-                        </div>
+                  {/* MapLibre interactive map */}
+                  <div className="rounded-2xl overflow-hidden border border-white/10"
+                    style={{ height: '320px', position: 'relative' }}>
+                    <div ref={mapContainerRef} className="w-full h-full" />
+
+                    {/* Center crosshair overlay */}
+                    <div className="absolute inset-0 flex items-center justify-center
+                      pointer-events-none z-10">
+                      <div className="flex flex-col items-center">
+                        <div className="w-5 h-5 rounded-full bg-gold border-2 border-white
+                          shadow-lg shadow-gold/60" />
+                        <div className="w-px h-4 bg-gold/60" />
                       </div>
-                    ) : (
-                      <div className="w-full h-52 bg-white/3 flex items-center justify-center">
-                        <div className="flex flex-col items-center gap-3 text-marble/20">
-                          <MapPin className="w-10 h-10 animate-bounce" />
-                          <p className="micro-caps text-xs">Awaiting location</p>
+                    </div>
+
+                    {/* Locating spinner */}
+                    {locating && (
+                      <div className="absolute inset-0 flex items-center justify-center
+                        bg-black/40 z-20 rounded-2xl">
+                        <div className="flex flex-col items-center gap-2">
+                          <Loader className="w-6 h-6 text-gold animate-spin" />
+                          <p className="micro-caps text-xs text-marble/60">Detecting location...</p>
                         </div>
                       </div>
                     )}
+                  </div>
 
-                    <div className="p-5 bg-white/3">
-                      <div className="flex items-center gap-3 mb-3">
-                        <div className={cn(
-                          'w-10 h-10 rounded-xl flex items-center justify-center shrink-0',
-                          latitude ? 'bg-green-500/15 border border-green-500/25' : 'bg-white/5 border border-white/10'
-                        )}>
-                          <MapPin className={cn('w-5 h-5', latitude ? 'text-green-400' : 'text-marble/30')} />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-marble text-sm font-medium">
-                            {locating ? 'Detecting location...' : latitude ? 'Location locked' : 'Location required'}
-                          </p>
-                          {latitude && longitude && (
-                            <p className="text-marble/35 text-xs mt-0.5 font-mono">
-                              {latitude.toFixed(6)}, {longitude.toFixed(6)}
-                            </p>
-                          )}
-                        </div>
-                        {locating && <Loader2 className="w-4 h-4 text-gold animate-spin shrink-0" />}
-                        {latitude && !locating && <Check className="w-4 h-4 text-green-400 shrink-0" />}
+                  {/* Coordinates display */}
+                  <div className={cn(
+                    'rounded-2xl border transition-all duration-300 p-4',
+                    latitude ? 'border-green-500/30 bg-green-500/5' : 'border-white/10 bg-white/3'
+                  )}>
+                    <div className="flex items-center gap-3">
+                      <div className={cn(
+                        'w-9 h-9 rounded-xl flex items-center justify-center shrink-0',
+                        latitude ? 'bg-green-500/15 border border-green-500/25' : 'bg-white/5 border border-white/10'
+                      )}>
+                        <MapPin className={cn('w-4 h-4', latitude ? 'text-green-400' : 'text-marble/30')} />
                       </div>
-
-                      {!latitude && !locating && (
-                        <button onClick={detectLocation}
-                          className="w-full py-3 rounded-xl micro-caps text-sm bg-gold/10 border border-gold/30 text-gold hover:bg-gold/15 transition-all">
-                          <MapPin className="w-4 h-4 inline mr-2" />
-                          Detect My Location
-                        </button>
-                      )}
-
-                      {latitude && (
-                        <button
-                          onClick={() => { setLatitude(null); setLongitude(null) }}
-                          className="w-full py-2 rounded-xl micro-caps text-xs text-marble/25 hover:text-marble/50 transition-colors">
-                          Clear & re-detect
-                        </button>
-                      )}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-marble text-sm font-medium">
+                          {locating ? 'Detecting...' : latitude ? 'Location locked' : 'Location required'}
+                        </p>
+                        {latitude && longitude && (
+                          <p className="text-marble/35 text-xs mt-0.5 font-mono">
+                            {latitude.toFixed(6)}, {longitude.toFixed(6)}
+                          </p>
+                        )}
+                      </div>
+                      {latitude && !locating && <Check className="w-4 h-4 text-green-400 shrink-0" />}
+                      {locating && <Loader className="w-4 h-4 text-gold animate-spin shrink-0" />}
                     </div>
+
+                    {!latitude && !locating && (
+                      <button onClick={detectLocation}
+                        className="w-full mt-3 py-2.5 rounded-xl micro-caps text-sm
+                          bg-gold/10 border border-gold/30 text-gold hover:bg-gold/15 transition-all">
+                        <MapPin className="w-4 h-4 inline mr-2" />
+                        Detect My Location
+                      </button>
+                    )}
                   </div>
 
                   {/* Privacy toggle */}
-                  <div className="flex items-center justify-between bg-white/4 border border-white/10 rounded-2xl px-5 py-4 mt-6">
+                  <div className="flex items-center justify-between
+                    bg-white/4 border border-white/10 rounded-2xl px-5 py-4">
                     <div className="flex items-center gap-3">
                       <Lock className="w-4 h-4 text-marble/30" />
                       <div>
@@ -546,9 +610,15 @@ export default function CreatePage() {
                     </div>
                     <button
                       onClick={() => setIsPrivate(p => !p)}
-                      className={cn('w-11 h-6 rounded-full transition-all duration-300 relative shrink-0', isPrivate ? 'bg-gold' : 'bg-white/10')}
+                      className={cn(
+                        'w-11 h-6 rounded-full transition-all duration-300 relative shrink-0',
+                        isPrivate ? 'bg-gold' : 'bg-white/10'
+                      )}
                     >
-                      <div className={cn('absolute top-1 w-4 h-4 rounded-full bg-white shadow-sm transition-all duration-300', isPrivate ? 'left-6' : 'left-1')} />
+                      <div className={cn(
+                        'absolute top-1 w-4 h-4 rounded-full bg-white shadow-sm transition-all duration-300',
+                        isPrivate ? 'left-6' : 'left-1'
+                      )} />
                     </button>
                   </div>
                 </div>
