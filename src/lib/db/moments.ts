@@ -173,8 +173,7 @@ export async function joinMoment(momentId: string): Promise<void> {
       status: 'joined',
       joined_at: new Date().toISOString(),
     }, {
-      onConflict: 'moment_id,user_id',
-      ignoreDuplicates: true,
+      onConflict: 'moment_id,user_id'
     })
 
   if (error) throw new Error(error.message)

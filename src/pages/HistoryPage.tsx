@@ -15,6 +15,7 @@ export default function HistoryPage() {
   usePageTitle('History')
   const { user } = useAuth()
   const [moments, setMoments] = useState<Moment[]>([])
+  const [attendedIds, setAttendedIds] = useState<Set<string>>(new Set())
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<'all' | 'attended' | 'created'>('all')
 
@@ -38,6 +39,7 @@ export default function HistoryPage() {
         )
 
         setMoments(unique)
+        setAttendedIds(new Set(joined.map(m => m.id)))
       } catch (e) {
         console.error('fetchHistory error:', e)
       } finally {
@@ -49,13 +51,13 @@ export default function HistoryPage() {
   }, [user])
 
   const createdCount = moments.filter(m => m.creator_id === user?.id).length
-  const attendedCount = moments.filter(m => m.creator_id !== user?.id).length
+  const attendedCount = moments.filter(m => attendedIds.has(m.id)).length
   const totalCount = moments.length
 
   const filtered = filter === 'created'
     ? moments.filter(m => m.creator_id === user?.id)
     : filter === 'attended'
-    ? moments.filter(m => m.creator_id !== user?.id)
+    ? moments.filter(m => attendedIds.has(m.id))
     : moments
 
   const formatExpired = (dateStr: string) => {

@@ -642,43 +642,43 @@ export default function CreatePage() {
 
               {/* ── STEP 4: CAPACITY ── */}
               {step === 4 && (
-                <div className="flex flex-col w-full px-0 pb-32">
-                  <p className="text-marble/40 text-sm px-4">Set how many people can join your signal.</p>
+                <div className="flex flex-col w-full pb-32">
+                  <p className="text-marble/40 text-sm px-6 text-center">Set how many people can join your signal.</p>
 
                   {/* Stepper */}
-                  <div className="flex items-center justify-center gap-4 w-full px-4 mt-6">
+                  <div className="flex items-center justify-center gap-8 w-full px-6 mt-10">
                     <button
                       onClick={() => setCapacityLimit(prev => Math.max(1, prev - 1))}
-                      className="w-12 h-12 rounded-full bg-white/8 border border-white/15
-                        flex items-center justify-center text-marble text-xl
-                        active:scale-95 transition-transform shrink-0"
+                      className="w-14 h-14 rounded-full bg-white/5 border border-white/10
+                        flex items-center justify-center text-marble text-2xl
+                        active:scale-90 transition-all shrink-0 hover:border-gold/30 hover:bg-gold/5"
                     >
                       −
                     </button>
 
-                    <div className="flex-1 max-w-[200px] text-center">
-                      <span className="font-serif text-6xl text-marble tabular-nums">
+                    <div className="flex flex-col items-center min-w-[120px]">
+                      <span className="font-serif text-7xl text-marble tabular-nums leading-none">
                         {capacityLimit}
                       </span>
-                      <p className="micro-caps text-xs text-marble/40 mt-1">
-                        {capacityLimit} PEOPLE MAX
+                      <p className="micro-caps text-[10px] text-gold mt-4 tracking-[0.2em]">
+                        MAX PEOPLE
                       </p>
                     </div>
 
                     <button
                       onClick={() => setCapacityLimit(prev => Math.min(500, prev + 1))}
-                      className="w-12 h-12 rounded-full bg-white/8 border border-white/15
-                        flex items-center justify-center text-marble text-xl
-                        active:scale-95 transition-transform shrink-0"
+                      className="w-14 h-14 rounded-full bg-white/5 border border-white/10
+                        flex items-center justify-center text-marble text-2xl
+                        active:scale-90 transition-all shrink-0 hover:border-gold/30 hover:bg-gold/5"
                     >
                       +
                     </button>
                   </div>
 
                   {/* Presets */}
-                  <div className="mt-8">
-                    <label className="micro-caps text-xs text-marble/40 mb-3 block px-4 text-center lg:text-left">Quick select</label>
-                    <div className="grid grid-cols-3 gap-3 w-full px-4">
+                  <div className="mt-12">
+                    <label className="micro-caps text-[10px] text-marble/25 mb-4 block text-center tracking-[0.2em]">QUICK SELECT</label>
+                    <div className="grid grid-cols-3 gap-3 w-full px-6 text-center">
                       {CAPACITY_PRESETS.map(n => (
                         <button
                           key={n}
