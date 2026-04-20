@@ -1,36 +1,129 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { motion } from 'motion/react'
-import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
-import { updateProfile } from '../lib/db/profiles'
-import { Camera, Edit3, Save, X, LogOut, User, 
-  MapPin, Calendar, Zap } from 'lucide-react'
-import { cn } from '../lib/utils'
+import { supabase } from '../lib/supabase'
 import { usePageTitle } from '../hooks/usePageTitle'
+import { 
+  Camera, Check, X, Loader, LogOut, 
+  User, AtSign, FileText, Zap, Calendar
+} from 'lucide-react'
+import { cn } from '../lib/utils'
+import { Link } from 'react-router-dom'
+import { Moment } from '../types'
 
 export default function ProfilePage() {
-  usePageTitle('Identity')
-  const { user, profile, signOut, refreshProfile } = useAuth()
-  const navigate = useNavigate()
+  const { user, profile, signOut } = useAuth()
+  usePageTitle('Profile')
+
   const [editing, setEditing] = useState(false)
   const [saving, setSaving] = useState(false)
-  const [username, setUsername] = useState(profile?.username ?? '')
-  const [fullName, setFullName] = useState(profile?.full_name ?? '')
-  const [bio, setBio] = useState(profile?.bio ?? '')
+  const [uploadingAvatar, setUploadingAvatar] = useState(false)
+  const [saved, setSaved] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  const [fullName, setFullName] = useState('')
+  const [username, setUsername] = useState('')
+  const [bio, setBio] = useState('')
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
+
+  const [myMoments, setMyMoments] = useState<Moment[]>([])
+  const [loadingMoments, setLoadingMoments] = useState(true)
+  const [activeTab, setActiveTab] = useState<'moments' | 'events'>('moments')
+
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    if (profile) {
+      setFullName(profile.full_name ?? '')
+      setUsername(profile.username ?? '')
+      setBio(profile.bio ?? '')
+      setAvatarUrl(profile.avatar_url ?? null)
+    }
+  }, [profile])
+
+  useEffect(() => {
+    if (user) fetchMyMoments()
+  }, [user])
+
+  const fetchMyMoments = async () => {
+    setLoadingMoments(true)
+    try {
+      const { data } = await supabase
+        .from('moments')
+        .select('*')
+        .eq('creator_id', user!.id)
+        .order('created_at', { ascending: false })
+        .limit(30)
+      setMyMoments((data ?? []) as Moment[])
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setLoadingMoments(false)
+    }
+  }
+
+  const handleAvatarClick = () => {
+    if (editing) fileInputRef.current?.click()
+  }
+
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file || !user) return
+    setUploadingAvatar(true)
+    try {
+      const ext = file.name.split('.').pop()
+      const path = `avatars/${user.id}.${ext}`
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(path, file, { upsert: true })
+      if (uploadError) throw uploadError
+      const { data: { publicUrl } } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(path)
+      setAvatarUrl(publicUrl)
+    } catch (err) {
+      console.error(err)
+      setError('Failed to upload avatar')
+    } finally {
+      setUploadingAvatar(false)
+    }
+  }
 
   const handleSave = async () => {
     if (!user) return
     setSaving(true)
     setError(null)
     try {
-      await updateProfile(user.id, {
-        username: username.trim() || null,
-        full_name: fullName.trim() || null,
-        bio: bio.trim() || null
-      })
-      await refreshProfile()
+      // Check username uniqueness if changed
+      if (username !== profile?.username && username.trim()) {
+        const { data: existing } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('username', username.trim().toLowerCase())
+          .neq('id', user.id)
+          .maybeSingle()
+        if (existing) {
+          setError('Username already taken')
+          setSaving(false)
+          return
+        }
+      }
+
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({
+          full_name: fullName.trim() || null,
+          username: username.trim().toLowerCase() || null,
+          bio: bio.trim() || null,
+          avatar_url: avatarUrl,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', user.id)
+
+      if (updateError) throw updateError
+      setSaved(true)
       setEditing(false)
+      setTimeout(() => setSaved(false), 3000)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to save')
     } finally {
@@ -38,223 +131,342 @@ export default function ProfilePage() {
     }
   }
 
-  const handleSignOut = async () => {
-    await signOut()
-    navigate('/')
+  const handleCancel = () => {
+    setFullName(profile?.full_name ?? '')
+    setUsername(profile?.username ?? '')
+    setBio(profile?.bio ?? '')
+    setAvatarUrl(profile?.avatar_url ?? null)
+    setError(null)
+    setEditing(false)
   }
 
+  const displayName = fullName || profile?.full_name || 'Anonymous'
+  const initials = displayName[0]?.toUpperCase() ?? 'A'
+  const filteredMoments = myMoments.filter(m =>
+    activeTab === 'moments' ? m.moment_type === 'moment' : m.moment_type === 'event'
+  )
+
   return (
-    <div className="flex-1 overflow-y-auto w-full">
-      <div className="max-w-2xl mx-auto p-6 py-10">
-        
-        {/* Header */}
-        <div className="flex items-center justify-between mb-10">
-          <div>
-            <p className="micro-caps text-gold mb-2">Identity</p>
-            <h1 className="font-serif text-4xl text-marble">Profile</h1>
-          </div>
-          <button
-            onClick={handleSignOut}
-            className="flex items-center gap-2 micro-caps text-xs 
-              text-marble/40 hover:text-crimson-bright transition-colors 
-              glass-panel px-4 py-2 rounded-full hairline-all pointer-events-auto cursor-pointer"
-          >
-            <LogOut className="w-3.5 h-3.5" />
-            Sever Connection
-          </button>
+    <div className="flex-1 overflow-y-auto bg-void">
+
+      {/* Banner */}
+      <div className="relative overflow-hidden" style={{ height: '180px' }}>
+        <div className="absolute inset-0 bg-gradient-to-br from-void via-obsidian to-black" />
+        <div className="absolute inset-0 pointer-events-none">
+          <div className="absolute top-0 right-1/4 w-64 h-64 bg-gold/6 rounded-full blur-[80px]" />
         </div>
 
-        {/* Avatar + basic info */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="glass-panel rounded-3xl p-8 hairline-all mb-6"
-        >
-          <div className="flex items-start gap-6">
-            {/* Avatar */}
-            <div className="relative shrink-0">
-              <div className="w-20 h-20 rounded-full bg-marble/10 
-                border border-white/10 overflow-hidden flex items-center 
-                justify-center">
-                {profile?.avatar_url ? (
-                  <img src={profile.avatar_url} 
-                    className="w-full h-full object-cover" 
-                    onError={(e) => {
-                      e.currentTarget.style.display = 'none'
-                    }}
-                  />
-                ) : (
-                  <User className="w-8 h-8 text-marble/30" />
-                )}
-              </div>
-              <div className="absolute -bottom-1 -right-1 w-6 h-6 
-                rounded-full bg-gold/20 border border-gold/40 
-                flex items-center justify-center">
-                <Camera className="w-3 h-3 text-gold" />
-              </div>
-            </div>
-
-            {/* Info */}
-            <div className="flex-1 min-w-0">
-              {editing ? (
-                <div className="flex flex-col gap-3">
-                  <input
-                    value={fullName}
-                    onChange={e => setFullName(e.target.value)}
-                    placeholder="Full name"
-                    className="bg-void/50 border border-white/10 rounded-xl 
-                      px-4 py-2 text-marble outline-none focus:border-gold/50 
-                      text-lg font-serif"
-                  />
-                  <input
-                    value={username}
-                    onChange={e => setUsername(e.target.value)}
-                    placeholder="@username"
-                    className="bg-void/50 border border-white/10 rounded-xl 
-                      px-4 py-2 text-marble/70 outline-none focus:border-gold/50 
-                      text-sm micro-caps"
-                  />
-                </div>
-              ) : (
-                <div>
-                  <h2 className="font-serif text-2xl text-marble mb-1">
-                    {profile?.full_name ?? 'Anonymous'}
-                  </h2>
-                  <p className="micro-caps text-sm text-marble/40">
-                    {profile?.username ? `@${profile.username}` : 
-                      user?.email ?? ''}
-                  </p>
-                </div>
-              )}
-            </div>
-
-            {/* Edit button */}
-            <button
-              onClick={() => editing ? handleSave() : setEditing(true)}
-              disabled={saving}
-              className={cn(
-                "shrink-0 w-9 h-9 rounded-full flex items-center justify-center cursor-pointer",
-                "transition-colors hairline-all glass-panel",
-                editing 
-                  ? "text-gold border-gold/30" 
-                  : "text-marble/40 hover:text-marble"
-              )}
+        {/* Top actions */}
+        <div className="absolute top-6 right-6 flex items-center gap-2 z-20">
+          {saved && (
+            <motion.span
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="micro-caps text-xs text-green-400 flex items-center gap-1"
             >
-              {editing 
-                ? (saving ? '...' : <Save className="w-4 h-4" />)
-                : <Edit3 className="w-4 h-4" />
-              }
+              <Check className="w-3 h-3" /> Saved
+            </motion.span>
+          )}
+          {!editing ? (
+            <button
+              onClick={() => setEditing(true)}
+              className="micro-caps text-xs px-4 py-2 rounded-full
+                glass-panel hairline-all text-marble/60
+                hover:text-marble transition-all"
+            >
+              Edit Profile
             </button>
-          </div>
-
-          {/* Bio */}
-          <div className="mt-6 hairline-t pt-6">
-            {editing ? (
-              <textarea
-                value={bio}
-                onChange={e => setBio(e.target.value)}
-                placeholder="Write your signal signature..."
-                rows={3}
-                maxLength={200}
-                className="w-full bg-void/50 border border-white/10 rounded-xl 
-                  px-4 py-3 text-marble/70 outline-none focus:border-gold/50 
-                  text-sm resize-none"
-              />
-            ) : (
-              <p className="text-sm text-marble/50 italic">
-                {profile?.bio ?? 'No signature set.'}
-              </p>
-            )}
-          </div>
-
-          {/* Cancel button when editing */}
-          {editing && (
-            <div className="mt-4 flex gap-3">
+          ) : (
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleCancel}
+                className="w-8 h-8 rounded-full glass-panel hairline-all
+                  flex items-center justify-center text-marble/40
+                  hover:text-marble transition-colors"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
               <button
                 onClick={handleSave}
                 disabled={saving}
-                className="flex-1 bg-marble text-void micro-caps text-sm 
-                  py-3 rounded-xl hover:bg-gold-pale transition-colors
-                  disabled:opacity-50 cursor-pointer"
+                className="micro-caps text-xs px-4 py-2 rounded-full
+                  bg-gold text-void font-medium hover:bg-gold/80
+                  transition-all disabled:opacity-50 flex items-center gap-1.5"
               >
-                {saving ? 'Saving...' : 'Save Changes'}
-              </button>
-              <button
-                onClick={() => {
-                  setEditing(false)
-                  setUsername(profile?.username ?? '')
-                  setFullName(profile?.full_name ?? '')
-                  setBio(profile?.bio ?? '')
-                }}
-                className="w-12 glass-panel hairline-all rounded-xl 
-                  flex items-center justify-center text-marble/40 
-                  hover:text-marble transition-colors cursor-pointer"
-              >
-                <X className="w-4 h-4" />
+                {saving
+                  ? <Loader className="w-3 h-3 animate-spin" />
+                  : <Check className="w-3 h-3" />
+                }
+                {saving ? 'Saving...' : 'Save'}
               </button>
             </div>
           )}
+        </div>
+      </div>
 
-          {error && (
-            <p className="mt-3 text-xs text-crimson-bright">{error}</p>
-          )}
-        </motion.div>
+      <div className="max-w-2xl mx-auto px-6">
 
-        {/* Stats row */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="grid grid-cols-3 gap-3 mb-6"
-        >
+        {/* Avatar */}
+        <div className="flex items-end justify-between -mt-14 mb-6">
+          <div className="relative">
+            <button
+              onClick={handleAvatarClick}
+              className={cn(
+                'w-24 h-24 rounded-full border-4 border-void',
+                'bg-marble/10 overflow-hidden flex items-center justify-center',
+                'shadow-xl transition-all',
+                editing ? 'cursor-pointer hover:opacity-80' : 'cursor-default'
+              )}
+            >
+              {uploadingAvatar ? (
+                <Loader className="w-6 h-6 text-gold animate-spin" />
+              ) : avatarUrl ? (
+                <img src={avatarUrl}
+                  className="w-full h-full object-cover"
+                  onError={(e) => { e.currentTarget.style.display = 'none' }}
+                />
+              ) : (
+                <span className="font-serif text-3xl text-marble/60">
+                  {initials}
+                </span>
+              )}
+            </button>
+            {editing && (
+              <div className="absolute bottom-0 right-0 w-7 h-7 rounded-full
+                bg-gold flex items-center justify-center border-2 border-void
+                pointer-events-none">
+                <Camera className="w-3 h-3 text-void" />
+              </div>
+            )}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleAvatarChange}
+            />
+          </div>
+
+          {/* Sign out */}
+          <button
+            onClick={signOut}
+            className="flex items-center gap-2 micro-caps text-xs
+              text-marble/30 hover:text-red-400 transition-colors"
+          >
+            <LogOut className="w-3.5 h-3.5" />
+            Sign Out
+          </button>
+        </div>
+
+        {/* Error */}
+        {error && (
+          <div className="mb-4 px-4 py-3 rounded-xl bg-red-900/20
+            border border-red-500/30 text-red-400 text-sm">
+            {error}
+          </div>
+        )}
+
+        {/* Fields */}
+        {editing ? (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="flex flex-col gap-4 mb-8"
+          >
+            {/* Full name */}
+            <div>
+              <label className="flex items-center gap-2 micro-caps text-xs
+                text-marble/40 mb-2">
+                <User className="w-3 h-3" /> Display Name
+              </label>
+              <input
+                type="text"
+                value={fullName}
+                onChange={e => setFullName(e.target.value)}
+                placeholder="Your full name"
+                maxLength={60}
+                className="w-full bg-void/60 border border-white/12 rounded-xl
+                  px-4 py-3 text-marble outline-none focus:border-gold/50
+                  transition-all placeholder:text-marble/20 text-sm"
+              />
+            </div>
+
+            {/* Username */}
+            <div>
+              <label className="flex items-center gap-2 micro-caps text-xs
+                text-marble/40 mb-2">
+                <AtSign className="w-3 h-3" /> Username
+              </label>
+              <div className="relative">
+                <span className="absolute left-4 top-1/2 -translate-y-1/2
+                  text-marble/30 text-sm">@</span>
+                <input
+                  type="text"
+                  value={username}
+                  onChange={e => setUsername(e.target.value.replace(/[^a-z0-9_]/gi, '').toLowerCase())}
+                  placeholder="username"
+                  maxLength={30}
+                  className="w-full bg-void/60 border border-white/12 rounded-xl
+                    pl-8 pr-4 py-3 text-marble outline-none focus:border-gold/50
+                    transition-all placeholder:text-marble/20 text-sm"
+                />
+              </div>
+              <p className="micro-caps text-xs text-marble/20 mt-1 ml-1">
+                Letters, numbers, underscores only
+              </p>
+            </div>
+
+            {/* Bio */}
+            <div>
+              <label className="flex items-center gap-2 micro-caps text-xs
+                text-marble/40 mb-2">
+                <FileText className="w-3 h-3" /> Bio
+              </label>
+              <textarea
+                value={bio}
+                onChange={e => setBio(e.target.value)}
+                placeholder="Tell people about yourself..."
+                maxLength={160}
+                rows={3}
+                className="w-full bg-void/60 border border-white/12 rounded-xl
+                  px-4 py-3 text-marble outline-none focus:border-gold/50
+                  transition-all placeholder:text-marble/20 text-sm resize-none"
+              />
+              <p className="micro-caps text-xs text-marble/20 mt-1 ml-1 text-right">
+                {bio.length}/160
+              </p>
+            </div>
+          </motion.div>
+        ) : (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-8"
+          >
+            <h1 className="font-serif text-3xl text-marble mb-1">
+              {displayName}
+            </h1>
+            {(profile?.username || username) && (
+              <p className="micro-caps text-sm text-marble/40 mb-3">
+                @{profile?.username || username}
+              </p>
+            )}
+            {(profile?.bio || bio) && (
+              <p className="text-marble/50 text-sm leading-relaxed mb-4 max-w-md">
+                {profile?.bio || bio}
+              </p>
+            )}
+            <p className="micro-caps text-xs text-marble/25">
+              {user?.email}
+            </p>
+          </motion.div>
+        )}
+
+        {/* Stats */}
+        <div className="grid grid-cols-3 gap-3 mb-8">
           {[
-            { icon: Zap, label: 'Moments', value: '—' },
-            { icon: MapPin, label: 'Locations', value: '—' },
-            { icon: Calendar, label: 'Member Since', 
-              value: profile?.created_at 
-                ? new Date(profile.created_at).toLocaleDateString('en', 
-                    { month: 'short', year: 'numeric' })
-                : '—' 
-            },
-          ].map(({ icon: Icon, label, value }) => (
-            <div key={label} 
-              className="glass-panel hairline-all rounded-2xl p-4 
-                text-center">
-              <Icon className="w-4 h-4 text-gold mx-auto mb-2" />
-              <p className="font-serif text-xl text-marble mb-1">{value}</p>
-              <p className="micro-caps text-xs text-marble/30">{label}</p>
+            { label: 'Moments', value: myMoments.filter(m => m.moment_type === 'moment').length },
+            { label: 'Events', value: myMoments.filter(m => m.moment_type === 'event').length },
+            { label: 'Total', value: myMoments.length },
+          ].map(stat => (
+            <div key={stat.label}
+              className="glass-panel hairline-all rounded-2xl p-4 text-center">
+              <p className="font-serif text-2xl text-marble mb-1">{stat.value}</p>
+              <p className="micro-caps text-xs text-marble/30">{stat.label}</p>
             </div>
           ))}
-        </motion.div>
+        </div>
 
-        {/* Account info */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="glass-panel hairline-all rounded-3xl p-6"
-        >
-          <p className="micro-caps text-xs text-marble/30 mb-4">
-            Account
-          </p>
-          <div className="flex flex-col gap-3">
-            <div className="flex justify-between items-center hairline-b pb-3">
-              <span className="micro-caps text-xs text-marble/40">
-                Terminal Address
-              </span>
-              <span className="text-sm text-marble/60">{user?.email}</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="micro-caps text-xs text-marble/40">
-                Access Tier
-              </span>
-              <span className="micro-caps text-xs text-gold">
-                Luminous Tier
-              </span>
+        {/* My Signals */}
+        <div className="mb-10">
+          <div className="flex items-center justify-between mb-4">
+            <p className="micro-caps text-xs text-marble/40">My Signals</p>
+            <div className="flex gap-2">
+              {[
+                { key: 'moments', label: '⚡' },
+                { key: 'events', label: '◈' },
+              ].map(tab => (
+                <button
+                  key={tab.key}
+                  onClick={() => setActiveTab(tab.key as 'moments' | 'events')}
+                  className={cn(
+                    'micro-caps text-xs px-3 py-1.5 rounded-full transition-all',
+                    activeTab === tab.key
+                      ? 'bg-marble text-void font-medium'
+                      : 'glass-panel hairline-all text-marble/40'
+                  )}
+                >
+                  {tab.label}
+                </button>
+              ))}
             </div>
           </div>
-        </motion.div>
 
+          {loadingMoments ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader className="w-5 h-5 text-gold animate-spin" />
+            </div>
+          ) : filteredMoments.length === 0 ? (
+            <div className="flex flex-col items-center justify-center
+              py-12 gap-3 text-center">
+              <Zap className="w-6 h-6 text-marble/15" />
+              <p className="font-serif text-lg text-marble/25">
+                No {activeTab} yet
+              </p>
+              <Link to="/app/create">
+                <button className="micro-caps text-xs px-5 py-2.5
+                  glass-panel hairline-all rounded-full text-marble/40
+                  hover:text-marble transition-all">
+                  Create One
+                </button>
+              </Link>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-3">
+              {filteredMoments.map((moment, i) => {
+                const isEvent = moment.moment_type === 'event'
+                const isExpired = new Date(moment.expires_at) < new Date()
+                const hoursLeft = Math.max(0, Math.round(
+                  (new Date(moment.expires_at).getTime() - Date.now()) / 3600000
+                ))
+                return (
+                  <motion.div
+                    key={moment.id}
+                    initial={{ opacity: 0, y: 12 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: i * 0.05 }}
+                  >
+                    <Link to={`/app/moment/${moment.id}`}>
+                      <div className={cn(
+                        'glass-panel hairline-all rounded-2xl p-4',
+                        'hover:border-white/20 transition-all group cursor-pointer',
+                        isExpired && 'opacity-40'
+                      )}>
+                        <div className="flex items-start justify-between mb-1">
+                          <span className={cn(
+                            'micro-caps text-xs px-2.5 py-1 rounded-full border',
+                            isEvent
+                              ? 'bg-gold/10 border-gold/30 text-gold'
+                              : 'bg-red-900/20 border-red-500/30 text-red-400'
+                          )}>
+                            {isEvent ? '◈ Event' : '⚡ Moment'}
+                          </span>
+                          <span className="micro-caps text-xs text-marble/30">
+                            {isExpired ? 'Expired' : `${hoursLeft}h left`}
+                          </span>
+                        </div>
+                        <p className="text-marble text-sm font-medium mt-2
+                          group-hover:text-gold-pale transition-colors">
+                          {moment.title}
+                        </p>
+                      </div>
+                    </Link>
+                  </motion.div>
+                )
+              })}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   )
