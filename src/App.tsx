@@ -68,7 +68,7 @@ export default function App() {
                   <Route path="moment/:id" element={<MomentDetailPage />} />
                   <Route path="profile" element={<ProfilePage />} />
                   <Route path="history" element={<HistoryPage />} />
-                  <Route path="connections" element={<FollowingPage />} />
+                  <Route path="following" element={<FollowingPage />} />
                   <Route path="user/:userId" element={<PublicProfilePage />} />
                 </Route>
 
