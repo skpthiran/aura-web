@@ -269,7 +269,7 @@ export default function EventsPage() {
     if (!user || events.length === 0) return
     const ids = events.map(e => e.id)
     supabase
-      .from('moment_participants')
+      .from('participants')
       .select('moment_id')
       .eq('user_id', user.id)
       .in('moment_id', ids)
