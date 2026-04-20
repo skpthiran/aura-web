@@ -25,26 +25,28 @@ export default function LandingPage() {
         </div>
 
         {/* Nav */}
-        <nav className="relative z-20 flex items-center justify-between px-8 pt-8 text-marble">
+        <nav className="relative z-20 flex items-center justify-between px-8 pt-8">
+          {/* Logo */}
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-full border border-gold/50
-              flex items-center justify-center">
-              <span className="font-serif text-lg text-gold">A</span>
+              flex items-center justify-center bg-black/30 backdrop-blur-sm">
+              <span className="font-serif text-lg text-gold leading-none">A</span>
             </div>
-            <span className="font-serif text-xl text-white tracking-wide">
-              Aura
-            </span>
+            <span className="font-serif text-xl text-white tracking-wide">Aura</span>
           </div>
-          <div className="flex items-center gap-4">
+
+          {/* Nav actions */}
+          <div className="flex items-center gap-3">
             <Link to="/auth">
               <button className="micro-caps text-xs text-white/60
-                hover:text-white transition-colors">
+                hover:text-white transition-colors px-2 py-2">
                 Sign In
               </button>
             </Link>
             <Link to="/auth">
               <button className="micro-caps text-xs px-5 py-2.5 rounded-full
-                bg-white text-black hover:bg-gold-pale transition-all font-medium">
+                bg-white text-black hover:bg-gold/90 hover:text-void
+                transition-all duration-300 font-medium whitespace-nowrap">
                 Get Started
               </button>
             </Link>
