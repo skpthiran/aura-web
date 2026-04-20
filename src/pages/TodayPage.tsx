@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react'
 import { motion } from 'motion/react'
 import { Link } from 'react-router-dom'
-import { Radio, Users, Loader, MapPin, Zap, Search } from 'lucide-react'
+import { Radio, Users, Loader, MapPin, Zap, Search, ArrowRight, Clock, Compass } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 import { useUserLocation } from '../hooks/useUserLocation'
@@ -540,35 +540,173 @@ export default function TodayPage() {
         </div>
       )}
 
-      {/* EDITORIAL GRID */}
-      {gridMoments.length > 0 && (
-        <section className="px-6 md:px-8 py-12 md:py-24 w-full">
-          <div className="flex items-end justify-between mb-8 md:mb-16 px-2">
-            <div>
-              <span className="micro-caps text-[10px] md:text-xs text-gold tracking-[0.4em] mb-2 block">◈ More Signals</span>
-              <h2 className="font-serif text-4xl md:text-5xl text-marble">Current Pulse</h2>
-            </div>
-            <div className="text-right hidden md:block">
-              <span className="micro-caps text-[10px] text-marble/30">SCROLL TO DISCOVER</span>
-              <div className="h-10 w-[1px] bg-gradient-to-b from-marble/30 to-transparent mx-auto mt-4" />
-            </div>
-          </div>
+      {/* ── SIGNALS GRID ── */}
+      <div className="px-4 lg:px-8 pb-24 pt-6">
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {gridMoments.map((moment, i) => (
-              <MomentGridCard
-                key={moment.id}
-                moment={moment}
-                index={i}
-                isJoined={joinedIds.has(moment.id)}
-                isJoining={joiningId === moment.id}
-                onJoin={() => handleJoin(moment.id)}
-                onReject={() => handleReject(moment.id)}
-              />
-            ))}
+        {filteredMoments.length === 0 ? (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="flex flex-col items-center justify-center py-24 gap-4 text-center"
+          >
+            <div className="w-16 h-16 rounded-full bg-white/4
+              border border-white/8 flex items-center justify-center">
+              <Compass className="w-6 h-6 text-marble/20" />
+            </div>
+            <p className="font-serif text-2xl text-marble/30">No signals nearby</p>
+            <p className="text-sm text-marble/20 max-w-xs">
+              Try expanding your radius or check back soon.
+            </p>
+            <Link to="/app/create">
+              <button className="micro-caps text-sm px-6 py-3 rounded-full
+                bg-white/5 border border-white/10 text-marble/50
+                hover:text-marble hover:border-white/20 transition-all mt-2">
+                Drop a Signal
+              </button>
+            </Link>
+          </motion.div>
+        ) : (
+          <div className="max-w-7xl mx-auto">
+
+            {/* Section label */}
+            <div className="flex items-center justify-between mb-5">
+              <p className="micro-caps text-xs text-marble/30">
+                {filteredMoments.length} signal{filteredMoments.length !== 1 ? 's' : ''} nearby
+              </p>
+              <div className="flex items-center gap-1.5">
+                <div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
+                <p className="micro-caps text-xs text-marble/30">live</p>
+              </div>
+            </div>
+
+            {/* Magazine grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 auto-rows-auto">
+              {filteredMoments.map((moment, i) => {
+                const isEvent = moment.moment_type === 'event'
+                const hoursLeft = Math.max(0, Math.round(
+                  (new Date(moment.expires_at).getTime() - Date.now()) / 3600000
+                ))
+                const isUrgent = hoursLeft <= 3
+                // Vary card heights for masonry feel
+                const isTall = i % 5 === 0 || i % 5 === 3
+
+                return (
+                  <motion.div
+                    key={moment.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: i * 0.05, duration: 0.4 }}
+                    className={cn(
+                      'group relative overflow-hidden rounded-2xl cursor-pointer',
+                      'border border-white/8 hover:border-white/20',
+                      'transition-all duration-500',
+                      isTall ? 'row-span-1 sm:row-span-2' : 'row-span-1'
+                    )}
+                    style={{ minHeight: isTall ? '380px' : '220px' }}
+                  >
+                    <Link to={`/app/moment/${moment.id}`} className="block h-full">
+
+                      {/* Background image */}
+                      <img
+                        src={`https://picsum.photos/seed/${moment.id}/600/500`}
+                        className="absolute inset-0 w-full h-full object-cover
+                          group-hover:scale-105 transition-transform duration-700 ease-out"
+                        onError={e => { e.currentTarget.style.opacity = '0' }}
+                      />
+
+                      {/* Gradient overlay */}
+                      <div className="absolute inset-0 transition-opacity duration-500"
+                        style={{
+                          background: 'linear-gradient(to top, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.4) 50%, rgba(0,0,0,0.1) 100%)'
+                        }}
+                      />
+
+                      {/* Hover overlay — subtle gold tint */}
+                      <div className="absolute inset-0 opacity-0 group-hover:opacity-100
+                        transition-opacity duration-500"
+                        style={{ background: 'rgba(201,168,76,0.06)' }}
+                      />
+
+                      {/* Top badges */}
+                      <div className="absolute top-3 left-3 right-3 flex items-start justify-between">
+                        <span className={cn(
+                          'micro-caps text-xs px-2.5 py-1 rounded-full border backdrop-blur-md',
+                          isEvent
+                            ? 'bg-gold/20 border-gold/40 text-gold'
+                            : 'bg-black/50 border-white/20 text-white/70'
+                        )}>
+                          {isEvent ? '◈ Event' : '⚡ Moment'}
+                        </span>
+
+                        {/* Urgency badge */}
+                        {isUrgent && (
+                          <span className="micro-caps text-xs px-2.5 py-1 rounded-full
+                            bg-red-500/20 border border-red-500/40 text-red-400
+                            backdrop-blur-md flex items-center gap-1">
+                            <span className="w-1 h-1 rounded-full bg-red-400 animate-pulse" />
+                            {hoursLeft}h left
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Bottom content */}
+                      <div className="absolute bottom-0 left-0 right-0 p-4">
+
+                        {/* Tags */}
+                        {moment.tags && moment.tags.length > 0 && (
+                          <div className="flex flex-wrap gap-1 mb-2">
+                            {moment.tags.slice(0, 2).map(tag => (
+                              <span key={tag}
+                                className="micro-caps text-[10px] px-2 py-0.5 rounded-full
+                                  bg-white/10 text-white/50 border border-white/10">
+                                {tag}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* Title */}
+                        <h3 className="font-serif text-white leading-tight mb-2
+                          group-hover:text-gold-pale transition-colors duration-300"
+                          style={{ fontSize: isTall ? '1.5rem' : '1.1rem' }}>
+                          {moment.title}
+                        </h3>
+
+                        {/* Meta row */}
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-1 text-white/40 text-xs">
+                              <Users className="w-3 h-3" />
+                              <span>{moment.capacity_limit}</span>
+                            </div>
+                            {!isUrgent && (
+                              <div className="flex items-center gap-1 text-white/40 text-xs">
+                                <Clock className="w-3 h-3" />
+                                <span>{hoursLeft}h</span>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Join arrow — appears on hover */}
+                          <div className="w-8 h-8 rounded-full bg-white/0
+                            group-hover:bg-white/15 border border-white/0
+                            group-hover:border-white/25
+                            flex items-center justify-center
+                            transition-all duration-300 -translate-x-2
+                            group-hover:translate-x-0 opacity-0 group-hover:opacity-100">
+                            <ArrowRight className="w-3.5 h-3.5 text-white" />
+                          </div>
+                        </div>
+                      </div>
+
+                    </Link>
+                  </motion.div>
+                )
+              })}
+            </div>
           </div>
-        </section>
-      )}
+        )}
+      </div>
 
       {/* Bottom Spacer */}
       <div className="h-32" />
