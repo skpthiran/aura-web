@@ -28,7 +28,7 @@ export default function ProfilePage() {
 
   const [myMoments, setMyMoments] = useState<Moment[]>([])
   const [loadingMoments, setLoadingMoments] = useState(true)
-  const [activeTab, setActiveTab] = useState<'moments' | 'events'>('moments')
+  const [activeTab, setActiveTab] = useState<'moments' | 'events' | 'past'>('moments')
 
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -53,7 +53,7 @@ export default function ProfilePage() {
         .select('*')
         .eq('creator_id', user!.id)
         .order('created_at', { ascending: false })
-        .limit(30)
+        .limit(50)
       setMyMoments((data ?? []) as Moment[])
     } catch (err) {
       console.error(err)
@@ -142,9 +142,13 @@ export default function ProfilePage() {
 
   const displayName = fullName || profile?.full_name || 'Anonymous'
   const initials = displayName[0]?.toUpperCase() ?? 'A'
-  const filteredMoments = myMoments.filter(m =>
-    activeTab === 'moments' ? m.moment_type === 'moment' : m.moment_type === 'event'
-  )
+  const filteredMoments = myMoments.filter(m => {
+    const isExpired = new Date(m.expires_at) < new Date()
+    if (activeTab === 'past') return isExpired
+    if (activeTab === 'moments') return m.moment_type === 'moment' && !isExpired
+    if (activeTab === 'events') return m.moment_type === 'event'
+    return true
+  })
 
   return (
     <div className="flex-1 overflow-y-auto bg-void">
@@ -407,10 +411,11 @@ export default function ProfilePage() {
               {[
                 { key: 'moments', label: '⚡' },
                 { key: 'events', label: '◈' },
+                { key: 'past', label: '◷' },
               ].map(tab => (
                 <button
                   key={tab.key}
-                  onClick={() => setActiveTab(tab.key as 'moments' | 'events')}
+                  onClick={() => setActiveTab(tab.key as 'moments' | 'events' | 'past')}
                   className={cn(
                     'micro-caps text-xs px-3 py-1.5 rounded-full transition-all',
                     activeTab === tab.key
