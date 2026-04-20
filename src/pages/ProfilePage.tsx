@@ -5,7 +5,7 @@ import { supabase } from '../lib/supabase'
 import { usePageTitle } from '../hooks/usePageTitle'
 import { 
   Camera, Check, X, Loader, LogOut, 
-  User, AtSign, FileText, Zap, Calendar
+  User, AtSign, FileText, Zap, Calendar, Clock
 } from 'lucide-react'
 import { cn } from '../lib/utils'
 import { Link } from 'react-router-dom'
@@ -376,6 +376,28 @@ export default function ProfilePage() {
             </div>
           ))}
         </div>
+
+        {/* Signal History Link */}
+        <Link to="/app/history">
+          <div className="glass-panel hairline-all rounded-2xl px-5 py-4 mb-6
+            flex items-center justify-between
+            hover:border-white/20 transition-all group cursor-pointer">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-white/5 border border-white/10
+                flex items-center justify-center">
+                <Clock className="w-4 h-4 text-marble/40" />
+              </div>
+              <div>
+                <p className="text-sm text-marble font-medium">Signal History</p>
+                <p className="micro-caps text-xs text-marble/30 mt-0.5">
+                  View expired moments you attended
+                </p>
+              </div>
+            </div>
+            <span className="text-marble/20 group-hover:text-marble/50
+              transition-colors">→</span>
+          </div>
+        </Link>
 
         {/* My Signals */}
         <div className="mb-10">

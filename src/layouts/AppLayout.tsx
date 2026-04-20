@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Outlet, NavLink, Link, useLocation, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "motion/react";
-import { Compass, Map as MapIcon, Plus, Building2, MessageSquare, Landmark, MessageSquareText, Bell, User, Shield, Settings, LogOut, Loader2, Search } from "lucide-react";
+import { Compass, Map as MapIcon, Plus, Building2, MessageSquare, Landmark, MessageSquareText, Bell, User, Shield, Settings, LogOut, Loader2, Search, Clock } from "lucide-react";
 import { cn } from "../lib/utils";
 import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../lib/supabase";
@@ -14,6 +14,7 @@ const NAV_ITEMS = [
   { path: "/app/events", label: "Colosseum", icon: Landmark },
   { path: "/app/chat", label: "Agora", icon: MessageSquareText },
   { path: "/app/signals", label: "Signals", icon: Bell },
+  { path: "/app/history", label: "History", icon: Clock },
 ];
 
 
