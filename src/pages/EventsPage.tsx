@@ -265,7 +265,6 @@ export default function EventsPage() {
     setCardActions(prev => ({ ...prev, [momentId]: 'rejected' }))
   }
 
-  // After events are fetched, mark already-joined ones from DB
   useEffect(() => {
     if (!user || events.length === 0) return
     const ids = events.map(e => e.id)
@@ -274,11 +273,12 @@ export default function EventsPage() {
       .select('moment_id')
       .eq('user_id', user.id)
       .in('moment_id', ids)
-      .then(({ data }) => {
+      .then(({ data, error }) => {
+        if (error) { console.error('joined state error:', error); return }
         if (!data) return
         setCardActions(prev => {
           const next = { ...prev }
-          data.forEach(row => {
+          data.forEach((row: any) => {
             if (next[row.moment_id] !== 'rejected') {
               next[row.moment_id] = 'joined'
             }

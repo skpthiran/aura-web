@@ -162,31 +162,22 @@ export async function createMoment(payload: {
 }
 
 export async function joinMoment(momentId: string): Promise<void> {
-  const { data: { user }, error: authError } = await supabase.auth.getUser()
-  console.log('[joinMoment] user:', user?.id, 'authError:', authError)
+  const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error('Not authenticated')
 
-  const { data: existing, error: existingError } = await supabase
+  const { error } = await supabase
     .from('participants')
-    .select('id')
-    .eq('moment_id', momentId)
-    .eq('user_id', user.id)
-    .maybeSingle()
-  console.log('[joinMoment] existing check:', existing, existingError)
-
-  if (existing) return
-
-  const { error: insertError } = await supabase
-    .from('participants')
-    .insert({
+    .upsert({
       moment_id: momentId,
       user_id: user.id,
       status: 'joined',
       joined_at: new Date().toISOString(),
+    }, {
+      onConflict: 'moment_id,user_id',
+      ignoreDuplicates: true,
     })
-  console.log('[joinMoment] insert result — error:', insertError)
 
-  if (insertError) throw new Error(insertError.message)
+  if (error) throw new Error(error.message)
 }
 
 

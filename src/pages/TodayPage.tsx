@@ -320,7 +320,6 @@ export default function TodayPage() {
     })
   }, [moments, cardActions, activeTab])
 
-  // After moments are fetched, mark already-joined ones from DB
   useEffect(() => {
     if (!user || moments.length === 0) return
     const ids = moments.map(m => m.id)
@@ -329,11 +328,12 @@ export default function TodayPage() {
       .select('moment_id')
       .eq('user_id', user.id)
       .in('moment_id', ids)
-      .then(({ data }) => {
+      .then(({ data, error }) => {
+        if (error) { console.error('joined state error:', error); return }
         if (!data) return
         setCardActions(prev => {
           const next = { ...prev }
-          data.forEach(row => {
+          data.forEach((row: any) => {
             if (next[row.moment_id] !== 'rejected') {
               next[row.moment_id] = 'joined'
             }
