@@ -200,6 +200,8 @@ export default function CreatePage() {
         center: [defaultLng, defaultLat],
         zoom: 14,
         attributionControl: false,
+        fadeDuration: 0,
+        renderWorldCopies: false,
       })
 
       map.on('load', () => {
@@ -231,7 +233,7 @@ export default function CreatePage() {
       })
 
       mapRef.current = map
-    }, 100)
+    }, 300)
 
     return () => {
       clearTimeout(timer)
