@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react'
 import { motion } from 'motion/react'
 import { Link } from 'react-router-dom'
-import { Radio, Users, Loader, MapPin, Zap } from 'lucide-react'
+import { Radio, Users, Loader, MapPin, Zap, Search } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 import { useUserLocation } from '../hooks/useUserLocation'
@@ -345,7 +345,7 @@ export default function TodayPage() {
             
             <div className="mt-2 md:mt-0 flex flex-col items-start md:items-end gap-4 md:gap-6 pointer-events-auto">
               {/* Redesigned Filter Row 1 — Type tabs & Radius Dropdown */}
-              <div className="flex items-center gap-2 mt-4 pointer-events-auto">
+              <div className="flex items-center gap-2 mt-4 flex-wrap pointer-events-auto">
                 {['All', 'Following', 'Moments', 'Events'].map(tab => (
                   <button
                     key={tab}
@@ -420,6 +420,18 @@ export default function TodayPage() {
                     </div>
                   )}
                 </div>
+
+                {/* Search shortcut */}
+                <Link to="/app/search" className="shrink-0">
+                  <div className={cn(
+                    'flex items-center justify-center w-9 h-9 rounded-full',
+                    'transition-all duration-300 cursor-pointer',
+                    'bg-black/40 backdrop-blur-md border border-white/20',
+                    'text-white/60 hover:text-white hover:border-white/40'
+                  )}>
+                    <Search className="w-4 h-4" />
+                  </div>
+                </Link>
               </div>
 
               {/* Redesigned Filter Row 2 — Live Count Badge */}
