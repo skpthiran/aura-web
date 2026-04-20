@@ -24,7 +24,7 @@ export default function PublicProfilePage() {
   const { userId } = useParams<{ userId: string }>()
   const navigate = useNavigate()
   const { user } = useAuth()
-  const { isFollowing, followerCount, followingCount, loading: followLoading, toggle } = useFollow(userId)
+  const { isFollowing, followersCount, followingCount, loading: followLoading, toggleFollow } = useFollow(userId)
 
   const [profile, setProfile] = useState<PublicProfile | null>(null)
   const [activeMoments, setActiveMoments] = useState<Moment[]>([])
@@ -134,7 +134,7 @@ export default function PublicProfilePage() {
             <div className="flex-1 grid grid-cols-4 gap-1">
               {[
                 { value: totalSignals, label: 'Signals' },
-                { value: followerCount, label: 'Followers' },
+                { value: followersCount, label: 'Followers' },
                 { value: followingCount, label: 'Following' },
                 { value: events.length, label: 'Events' },
               ].map(stat => (
@@ -166,7 +166,7 @@ export default function PublicProfilePage() {
           {/* Follow button */}
           {user && userId !== user.id && (
             <button
-              onClick={toggle}
+              onClick={toggleFollow}
               disabled={followLoading}
               className={cn(
                 'w-full py-2.5 rounded-xl micro-caps text-sm font-medium transition-all duration-300',
