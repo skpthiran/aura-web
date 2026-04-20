@@ -41,8 +41,8 @@ const PremiumEventCard: React.FC<PremiumEventCardProps> = ({ event, index, isJoi
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.05 }}
-      className="relative rounded-[28px] overflow-hidden cursor-pointer group shadow-2xl glass-panel hairline-all"
-      style={{ minHeight: '260px' }}
+      className="relative w-full rounded-[28px] overflow-hidden cursor-pointer group shadow-2xl glass-panel hairline-all"
+      style={{ minHeight: 'clamp(200px, 28vh, 320px)' }}
     >
       <Link to={`/app/moment/${event.id}`}>
         {/* Background image or gradient */}
@@ -247,8 +247,9 @@ export default function EventsPage() {
 
   return (
     <div className="flex flex-col h-screen bg-[#08080f] overflow-hidden">
-      {/* HEADER — fixed, never scrolls */}
-      <div className="flex-shrink-0 px-6 pt-8 pb-4 lg:px-12 lg:pt-10">
+      <div className="flex-1 flex flex-col w-full max-w-screen-2xl mx-auto overflow-hidden">
+        {/* HEADER — fixed, never scrolls */}
+        <div className="flex-shrink-0 px-8 pt-8 pb-4 lg:px-10 lg:pt-10">
         <div className="flex items-start justify-between mb-2">
           <div>
             <p className="text-[10px] tracking-[0.3em] font-mono font-bold uppercase text-[#c9a84c]/60 mb-2">
@@ -334,8 +335,8 @@ export default function EventsPage() {
         </div>
       </div>
 
-      {/* EVENTS LIST — scrollable, fills remaining height */}
-      <div className="flex-1 overflow-y-auto px-6 pb-32 lg:px-12 flex flex-col gap-6 scrollbar-hide pt-4">
+        {/* EVENTS LIST — scrollable, fills remaining height */}
+        <div className="flex-1 overflow-y-auto px-8 pb-32 lg:px-10 scrollbar-hide pt-4">
         {loading ? (
           <div className="flex flex-col items-center justify-center py-32 gap-6">
             <div className="relative w-12 h-12">
@@ -361,7 +362,7 @@ export default function EventsPage() {
             </Link>
           </motion.div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
             <AnimatePresence mode="popLayout">
               {events
                 .filter(event => cardActions[event.id] !== 'rejected')
@@ -380,8 +381,9 @@ export default function EventsPage() {
         )}
       </div>
 
-      {/* Safe Area Spacer for Nav Integration */}
-      <div className="flex-shrink-0 h-[calc(64px+env(safe-area-inset-bottom))]" />
+        {/* Safe Area Spacer for Nav Integration */}
+        <div className="flex-shrink-0 h-[calc(64px+env(safe-area-inset-bottom))]" />
+      </div>
     </div>
   )
 }
