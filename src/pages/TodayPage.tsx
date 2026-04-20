@@ -501,6 +501,7 @@ export default function TodayPage() {
                     <Search className="w-4 h-4" />
                   </div>
                 </Link>
+              </div>
 
               {/* Redesigned Filter Row 2 — Live Count Badge */}
               <div className="flex items-center gap-2 mt-3 pointer-events-auto">

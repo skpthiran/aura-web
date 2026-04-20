@@ -1,7 +1,7 @@
 import React,{ useState, useCallback, useEffect } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
 import { Link } from 'react-router-dom'
-import { Calendar, Users, Clock, Loader, Trophy, RefreshCw, X, Lock } from 'lucide-react'
+import { Calendar, Users, Clock, Loader, Trophy, RefreshCw, X, Lock, Radar } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { useUserLocation } from '../hooks/useUserLocation'
 import { useNearbyEvents } from '../hooks/useNearbyEvents'
@@ -294,145 +294,153 @@ export default function EventsPage() {
   }, [user, events])
 
   return (
-    <div className="flex-1 overflow-y-auto">
-      <div className="max-w-4xl mx-auto p-6 py-10">
+    <div className="fixed inset-0 flex flex-col overflow-hidden bg-void pb-[calc(64px+env(safe-area-inset-bottom))]">
+      <div className="flex-1 flex flex-col min-h-0 max-w-4xl mx-auto w-full">
         
-        {/* Header */}
-        <div className="flex items-end justify-between mb-10">
-          <div>
-            <p className="micro-caps text-gold mb-2">Structured Gatherings</p>
-            <h1 className="font-serif text-4xl md:text-6xl text-marble tracking-tight">Colosseum</h1>
-            <p className="micro-caps text-xs text-marble/30 mt-2">
-              Curated Events · Planned Experiences
-            </p>
+        {/* Header Section — Fixed at top */}
+        <div className="p-6 pb-4 shrink-0">
+          <div className="flex items-start justify-between mb-6">
+            <div>
+              <p className="micro-caps text-gold text-[10px] mb-1">Structured Gatherings</p>
+              <h1 className="font-serif text-4xl text-marble tracking-tight uppercase">Colosseum</h1>
+              <p className="micro-caps text-[9px] text-marble/30 mt-1">
+                Curated Events · Planned Experiences
+              </p>
+            </div>
+            <button
+              onClick={() => refetch()}
+              className="w-10 h-10 glass-panel rounded-sm hairline-all
+                flex items-center justify-center text-marble/40 
+                hover:text-gold transition-colors cursor-pointer"
+            >
+              <RefreshCw className="w-4 h-4" />
+            </button>
           </div>
-          <button
-            onClick={() => refetch()}
-            className="w-9 h-9 glass-panel rounded-full hairline-all
-              flex items-center justify-center text-marble/40 
-              hover:text-gold transition-colors cursor-pointer"
-          >
-            <RefreshCw className="w-3.5 h-3.5" />
-          </button>
-        </div>
 
-        {/* Radius Filter Dropdown */}
-        <div className="relative mb-8" data-radius-dropdown>
-          <button
-            onClick={() => setRadiusOpen(o => !o)}
-            className="flex items-center gap-1.5 px-5 py-3 rounded-full
-              bg-black/30 backdrop-blur-md border border-white/15 text-white/60
-              micro-caps text-xs transition-all hover:border-white/30 active:scale-95"
-          >
-            {radius >= 500 ? '500+ KM' : `${radius} KM`}
-            <svg className={cn('w-3 h-3 transition-transform duration-200', radiusOpen && 'rotate-180')}
-              viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="6 9 12 15 18 9"></polyline>
-            </svg>
-          </button>
+          {/* Radius Filter Dropdown */}
+          <div className="relative" data-radius-dropdown>
+            <button
+              onClick={() => setRadiusOpen(o => !o)}
+              className="flex items-center gap-1.5 px-4 py-2 rounded-sm
+                bg-white/5 border border-white/10 text-marble/60
+                micro-caps text-[10px] transition-all hover:border-white/20 active:scale-95"
+            >
+              <Radar className="w-3 h-3 text-gold/60" />
+              {radius >= 500 ? 'GLOBAL DISCOVERY' : `${radius} KM RANGE`}
+              <svg className={cn('w-3 h-3 transition-transform duration-200 ml-1', radiusOpen && 'rotate-180')}
+                viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="6 9 12 15 18 9"></polyline>
+              </svg>
+            </button>
 
-          <AnimatePresence>
-            {radiusOpen && (
-              <motion.div
-                initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                className="absolute top-full mt-2 left-0 z-50 bg-[#1a1a2e]/95 backdrop-blur-xl border
-                  border-white/15 rounded-2xl overflow-hidden shadow-2xl min-w-[120px]"
-              >
-                {RADIUS_OPTIONS.map(r => (
+            <AnimatePresence>
+              {radiusOpen && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                  className="absolute top-full mt-2 left-0 z-50 bg-black/90 backdrop-blur-xl border
+                    border-white/10 rounded-sm overflow-hidden shadow-2xl min-w-[160px]"
+                >
+                  {RADIUS_OPTIONS.map(r => (
+                    <button
+                      key={r}
+                      onClick={() => { setRadius(r); setRadiusOpen(false) }}
+                      className={cn(
+                        'w-full px-5 py-3 text-left text-[10px] micro-caps transition-colors',
+                        radius === r
+                          ? 'text-gold bg-gold/10'
+                          : 'text-marble/40 hover:text-marble hover:bg-white/5'
+                      )}
+                    >
+                      {r} KM
+                    </button>
+                  ))}
                   <button
-                    key={r}
-                    onClick={() => { setRadius(r); setRadiusOpen(false) }}
+                    onClick={() => { setRadius(999999); setRadiusOpen(false) }}
                     className={cn(
-                      'w-full px-5 py-3 text-left text-xs micro-caps transition-colors',
-                      radius === r
+                      'w-full px-5 py-3 text-left text-[10px] micro-caps transition-colors border-t border-white/5',
+                      radius >= 999999
                         ? 'text-gold bg-gold/10'
-                        : 'text-marble/60 hover:text-marble hover:bg-white/5'
+                        : 'text-marble/40 hover:text-marble hover:bg-white/5'
                     )}
                   >
-                    {r} KM
+                    Global
                   </button>
-                ))}
-                {/* Global Option */}
-                <button
-                  onClick={() => { setRadius(999999); setRadiusOpen(false) }}
-                  className={cn(
-                    'w-full px-5 py-3 text-left text-xs micro-caps transition-colors border-t border-white/5',
-                    radius >= 999999
-                      ? 'text-gold bg-gold/10'
-                      : 'text-marble/60 hover:text-marble hover:bg-white/5'
-                  )}
-                >
-                  Global
-                </button>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-
-        {/* Loading */}
-        {loading && (
-          <div className="flex flex-col items-center justify-center py-20 gap-4">
-            <Loader className="w-6 h-6 text-gold animate-spin" />
-            <p className="micro-caps text-marble/30">
-              Scanning for gatherings...
-            </p>
-          </div>
-        )}
-
-        {/* Empty state */}
-        {!loading && events.length === 0 && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="flex flex-col items-center justify-center 
-              py-24 gap-6 text-center"
-          >
-            <div className="w-20 h-20 rounded-full glass-panel hairline-all
-              flex items-center justify-center">
-              <Trophy className="w-8 h-8 text-marble/20" />
-            </div>
-            <div>
-              <p className="font-serif text-3xl text-marble/30 mb-3">
-                No events in your vicinity
-              </p>
-              <p className="text-sm text-marble/20 max-w-sm">
-                The Colosseum awaits its first architect. 
-                Establish an event to claim this space.
-              </p>
-            </div>
-            <Link to="/app/create">
-              <button className="micro-caps text-sm px-8 py-3 
-                bg-gold/10 border border-gold/30 rounded-full 
-                text-gold hover:bg-gold/20 transition-all cursor-pointer">
-                Establish Event
-              </button>
-            </Link>
-          </motion.div>
-        )}
-
-        {/* Events grid */}
-        {!loading && events.length > 0 && (
-          <div className="flex flex-col gap-4">
-            <AnimatePresence mode="popLayout">
-              {events
-                .filter(event => cardActions[event.id] !== 'rejected')
-                .map((event, i) => (
-                <EventCard
-                  key={event.id}
-                  event={event}
-                  index={i}
-                  isJoined={joinedIds.has(event.id) || cardActions[event.id] === 'joined'}
-                  isJoining={joiningId === event.id || cardJoining[event.id]}
-                  onJoin={() => handleJoin(event.id)}
-                  onReject={() => handleCardReject(event.id)}
-                />
-              ))}
+                </motion.div>
+              )}
             </AnimatePresence>
           </div>
-        )}
+        </div>
 
+        {/* Scrollable Content Area */}
+        <div className="flex-1 overflow-y-auto overscroll-contain px-6 pb-6 scrollbar-hide">
+          
+          {/* Loading */}
+          {loading && (
+            <div className="flex flex-col items-center justify-center py-20 gap-4">
+              <Loader className="w-6 h-6 text-gold animate-spin" />
+              <p className="micro-caps text-[10px] text-marble/30">
+                Scanning for gatherings...
+              </p>
+            </div>
+          )}
+
+          {/* Empty state */}
+          {!loading && events.length === 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="flex flex-col items-center justify-center 
+                py-20 gap-6 text-center"
+            >
+              <div className="w-16 h-16 rounded-full glass-panel hairline-all
+                flex items-center justify-center">
+                <Trophy className="w-6 h-6 text-marble/10" />
+              </div>
+              <div>
+                <p className="font-serif text-2xl text-marble/30 mb-2">
+                  No events in your vicinity
+                </p>
+                <p className="text-[11px] text-marble/20 max-w-xs mx-auto leading-relaxed micro-caps">
+                  The Colosseum awaits its first architect. 
+                  Establish an event to claim this space.
+                </p>
+              </div>
+              <Link to="/app/create">
+                <button className="micro-caps text-[10px] px-8 py-3 
+                  bg-gold/10 border border-gold/30 rounded-full 
+                  text-gold hover:bg-gold/20 transition-all cursor-pointer">
+                  Establish Event
+                </button>
+              </Link>
+            </motion.div>
+          )}
+
+          {/* Events grid */}
+          {!loading && events.length > 0 && (
+            <div className="flex flex-col gap-4 pb-10">
+              <div className="flex items-center justify-between mb-2">
+                <p className="micro-caps text-[9px] text-marble/30 tracking-widest">{events.length} ACTIVE EVENTS</p>
+              </div>
+              <AnimatePresence mode="popLayout">
+                {events
+                  .filter(event => cardActions[event.id] !== 'rejected')
+                  .map((event, i) => (
+                  <EventCard
+                    key={event.id}
+                    event={event}
+                    index={i}
+                    isJoined={joinedIds.has(event.id) || cardActions[event.id] === 'joined'}
+                    isJoining={joiningId === event.id || cardJoining[event.id]}
+                    onJoin={() => handleJoin(event.id)}
+                    onReject={() => handleCardReject(event.id)}
+                  />
+                ))}
+              </AnimatePresence>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   )
