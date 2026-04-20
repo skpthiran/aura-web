@@ -122,13 +122,12 @@ export default function MomentDetailPage() {
     if (!user || joined || waitlistPosition || !id) return
     setJoining(true)
     try {
-      const result = await joinMoment(id)
-      if (result.status === 'joined') {
-        setJoined(true)
-        setParticipantCount(prev => prev + 1)
-      } else {
-        setWaitlistPosition(result.position ?? null)
-      }
+      await joinMoment(id)
+      setJoined(true)
+      setParticipantCount(prev => prev + 1)
+    } catch (err: any) {
+      console.error('Join failed:', err)
+      alert(err.message ?? 'Failed to join signal')
     } finally {
       setJoining(false)
     }

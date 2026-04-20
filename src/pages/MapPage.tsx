@@ -330,8 +330,9 @@ export default function MapPage() {
       await joinMoment(selectedMoment.id)
       setHasJoined(true)
       refetchMoments()
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to join moment:', err)
+      alert(err.message ?? 'Failed to join signal')
     } finally {
       setIsJoining(false)
     }

@@ -251,8 +251,9 @@ export default function EventsPage() {
       await joinMoment(momentId)
       setJoinedIds(prev => new Set([...prev, momentId]))
       setCardActions(prev => ({ ...prev, [momentId]: 'joined' }))
-    } catch (err) {
-      console.error(err)
+    } catch (err: any) {
+      console.error('Join failed:', err)
+      alert(err.message ?? 'Failed to join signal')
     } finally {
       setJoiningId(null)
       setCardJoining(prev => ({ ...prev, [momentId]: false }))

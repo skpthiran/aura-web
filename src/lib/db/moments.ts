@@ -161,49 +161,54 @@ export async function createMoment(payload: {
   return data as Moment
 }
 
-export async function joinMoment(momentId: string): Promise<{ 
-  status: 'joined' | 'waitlist', position?: number 
-}> {
+export async function joinMoment(momentId: string): Promise<void> {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error('Not authenticated')
 
-  // Check current participant count vs capacity
+  // Check if already joined
+  const { data: existing } = await supabase
+    .from('participants')
+    .select('id')
+    .eq('moment_id', momentId)
+    .eq('user_id', user.id)
+    .maybeSingle()
+
+  if (existing) return // already joined, silent success
+
+  // Check capacity
   const { data: moment } = await supabase
     .from('moments')
     .select('capacity_limit')
     .eq('id', momentId)
     .single()
 
-  const { count: currentCount } = await supabase
+  if (!moment) throw new Error('Signal not found')
+
+  const { count } = await supabase
     .from('participants')
     .select('id', { count: 'exact', head: true })
     .eq('moment_id', momentId)
-    .eq('status', 'joined')
 
-  const isFull = (currentCount ?? 0) >= (moment?.capacity_limit ?? 999)
+  if (count !== null && moment.capacity_limit !== null && count >= moment.capacity_limit) {
+    throw new Error('Signal is full')
+  }
 
-  // Get waitlist count for position
-  const { count: waitlistCount } = await supabase
-    .from('participants')
-    .select('id', { count: 'exact', head: true })
-    .eq('moment_id', momentId)
-    .eq('status', 'waitlist')
-
-  const status = isFull ? 'waitlist' : 'joined'
-  const position = isFull ? (waitlistCount ?? 0) + 1 : undefined
-
+  // Insert participant
   const { error } = await supabase
     .from('participants')
-    .upsert({
+    .insert({
       moment_id: momentId,
       user_id: user.id,
-      status,
-      position: position ?? null,
-    }, { onConflict: 'moment_id,user_id' })
+      status: 'joined',
+      joined_at: new Date().toISOString(),
+    })
 
-  if (error) throw error
-  return { status, position }
+  if (error) {
+    console.error('joinMoment error:', error)
+    throw new Error(error.message)
+  }
 }
+
 
 export async function leaveMoment(momentId: string): Promise<void> {
   const { data: { user } } = await supabase.auth.getUser()

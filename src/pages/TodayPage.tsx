@@ -232,8 +232,9 @@ export default function TodayPage() {
       await joinMoment(momentId)
       setJoinedIds(prev => new Set([...prev, momentId]))
       setCardActions(prev => ({ ...prev, [momentId]: 'joined' }))
-    } catch (err) {
-      console.error(err)
+    } catch (err: any) {
+      console.error('Join failed:', err)
+      alert(err.message ?? 'Failed to join signal')
     } finally {
       setJoiningId(null)
     }
@@ -260,8 +261,9 @@ export default function TodayPage() {
     try {
       await joinMoment(momentId)
       setCardActions(prev => ({ ...prev, [momentId]: 'joined' }))
-    } catch (err) {
-      console.error(err)
+    } catch (err: any) {
+      console.error('Join failed:', err)
+      alert(err.message ?? 'Failed to join signal')
     } finally {
       setCardJoining(prev => ({ ...prev, [momentId]: false }))
     }
