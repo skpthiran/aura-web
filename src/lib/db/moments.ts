@@ -39,6 +39,66 @@ export async function getAllActiveMoments(): Promise<Moment[]> {
   return data as Moment[]
 }
 
+export async function getCreatedMoments(userId: string): Promise<Moment[]> {
+  const { data, error } = await supabase
+    .from('moments')
+    .select('*')
+    .eq('creator_id', userId)
+    .order('created_at', { ascending: false })
+
+  if (error) throw error
+  return (data ?? []) as Moment[]
+}
+
+export async function getActiveMomentsByCreator(userId: string): Promise<Moment[]> {
+  const { data, error } = await supabase
+    .from('moments')
+    .select('*')
+    .eq('creator_id', userId)
+    .eq('is_active', true)
+    .order('created_at', { ascending: false })
+
+  if (error) throw error
+  return (data ?? []) as Moment[]
+}
+
+export async function getJoinedMomentsHistory(userId: string): Promise<Moment[]> {
+  // 1. Get IDs of moments user has joined
+  const { data: participantRows, error: e1 } = await supabase
+    .from('participants')
+    .select('moment_id')
+    .eq('user_id', userId)
+
+  if (e1) throw e1
+  if (!participantRows || participantRows.length === 0) return []
+
+  const momentIds = participantRows.map(p => p.moment_id)
+
+  // 2. Fetch the moments, excluding those user created (History uses this distinction)
+  const { data: moments, error: e2 } = await supabase
+    .from('moments')
+    .select('*')
+    .in('id', momentIds)
+    .neq('creator_id', userId)
+    .order('created_at', { ascending: false })
+
+  if (e2) throw e2
+  return (moments ?? []) as Moment[]
+}
+
+export async function getRecentJoins(signalIds: string[]): Promise<any[]> {
+  const since = new Date(Date.now() - 86400000).toISOString()
+  const { data, error } = await supabase
+    .from('participants')
+    .select('*, moments(id, title, tags, moment_type)')
+    .in('moment_id', signalIds)
+    .gte('joined_at', since)
+    .order('joined_at', { ascending: false })
+
+  if (error) throw error
+  return data ?? []
+}
+
 export async function getMomentById(id: string): Promise<Moment | null> {
   const { data, error } = await supabase
     .from('moments')

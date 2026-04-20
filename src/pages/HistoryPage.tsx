@@ -2,114 +2,57 @@ import { useState, useEffect } from 'react'
 import { motion } from 'motion/react'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
+import { getCreatedMoments, getJoinedMomentsHistory } from '../lib/db/moments'
+import { Moment } from '../types'
 import { usePageTitle } from '../hooks/usePageTitle'
 import { Clock, Zap, Calendar, Users } from 'lucide-react'
 import { cn } from '../lib/utils'
 import { Link } from 'react-router-dom'
 import { HistoryCardSkeleton } from '../components/Skeleton'
 
-interface HistoryMoment {
-  id: string
-  title: string
-  description: string | null
-  moment_type: 'moment' | 'event'
-  expires_at: string
-  created_at: string
-  capacity_limit: number
-  tags: string[]
-  latitude: number
-  longitude: number
-  joined_at: string
-  was_creator: boolean
-}
-
 export default function HistoryPage() {
   usePageTitle('History')
   const { user } = useAuth()
-  const [history, setHistory] = useState<HistoryMoment[]>([])
+  const [moments, setMoments] = useState<Moment[]>([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<'all' | 'attended' | 'created'>('all')
 
   useEffect(() => {
-    if (user) fetchHistory()
-  }, [user])
-
-  const fetchHistory = async () => {
     if (!user) return
     setLoading(true)
-    try {
-      const results: HistoryMoment[] = []
 
-      // 1. Moments user joined (attended)
-      const { data: joined } = await supabase
-        .from('participants')
-        .select('moment_id, joined_at, status')
-        .eq('user_id', user.id)
-        .eq('status', 'joined')
+    const fetchHistory = async () => {
+      try {
+        const [created, joined] = await Promise.all([
+          getCreatedMoments(user.id),
+          getJoinedMomentsHistory(user.id)
+        ])
 
-      if (joined && joined.length > 0) {
-        const momentIds = joined.map((j: any) => j.moment_id)
-        const { data: attendedMoments } = await supabase
-          .from('moments')
-          .select('*')
-          .in('id', momentIds)
-          .lt('expires_at', new Date().toISOString())
-          .order('expires_at', { ascending: false })
+        const all = [...created, ...joined]
+        all.sort((a, b) =>
+          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        )
 
-        if (attendedMoments) {
-          attendedMoments.forEach((m: any) => {
-            const participation = joined.find((j: any) => j.moment_id === m.id)
-            results.push({
-              ...m,
-              joined_at: participation?.joined_at ?? m.created_at,
-              was_creator: m.creator_id === user.id,
-            } as HistoryMoment)
-          })
-        }
+        setMoments(all)
+      } catch (e) {
+        console.error('fetchHistory error:', e)
+      } finally {
+        setLoading(false)
       }
-
-      // 2. Moments user created that are expired (not already in list)
-      const { data: created } = await supabase
-        .from('moments')
-        .select('*')
-        .eq('creator_id', user.id)
-        .lt('expires_at', new Date().toISOString())
-        .order('expires_at', { ascending: false })
-
-      if (created) {
-        created.forEach((m: any) => {
-          const alreadyIn = results.find(r => r.id === m.id)
-          if (!alreadyIn) {
-            results.push({
-              ...m,
-              joined_at: m.created_at,
-              was_creator: true,
-            } as HistoryMoment)
-          } else {
-            // Mark as creator if it's in both lists
-            const existing = results.find(r => r.id === m.id)
-            if (existing) existing.was_creator = true
-          }
-        })
-      }
-
-      // Sort by expires_at descending
-      results.sort((a, b) =>
-        new Date(b.expires_at).getTime() - new Date(a.expires_at).getTime()
-      )
-      setHistory(results)
-    } catch (err) {
-      console.error(err)
-    } finally {
-      setLoading(false)
     }
-  }
 
-  const filtered = history.filter(h => {
-    if (filter === 'attended') return !h.was_creator
-    if (filter === 'created') return h.was_creator
-    return true
-  })
+    fetchHistory()
+  }, [user])
+
+  const createdCount = moments.filter(m => m.creator_id === user?.id).length
+  const attendedCount = moments.filter(m => m.creator_id !== user?.id).length
+  const totalCount = moments.length
+
+  const filtered = filter === 'created'
+    ? moments.filter(m => m.creator_id === user?.id)
+    : filter === 'attended'
+    ? moments.filter(m => m.creator_id !== user?.id)
+    : moments
 
   const formatExpired = (dateStr: string) => {
     const date = new Date(dateStr)
@@ -154,9 +97,9 @@ export default function HistoryPage() {
             {/* Stats — desktop */}
             <div className="hidden lg:flex flex-col gap-3 mb-8">
               {[
-                { label: 'Total signals', value: history.length },
-                { label: 'Attended', value: history.filter(h => !h.was_creator).length },
-                { label: 'Created', value: history.filter(h => h.was_creator).length },
+                { label: 'Total signals', value: totalCount },
+                { label: 'Attended', value: attendedCount },
+                { label: 'Created', value: createdCount },
               ].map(stat => (
                 <div key={stat.label}
                   className="bg-white/4 border border-white/8 rounded-2xl px-5 py-4
@@ -289,7 +232,7 @@ export default function HistoryPage() {
                               )}>
                                 {isEvent ? '◈ Event' : '⚡ Moment'}
                               </span>
-                              {item.was_creator && (
+                              {item.creator_id === user?.id && (
                                 <span className="micro-caps text-xs px-3 py-1 rounded-full
                                   bg-white/5 border border-white/10 text-marble/35">
                                   Hosted by you

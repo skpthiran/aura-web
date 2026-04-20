@@ -2,167 +2,62 @@ import { useState, useEffect } from 'react'
 import { motion } from 'motion/react'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
+import { getActiveMomentsByCreator, getRecentJoins } from '../lib/db/moments'
+import { Moment, Participant } from '../types'
 import { Bell, Zap, Calendar, Users, MessageSquare, 
   MapPin, RefreshCw } from 'lucide-react'
 import { cn } from '../lib/utils'
 import { Link } from 'react-router-dom'
 import { usePageTitle } from '../hooks/usePageTitle'
 
-interface Notification {
-  id: string
-  type: 'join' | 'message' | 'new_moment' | 'event'
-  title: string
-  subtitle: string
-  timestamp: string
-  read: boolean
-  moment_id?: string
-  moment_type?: string
-  moment_title?: string
-  full_name?: string | null
-  avatar_url?: string | null
-  joined_at: string
+interface SignalJoin extends Participant {
+  moments: {
+    id: string
+    title: string
+    tags: string[]
+    moment_type: 'moment' | 'event'
+  } | null
 }
 
 export default function SignalsPage() {
   usePageTitle('Signals')
   const { user } = useAuth()
-  const [notifications, setNotifications] = useState<Notification[]>([])
+  const [activeMoments, setActiveMoments] = useState<Moment[]>([])
+  const [recentJoins, setRecentJoins] = useState<SignalJoin[]>([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<'all' | 'joins' | 'messages'>('all')
 
   useEffect(() => {
     if (!user) return
-    fetchSignals()
+    setLoading(true)
+
+    const fetchActivity = async () => {
+      try {
+        const active = await getActiveMomentsByCreator(user.id)
+        setActiveMoments(active)
+
+        if (active.length > 0) {
+          const signalIds = active.map(m => m.id)
+          const joins = await getRecentJoins(signalIds)
+          setRecentJoins(joins as SignalJoin[])
+        } else {
+          setRecentJoins([])
+        }
+      } catch (e) {
+        console.error('fetchActivity error:', e)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchActivity()
+    const interval = setInterval(fetchActivity, 60000)
+    return () => clearInterval(interval)
   }, [user])
 
-  const fetchSignals = async () => {
-    if (!user) return
-    setLoading(true)
-    try {
-      const results: Notification[] = []
-
-      // 1. Get joins on user's moments
-      // Get user's created moments first to avoid complex RLS joins
-      const { data: myMoments } = await supabase
-        .from('moments')
-        .select('id, title, moment_type')
-        .eq('creator_id', user.id)
-        .eq('is_active', true)
-
-      if (myMoments && myMoments.length > 0) {
-        const myMomentIds = myMoments.map((m) => m.id)
-        
-        const { data: joins } = await supabase
-          .from('participants')
-          .select(`
-            id, joined_at, moment_id, user_id,
-            profiles:user_id(full_name, avatar_url)
-          `)
-          .in('moment_id', myMomentIds)
-          .neq('user_id', user.id)
-          .eq('status', 'joined')
-          .order('joined_at', { ascending: false })
-          .limit(20)
-
-        if (joins) {
-          interface JoinRow {
-            id: string;
-            joined_at: string;
-            moment_id: string;
-            user_id: string;
-            profiles: { full_name: string | null; avatar_url: string | null } | null;
-          }
-
-          (joins as unknown as JoinRow[]).forEach((j) => {
-            const moment = myMoments.find((m) => m.id === j.moment_id)
-            if (moment) {
-              results.push({
-                id: `join-${j.id}`,
-                type: 'join',
-                title: `Someone joined "${moment.title}"`,
-                subtitle: 'A new participant entered your signal',
-                timestamp: j.joined_at,
-                joined_at: j.joined_at,
-                read: false,
-                moment_id: moment.id,
-                moment_type: moment.moment_type,
-                moment_title: moment.title,
-                full_name: j.profiles?.full_name,
-                avatar_url: j.profiles?.avatar_url
-              })
-            }
-          })
-        }
-      }
-
-      // 2. Get messages on user's joined moments
-      const { data: participantRows } = await supabase
-        .from('participants')
-        .select('moment_id')
-        .eq('user_id', user.id)
-        .eq('status', 'joined')
-
-      if (participantRows && participantRows.length > 0) {
-        const momentIds = participantRows.map((p) => p.moment_id)
-        const { data: messages } = await supabase
-          .from('chat_messages')
-          .select(`
-            id, content, created_at, moment_id, user_id,
-            moments(title, moment_type)
-          `)
-          .in('moment_id', momentIds)
-          .neq('user_id', user.id)
-          .order('created_at', { ascending: false })
-          .limit(20)
-
-        if (messages) {
-          interface MessageRow {
-            id: string;
-            content: string;
-            created_at: string;
-            moment_id: string;
-            user_id: string;
-            moments: {
-              title: string;
-              moment_type: string;
-            } | null;
-          }
-
-          (messages as unknown as MessageRow[]).forEach((msg) => {
-            const m = msg.moments
-            results.push({
-              id: `msg-${msg.id}`,
-              type: 'message',
-              title: `New message in "${m?.title ?? 'a signal'}"`,
-              subtitle: msg.content.length > 60 
-                ? msg.content.slice(0, 60) + '...' 
-                : msg.content,
-              timestamp: msg.created_at,
-              joined_at: msg.created_at,
-              read: false,
-              moment_id: msg.moment_id,
-              moment_type: m?.moment_type,
-              moment_title: m?.title
-            })
-          })
-        }
-      }
-
-      // Sort by timestamp
-      results.sort((a, b) => 
-        new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-      )
-      setNotifications(results)
-    } catch (err) {
-      console.error(err)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const filteredSignals = notifications.filter(s => {
-    if (filter === 'joins') return s.type === 'join'
-    if (filter === 'messages') return s.type === 'message'
+  const filteredJoins = recentJoins.filter(s => {
+    if (filter === 'joins') return true
+    if (filter === 'messages') return false
     return true
   })
 
@@ -200,12 +95,12 @@ export default function SignalsPage() {
             <div className="hidden lg:flex flex-col gap-3 mb-8">
               <div className="bg-white/4 border border-white/8 rounded-2xl p-5">
                 <p className="micro-caps text-xs text-marble/35 mb-2">New joins today</p>
-                <p className="font-serif text-4xl text-gold">{notifications.length}</p>
+                <p className="font-serif text-4xl text-gold">{recentJoins.length}</p>
               </div>
               <div className="bg-white/4 border border-white/8 rounded-2xl p-5">
                 <p className="micro-caps text-xs text-marble/35 mb-2">Your active signals</p>
                 <p className="font-serif text-4xl text-marble">
-                  {[...new Set(notifications.map(n => n.moment_id))].length}
+                  {activeMoments.length}
                 </p>
               </div>
             </div>
@@ -240,7 +135,7 @@ export default function SignalsPage() {
                   <p className="micro-caps text-marble/30">Loading activity...</p>
                 </div>
               </div>
-            ) : notifications.length === 0 ? (
+            ) : (recentJoins.length === 0) ? (
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -268,48 +163,37 @@ export default function SignalsPage() {
               </motion.div>
             ) : (
               <div className="flex flex-col gap-3">
-                {notifications.map((n, i) => (
+                {filteredJoins.map((join) => (
                   <motion.div
-                    key={n.id}
+                    key={join.id}
                     initial={{ opacity: 0, y: 16 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: i * 0.04 }}
                   >
-                    <Link to={`/app/moment/${n.moment_id}`}>
+                    <Link to={`/app/moment/${join.moment_id}`}>
                       <div className="group flex items-center gap-4
                         bg-white/3 hover:bg-white/6 border border-white/7
                         hover:border-white/15 rounded-2xl px-5 py-4
                         transition-all duration-300 cursor-pointer">
 
-                        {/* Avatar */}
-                        <div className="w-11 h-11 rounded-full bg-marble/10
+                        {/* Icon/Avatar */}
+                        <div className="w-11 h-11 rounded-full bg-gold/10
                           border border-white/10 overflow-hidden
                           flex items-center justify-center shrink-0">
-                          {n.avatar_url ? (
-                            <img src={n.avatar_url}
-                              className="w-full h-full object-cover"
-                              onError={e => { e.currentTarget.style.display = 'none' }} />
-                          ) : (
-                            <span className="font-serif text-sm text-marble/50">
-                              {(n.full_name ?? 'A')[0].toUpperCase()}
-                            </span>
-                          )}
+                          <Users className="w-5 h-5 text-gold/50" />
                         </div>
 
                         {/* Text */}
                         <div className="flex-1 min-w-0">
                           <p className="text-marble text-sm font-medium
                             group-hover:text-gold-pale transition-colors">
-                            <span className="text-marble">
-                              {n.full_name ?? 'Someone'}
+                            Someone joined <span className="text-gold">
+                              {join.moments?.title ?? 'your signal'}
                             </span>
-                            <span className="text-marble/40"> joined </span>
-                            <span className="text-marble">{n.moment_title}</span>
                           </p>
                           <p className="micro-caps text-xs text-marble/30 mt-0.5">
-                            {new Date(n.joined_at).toLocaleDateString('en', {
-                              month: 'short', day: 'numeric',
-                              hour: '2-digit', minute: '2-digit'
+                            {new Date(join.joined_at).toLocaleTimeString([], {
+                              hour: '2-digit', minute: '2-digit',
+                              month: 'short', day: 'numeric'
                             })}
                           </p>
                         </div>
