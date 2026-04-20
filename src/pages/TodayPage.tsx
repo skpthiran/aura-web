@@ -151,7 +151,11 @@ export default function TodayPage() {
   const { location } = useUserLocation()
   const [activeTab, setActiveTab] = useState<'all' | 'moments' | 'events'>('all')
   
-  const { moments, loading, setMoments } = useNearbyMoments(location, 50000)
+  const RADIUS_OPTIONS = [5, 10, 25, 50, 100]
+  const [radius, setRadius] = useState(50)
+  const [radiusOpen, setRadiusOpen] = useState(false)
+  
+  const { moments, loading, setMoments } = useNearbyMoments(location, radius * 1000)
   const { addToast } = useToast()
 
   // Realtime Integration
@@ -176,7 +180,7 @@ export default function TodayPage() {
         newMoment.longitude
       )
       
-      if (dist <= 50000) { // Default 50km for notifications
+      if (dist <= radius * 1000) { 
         addToast({
           title: newMoment.title,
           description: `New ${newMoment.moment_type === 'event' ? 'event' : 'signal'} detected nearby.`,
@@ -185,7 +189,7 @@ export default function TodayPage() {
         })
       }
     }
-  }, [location, addToast, setMoments])
+  }, [location, radius, addToast, setMoments])
 
   const handleRealtimeDelete = useCallback((id: string) => {
     setMoments(prev => prev.filter(m => m.id !== id))
@@ -202,6 +206,16 @@ export default function TodayPage() {
     return new Set()
   })
 
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      const target = e.target as HTMLElement
+      if (radiusOpen && !target.closest('[data-radius-dropdown]')) {
+        setRadiusOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [radiusOpen])
 
 
   const handleJoin = async (momentId: string) => {
@@ -433,6 +447,50 @@ export default function TodayPage() {
                   </button>
                 ))}
 
+                {/* Radius Filter Dropdown */}
+                <div className="relative shrink-0 snap-start" data-radius-dropdown>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setRadiusOpen(o => !o);
+                    }}
+                    className="flex items-center gap-1.5 px-5 py-3 rounded-full
+                      bg-black/30 backdrop-blur-md border border-white/15 text-white/60
+                      micro-caps text-xs transition-all hover:border-white/30 active:scale-95"
+                  >
+                    {radius} KM
+                    <svg className={cn('w-3 h-3 transition-transform duration-200', radiusOpen && 'rotate-180')}
+                      viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="6 9 12 15 18 9"></polyline>
+                    </svg>
+                  </button>
+
+                  <AnimatePresence>
+                    {radiusOpen && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                        className="absolute top-full mt-2 left-0 z-50 bg-[#1a1a2e]/95 backdrop-blur-xl border
+                          border-white/15 rounded-2xl overflow-hidden shadow-2xl min-w-[120px]"
+                      >
+                        {RADIUS_OPTIONS.map(r => (
+                          <button
+                            key={r}
+                            onClick={() => { setRadius(r); setRadiusOpen(false) }}
+                            className={cn(
+                              'w-full px-5 py-3 text-left text-xs micro-caps transition-colors',
+                              radius === r
+                                ? 'text-gold bg-gold/10'
+                                : 'text-marble/60 hover:text-marble hover:bg-white/5'
+                            )}
+                          >
+                            {r} KM
+                          </button>
+                        ))}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
 
                 {/* Search icon */}

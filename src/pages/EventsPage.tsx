@@ -178,17 +178,11 @@ export default function EventsPage() {
   usePageTitle('Colosseum')
   const { user } = useAuth()
   const { location } = useUserLocation()
-  const [radius, setRadius] = useState<number>(50000) // default 50km
-  
-  const radiusOptions = [
-    { label: '5 KM', value: 5000 },
-    { label: '50 KM', value: 50000 },
-    { label: 'Province', value: 150000 },
-    { label: 'Country', value: 500000 },
-    { label: 'Global', value: 99999999 },
-  ]
+  const RADIUS_OPTIONS = [5, 10, 25, 50, 100, 500]
+  const [radius, setRadius] = useState<number>(50) // default 50km
+  const [radiusOpen, setRadiusOpen] = useState(false)
 
-  const { events, loading, refetch, setEvents } = useNearbyEvents(location, radius)
+  const { events, loading, refetch, setEvents } = useNearbyEvents(location, radius * 1000)
   const { addToast } = useToast()
 
   // Realtime Integration
@@ -215,7 +209,7 @@ export default function EventsPage() {
         newMoment.longitude
       )
       
-      if (dist <= radius) {
+      if (dist <= radius * 1000) {
         addToast({
           title: newMoment.title,
           description: "A new structured gathering has been initialized nearby.",
@@ -266,6 +260,17 @@ export default function EventsPage() {
   }
 
   useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      const target = e.target as HTMLElement
+      if (radiusOpen && !target.closest('[data-radius-dropdown]')) {
+        setRadiusOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [radiusOpen])
+
+  useEffect(() => {
     if (!user || events.length === 0) return
     const ids = events.map(e => e.id)
     supabase
@@ -311,22 +316,59 @@ export default function EventsPage() {
           </button>
         </div>
 
-        <div className="flex items-center gap-2 mb-8 overflow-x-auto scrollbar-hide pb-2 snap-x touch-pan-x -mx-6 px-6">
-          <span className="micro-caps text-[10px] text-white/20 shrink-0">Radius:</span>
-          {radiusOptions.map(opt => (
-            <button
-              key={opt.value}
-              onClick={() => setRadius(opt.value)}
-              className={cn(
-                "micro-caps text-[10px] px-5 py-3 rounded-full border transition-all duration-300 whitespace-nowrap snap-start min-h-[44px]",
-                radius === opt.value
-                  ? "bg-gold/10 border-gold/40 text-gold"
-                  : "border-white/5 text-white/30 hover:border-white/20"
-              )}
-            >
-              {opt.label}
-            </button>
-          ))}
+        {/* Radius Filter Dropdown */}
+        <div className="relative mb-8" data-radius-dropdown>
+          <button
+            onClick={() => setRadiusOpen(o => !o)}
+            className="flex items-center gap-1.5 px-5 py-3 rounded-full
+              bg-black/30 backdrop-blur-md border border-white/15 text-white/60
+              micro-caps text-xs transition-all hover:border-white/30 active:scale-95"
+          >
+            {radius >= 500 ? '500+ KM' : `${radius} KM`}
+            <svg className={cn('w-3 h-3 transition-transform duration-200', radiusOpen && 'rotate-180')}
+              viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+          </button>
+
+          <AnimatePresence>
+            {radiusOpen && (
+              <motion.div
+                initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                className="absolute top-full mt-2 left-0 z-50 bg-[#1a1a2e]/95 backdrop-blur-xl border
+                  border-white/15 rounded-2xl overflow-hidden shadow-2xl min-w-[120px]"
+              >
+                {RADIUS_OPTIONS.map(r => (
+                  <button
+                    key={r}
+                    onClick={() => { setRadius(r); setRadiusOpen(false) }}
+                    className={cn(
+                      'w-full px-5 py-3 text-left text-xs micro-caps transition-colors',
+                      radius === r
+                        ? 'text-gold bg-gold/10'
+                        : 'text-marble/60 hover:text-marble hover:bg-white/5'
+                    )}
+                  >
+                    {r} KM
+                  </button>
+                ))}
+                {/* Global Option */}
+                <button
+                  onClick={() => { setRadius(999999); setRadiusOpen(false) }}
+                  className={cn(
+                    'w-full px-5 py-3 text-left text-xs micro-caps transition-colors border-t border-white/5',
+                    radius >= 999999
+                      ? 'text-gold bg-gold/10'
+                      : 'text-marble/60 hover:text-marble hover:bg-white/5'
+                  )}
+                >
+                  Global
+                </button>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
 
         {/* Loading */}
