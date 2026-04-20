@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react'
 import { motion } from 'motion/react'
 import { Link } from 'react-router-dom'
-import { Radio, Users, Loader, MapPin, Zap, Search, ArrowRight, Clock, Compass, Check, X } from 'lucide-react'
+import { Radio, Users, Loader, MapPin, Zap, Search, ArrowRight, Clock, Compass, Check, X, ChevronDown } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 import { useUserLocation } from '../hooks/useUserLocation'
@@ -141,8 +141,7 @@ export default function TodayPage() {
   usePageTitle('Pulse')
   const { user } = useAuth()
   const { location } = useUserLocation()
-  const [activeTab, setActiveTab] = useState('All')
-  const [followingIds, setFollowingIds] = useState<Set<string>>(new Set())
+  const [activeTab, setActiveTab] = useState<'all' | 'moments' | 'events'>('all')
   const [radius, setRadius] = useState<number>(50000) // default 50km
   const [radiusOpen, setRadiusOpen] = useState(false)
   
@@ -207,22 +206,6 @@ export default function TodayPage() {
     }
   })
 
-  useEffect(() => {
-    if (user) fetchFollowing()
-  }, [user])
-
-  const fetchFollowing = async () => {
-    try {
-      const { data } = await supabase
-        .from('follows')
-        .select('following_id')
-        .eq('follower_id', user!.id)
-      
-      setFollowingIds(new Set((data || []).map(f => f.following_id)))
-    } catch (err) {
-      console.error('Error fetching following:', err)
-    }
-  }
 
   useEffect(() => {
     if (!radiusOpen) return
@@ -319,12 +302,11 @@ export default function TodayPage() {
       const expiresTime = new Date(m.expires_at).getTime()
       if (expiresTime < Date.now()) return false // hide expired
       
-      if (activeTab === 'Moments') return m.moment_type === 'moment'
-      if (activeTab === 'Events') return m.moment_type === 'event'
-      if (activeTab === 'Following') return followingIds.has(m.creator_id)
-      return true // 'All'
+      if (activeTab === 'moments') return m.moment_type === 'moment'
+      if (activeTab === 'events') return m.moment_type === 'event'
+      return true // 'all'
     })
-  }, [moments, rejectedIds, activeTab, followingIds])
+  }, [moments, rejectedIds, activeTab])
 
   const heroMoment = filteredMoments[0]
   const gridMoments = filteredMoments.slice(1)
@@ -410,52 +392,41 @@ export default function TodayPage() {
             </div>
             
             <div className="mt-2 md:mt-0 flex flex-col items-start md:items-end gap-4 md:gap-6 pointer-events-auto">
-              {/* Redesigned Filter Row 1 — Type tabs & Radius Dropdown */}
+              {/* Filter bar */}
               <div className="flex items-center gap-2 mt-4 flex-wrap pointer-events-auto">
-                {['All', 'Following', 'Moments', 'Events'].map(tab => (
+                {[
+                  { key: 'all', label: 'All' },
+                  { key: 'moments', label: 'Moments' },
+                  { key: 'events', label: 'Events' },
+                ].map(tab => (
                   <button
-                    key={tab}
-                    onClick={() => setActiveTab(tab)}
+                    key={tab.key}
+                    onClick={() => setActiveTab(tab.key as typeof activeTab)}
                     className={cn(
-                      'micro-caps text-xs px-5 py-2 rounded-full whitespace-nowrap',
-                      'transition-all duration-300',
-                      activeTab === tab
-                        ? 'bg-white text-black font-bold'
-                        : 'bg-black/40 backdrop-blur-md border border-white/20 text-white/60'
+                      'micro-caps text-xs px-5 py-2 rounded-full transition-all duration-200',
+                      activeTab === tab.key
+                        ? 'bg-white text-void font-medium'
+                        : 'bg-black/30 backdrop-blur-md border border-white/15 text-white/60 hover:text-white hover:border-white/30'
                     )}
                   >
-                    {tab}
+                    {tab.label}
                   </button>
                 ))}
 
-                {/* Radius dropdown trigger — right side */}
-                <div className="relative ml-auto" data-radius-dropdown>
+                {/* Radius dropdown */}
+                <div className="relative" data-radius-dropdown>
                   <button
-                    onClick={() => setRadiusOpen(prev => !prev)}
+                    onClick={() => setRadiusOpen(p => !p)}
                     className={cn(
-                      'flex items-center gap-2 micro-caps text-xs px-4 py-2 rounded-full',
-                      'transition-all duration-300 whitespace-nowrap',
-                      'bg-black/40 backdrop-blur-md border text-white/60',
-                      radiusOpen
-                        ? 'border-gold/60 text-gold'
-                        : 'border-white/20 hover:border-white/40'
+                      "flex items-center gap-1.5 micro-caps text-xs px-4 py-2 rounded-full transition-all",
+                      "bg-black/30 backdrop-blur-md border text-white/60 hover:text-white hover:border-white/30",
+                      radiusOpen ? "border-gold/40 text-gold" : "border-white/15"
                     )}
                   >
-                    <span>
-                      {radiusOptions.find(r => r.value === radius)?.label ?? '50 KM'}
-                    </span>
-                    <svg
-                      className={cn(
-                        'w-3 h-3 transition-transform duration-200',
-                        radiusOpen ? 'rotate-180' : ''
-                      )}
-                      fill="none" viewBox="0 0 24 24" stroke="currentColor"
-                    >
-                      <path strokeLinecap="round" strokeLinejoin="round"
-                        strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
+                    {radiusOptions.find(r => r.value === radius)?.label ?? '50 KM'}
+                    <ChevronDown className="w-3 h-3" />
                   </button>
-
+                  
                   {/* Dropdown panel */}
                   {radiusOpen && (
                     <div className="absolute right-0 top-full mt-2 z-50
@@ -487,15 +458,12 @@ export default function TodayPage() {
                   )}
                 </div>
 
-                {/* Search shortcut */}
+                {/* Search icon */}
                 <Link to="/app/search" className="shrink-0">
-                  <div className={cn(
-                    'flex items-center justify-center w-9 h-9 rounded-full',
-                    'transition-all duration-300 cursor-pointer',
-                    'bg-black/40 backdrop-blur-md border border-white/20',
-                    'text-white/60 hover:text-white hover:border-white/40'
-                  )}>
-                    <Search className="w-4 h-4" />
+                  <div className="flex items-center justify-center w-8 h-8 rounded-full
+                    bg-black/30 backdrop-blur-md border border-white/15
+                    text-white/50 hover:text-white hover:border-white/30 transition-all">
+                    <Search className="w-3.5 h-3.5" />
                   </div>
                 </Link>
               </div>
