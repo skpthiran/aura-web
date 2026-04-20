@@ -55,19 +55,19 @@ export default function SignalsPage() {
         const { data: joins } = await supabase
           .from('participants')
           .select(`
-            id, created_at, moment_id, user_id,
+            id, joined_at, moment_id, user_id,
             profiles:user_id(full_name, avatar_url)
           `)
           .in('moment_id', myMomentIds)
           .neq('user_id', user.id)
           .eq('status', 'joined')
-          .order('created_at', { ascending: false })
+          .order('joined_at', { ascending: false })
           .limit(20)
 
         if (joins) {
           interface JoinRow {
             id: string;
-            created_at: string;
+            joined_at: string;
             moment_id: string;
             user_id: string;
             profiles: { full_name: string | null; avatar_url: string | null } | null;
@@ -81,8 +81,8 @@ export default function SignalsPage() {
                 type: 'join',
                 title: `Someone joined "${moment.title}"`,
                 subtitle: 'A new participant entered your signal',
-                timestamp: j.created_at,
-                joined_at: j.created_at,
+                timestamp: j.joined_at,
+                joined_at: j.joined_at,
                 read: false,
                 moment_id: moment.id,
                 moment_type: moment.moment_type,

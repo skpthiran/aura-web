@@ -43,9 +43,9 @@ export default function HistoryPage() {
       // 1. Moments user joined (attended)
       const { data: joined } = await supabase
         .from('participants')
-        .select('moment_id, created_at, status')
+        .select('moment_id, joined_at, status')
         .eq('user_id', user.id)
-        .in('status', ['joined', 'waitlist'])
+        .eq('status', 'joined')
 
       if (joined && joined.length > 0) {
         const momentIds = joined.map((j: any) => j.moment_id)
@@ -61,7 +61,7 @@ export default function HistoryPage() {
             const participation = joined.find((j: any) => j.moment_id === m.id)
             results.push({
               ...m,
-              joined_at: participation?.created_at ?? m.created_at,
+              joined_at: participation?.joined_at ?? m.created_at,
               was_creator: m.creator_id === user.id,
             } as HistoryMoment)
           })
