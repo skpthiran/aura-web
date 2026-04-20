@@ -99,24 +99,27 @@ export default function HistoryPage() {
             </div>
 
             {/* Stats — desktop */}
-            <div className="hidden lg:flex flex-col gap-3 mb-8">
+            <div className="hidden lg:flex flex-col gap-4 mb-8">
               {[
-                { label: 'Total signals', value: totalCount },
-                { label: 'Attended', value: attendedCount },
-                { label: 'Created', value: createdCount },
+                { label: 'Total signals', value: totalCount, accent: 'marble' },
+                { label: 'Participated', value: attendedCount, accent: 'gold' },
+                { label: 'Established', value: createdCount, accent: 'marble' },
               ].map(stat => (
                 <div key={stat.label}
-                  className="bg-white/4 border border-white/8 rounded-2xl px-5 py-4
-                    flex items-center justify-between">
-                  <p className="micro-caps text-xs text-marble/35">{stat.label}</p>
-                  <p className="font-serif text-2xl text-marble">{stat.value}</p>
+                  className="glass-panel hairline-all rounded-3xl px-6 py-5 shadow-2xl"
+                  style={{ boxShadow: '0 4px 20px rgba(0,0,0,0.4), 0 0 0 0.5px rgba(255,255,255,0.05)' }}>
+                  <p className="micro-caps text-[10px] text-marble/35 mb-2 tracking-widest">{stat.label}</p>
+                  <p className={cn(
+                    "font-serif text-3xl",
+                    stat.accent === 'gold' ? "text-gold" : "text-marble"
+                  )}>{stat.value}</p>
                 </div>
               ))}
             </div>
 
             {/* Filter tabs — vertical on desktop */}
             <div className="hidden lg:flex flex-col gap-2">
-              <p className="micro-caps text-xs text-marble/25 mb-1 px-1">Filter</p>
+              <p className="micro-caps text-[10px] text-marble/20 mb-2 px-1 tracking-widest uppercase">Archive Filter</p>
               {[
                 { key: 'all', label: 'All Signals' },
                 { key: 'attended', label: 'Attended' },
@@ -126,13 +129,16 @@ export default function HistoryPage() {
                   key={tab.key}
                   onClick={() => setFilter(tab.key as typeof filter)}
                   className={cn(
-                    'text-left px-4 py-3 rounded-xl text-sm transition-all',
+                    'text-left px-5 py-3.5 rounded-2xl text-[13px] transition-all duration-300 group relative overflow-hidden',
                     filter === tab.key
-                      ? 'bg-marble/10 text-marble border border-white/15'
-                      : 'text-marble/35 hover:text-marble/60 hover:bg-white/4'
+                      ? 'bg-marble/10 text-marble border border-white/10 shadow-lg'
+                      : 'text-marble/30 hover:text-marble/60 hover:bg-white/4'
                   )}
                 >
-                  {tab.label}
+                  <div className="flex items-center justify-between relative z-10 font-medium">
+                    {tab.label}
+                    {filter === tab.key && <div className="w-1.5 h-1.5 rounded-full bg-gold shadow-[0_0_8px_rgba(201,168,76,0.6)]" />}
+                  </div>
                 </button>
               ))}
             </div>
@@ -177,98 +183,110 @@ export default function HistoryPage() {
               </div>
             ) : filtered.length === 0 ? (
               <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="flex flex-col items-center justify-center py-24 gap-6 text-center"
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="flex flex-col items-center justify-center py-32 gap-8 text-center"
               >
-                <div className="w-20 h-20 rounded-full bg-white/4
-                  border border-white/8 flex items-center justify-center">
-                  <Clock className="w-8 h-8 text-marble/15" />
+                <div className="w-24 h-24 rounded-3xl bg-[#0a0a14]/80
+                  border border-white/10 flex items-center justify-center shadow-2xl relative">
+                  <Clock className="w-10 h-10 text-marble/10" strokeWidth={1} />
+                  <div className="absolute inset-0 bg-gold/5 blur-2xl rounded-full" />
                 </div>
-                <div>
-                  <p className="font-serif text-2xl text-marble/30 mb-2">
-                    No history yet
+                <div className="space-y-3">
+                  <p className="font-serif text-3xl text-marble/25 tracking-tight">
+                    Void History
                   </p>
-                  <p className="text-sm text-marble/20 max-w-xs">
-                    Signals you attend or create will appear here after they expire.
+                  <p className="text-[13px] text-marble/15 max-w-[240px] mx-auto leading-relaxed">
+                    Once your signals expire or complete their projection, they will be archived here.
                   </p>
                 </div>
                 <Link to="/app/today">
-                  <button className="micro-caps text-sm px-6 py-3 rounded-full
-                    bg-white/5 border border-white/10 text-marble/50
-                    hover:text-marble hover:border-white/20 transition-all">
-                    Discover Signals
+                  <button className="micro-caps text-[10px] px-10 py-4 rounded-full
+                    bg-marble text-void font-black tracking-[0.2em] shadow-2xl active:scale-95 transition-all">
+                    Find Signal
                   </button>
                 </Link>
               </motion.div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-5">
                 {filtered.map((item, i) => {
                   const isEvent = item.moment_type === 'event'
+                  const isHost = item.creator_id === user?.id
                   return (
                     <motion.div
                       key={item.id}
-                      initial={{ opacity: 0, scale: 0.95 }}
-                      animate={{ opacity: 1, scale: 1 }}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: i * 0.03 }}
-                      className="group relative flex flex-col glass-panel hairline-all rounded-3xl
-                        overflow-hidden hover:border-gold/30 hover:bg-white/5
+                      className="group relative flex flex-col bg-[#0a0a14]/60 backdrop-blur-md border border-white/10 rounded-3xl
+                        overflow-hidden hover:border-white/20 hover:bg-[#0a0a14]/90 shadow-xl
                         transition-all duration-500 cursor-pointer h-full"
                     >
                       {/* Image Preview */}
-                      <div className="relative h-32 overflow-hidden">
+                      <div className="relative h-44 overflow-hidden">
                         <img 
                           src={getSignalImage(item.id, item.tags, item.moment_type)}
-                          className="w-full h-full object-cover grayscale opacity-40 
-                            group-hover:grayscale-0 group-hover:opacity-70 transition-all duration-700"
+                          className="w-full h-full object-cover grayscale opacity-30 
+                            group-hover:grayscale-0 group-hover:opacity-60 group-hover:scale-105 transition-all duration-1000"
                           alt=""
                           onError={(e) => {
                             e.currentTarget.src = `https://picsum.photos/seed/${item.id}/600/400`
                           }}
                         />
-                        <div className="absolute inset-0 bg-gradient-to-t from-void via-transparent to-transparent opacity-80" />
+                        <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a14] via-transparent to-transparent" />
                         
-                        <div className="absolute top-3 left-3 flex gap-2">
+                        <div className="absolute top-4 left-4 flex gap-2">
                            <span className={cn(
-                            'micro-caps text-[10px] px-2 py-1 rounded-full border backdrop-blur-md',
-                            isEvent
-                              ? 'bg-gold/20 border-gold/40 text-gold'
-                              : 'bg-red-500/20 border-red-500/40 text-red-100'
-                          )}>
-                            {isEvent ? '◈ Event' : '⚡ Moment'}
+                             'micro-caps text-[9px] px-2.5 py-1.5 rounded-full border backdrop-blur-md font-bold tracking-widest',
+                             isEvent
+                               ? 'bg-gold/20 border-gold/40 text-gold'
+                               : 'bg-marble/10 border-white/20 text-marble'
+                           )}>
+                            {isEvent ? '◈ EVENT' : '⚡ MOMENT'}
                           </span>
                         </div>
 
-                        <div className="absolute bottom-2 left-3 right-3 flex items-center justify-between">
-                           <span className="micro-caps text-[10px] text-marble/40">
-                             {formatExpired(item.expires_at)}
-                           </span>
-                        </div>
+                        {isHost && (
+                           <div className="absolute top-4 right-4">
+                             <div className="w-8 h-8 rounded-full bg-gold/10 border border-gold/30 flex items-center justify-center shadow-lg">
+                               <Users className="w-3.5 h-3.5 text-gold" />
+                             </div>
+                           </div>
+                        )}
                       </div>
 
-                      <div className="p-5 flex-1 flex flex-col">
-                        <h3 className="font-serif text-lg text-marble/80 
-                          group-hover:text-gold-pale transition-colors line-clamp-1 mb-2">
-                          {item.title}
-                        </h3>
+                      <div className="p-6 flex-1 flex flex-col">
+                        <div className="mb-4">
+                           <p className="micro-caps text-[9px] text-marble/30 mb-2 tracking-[0.2em]">
+                             {formatExpired(item.expires_at).toUpperCase()}
+                           </p>
+                           <h3 className="font-serif text-xl text-marble/90 group-hover:text-gold transition-colors duration-500 line-clamp-2">
+                             {item.title}
+                           </h3>
+                        </div>
 
                         {item.description && (
-                          <p className="text-xs text-marble/30 line-clamp-2 leading-relaxed mb-4 flex-1">
-                            {item.description}
+                          <p className="text-[13px] text-marble/30 line-clamp-2 leading-relaxed mb-6 flex-1 italic">
+                            "{item.description}"
                           </p>
                         )}
 
-                        <div className="mt-auto pt-4 border-t border-white/5 flex items-center justify-between">
-                          <div className="flex items-center gap-3 text-[10px] text-marble/25 micro-caps">
-                            <span className="flex items-center gap-1">
-                              <Calendar className="w-3 h-3" />
-                              {new Date(item.expires_at).toLocaleDateString()}
+                        <div className="mt-auto pt-6 border-t border-white/5 flex items-center justify-between">
+                          <div className="flex flex-col gap-1">
+                            <p className="micro-caps text-[8px] text-marble/20 tracking-[0.1em]">EXPIRED ON</p>
+                            <span className="flex items-center gap-2 text-[10px] text-marble/40 font-medium">
+                              <Calendar className="w-3 h-3 text-gold/40" />
+                              {new Date(item.expires_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                             </span>
-                             {item.creator_id === user?.id && (
-                              <span className="text-gold/40">Host</span>
-                            )}
                           </div>
-                          <Users className="w-3 h-3 text-marble/20" />
+                          
+                          <div className="flex items-center gap-2">
+                             {isHost ? (
+                               <span className="micro-caps text-[9px] text-gold/60 font-bold bg-gold/10 px-2 py-1 rounded-md">HOST</span>
+                             ) : (
+                               <span className="micro-caps text-[9px] text-marble/40 font-bold bg-white/5 px-2 py-1 rounded-md">VISITOR</span>
+                             )}
+                          </div>
                         </div>
                       </div>
                     </motion.div>

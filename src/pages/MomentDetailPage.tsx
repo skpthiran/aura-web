@@ -196,25 +196,33 @@ export default function MomentDetailPage() {
     <div className="flex-1 overflow-y-auto bg-void">
 
       {/* HERO */}
-      <div className="relative" style={{ height: '60dvh', minHeight: '320px', maxHeight: '600px' }}>
-        <img
+      <div className="relative overflow-hidden" style={{ height: '65dvh', minHeight: '320px', maxHeight: '700px' }}>
+        <motion.img
+          initial={{ scale: 1.15, filter: 'blur(10px)', opacity: 0 }}
+          animate={{ scale: 1, filter: 'blur(0px)', opacity: 1 }}
+          transition={{ duration: 1.2, ease: [0.22, 1, 0.36, 1] }}
           src={getSignalImage(moment.id, moment.tags, moment.moment_type)}
           className="absolute inset-0 w-full h-full object-cover"
           onError={(e) => { 
             e.currentTarget.src = `https://picsum.photos/seed/${moment.id}/1200/600`
           }}
         />
-        <div className="absolute inset-0"
-          style={{ background: 'linear-gradient(to bottom, rgba(0,0,0,0.4) 0%, rgba(10,10,15,1) 100%)' }}
+        <div className="absolute inset-0 pointer-events-none"
+          style={{ 
+            background: 'linear-gradient(to bottom, transparent 40%, rgba(0,0,0,0.6) 70%, #000 100%)',
+            maskImage: 'linear-gradient(to bottom, black 60%, transparent 100%)',
+            WebkitMaskImage: 'linear-gradient(to bottom, black 60%, transparent 100%)'
+          }}
         />
 
         {/* Top controls */}
-        <div className="absolute top-0 left-0 right-0 z-20 flex items-center justify-between p-4">
+        <div className="absolute top-0 left-0 right-0 z-20 flex items-center justify-between p-4 px-5 pt-6">
           <button onClick={() => navigate(-1)}
-            className="w-9 h-9 rounded-full bg-black/40 backdrop-blur-md
-              border border-white/15 flex items-center justify-center
-              text-white/70 hover:text-white transition-colors">
-            <ArrowLeft className="w-4 h-4" />
+            className="w-10 h-10 rounded-xl bg-[#0a0a14]/85 backdrop-blur-md
+              border border-white/20 flex items-center justify-center
+              text-white/70 hover:text-white transition-all shadow-2xl"
+            style={{ boxShadow: '0 4px 24px rgba(0,0,0,0.6), 0 0 0 0.5px rgba(255,255,255,0.08)' }}>
+            <ArrowLeft className="w-5 h-5" strokeWidth={1.5} />
           </button>
 
           <div className="flex items-center gap-2">
@@ -222,44 +230,47 @@ export default function MomentDetailPage() {
             {user && moment && user.id !== (moment as any).creator_id && (
               <button
                 onClick={() => setShowReport(true)}
-                className="w-9 h-9 rounded-full bg-black/40 backdrop-blur-md
-                  border border-white/15 flex items-center justify-center
-                  text-white/50 hover:text-red-400 transition-colors">
-                <Flag className="w-4 h-4" />
+                className="w-10 h-10 rounded-xl bg-[#0a0a14]/85 backdrop-blur-md
+                  border border-white/20 flex items-center justify-center
+                  text-white/50 hover:text-red-400 transition-all shadow-2xl"
+                style={{ boxShadow: '0 4px 24px rgba(0,0,0,0.6), 0 0 0 0.5px rgba(255,255,255,0.08)' }}>
+                <Flag className="w-4 h-4" strokeWidth={1.5} />
               </button>
             )}
             {/* Share */}
             <button onClick={handleShare}
-              className="w-9 h-9 rounded-full bg-black/40 backdrop-blur-md
-                border border-white/15 flex items-center justify-center
-                text-white/70 hover:text-white transition-colors">
+              className="w-10 h-10 rounded-xl bg-[#0a0a14]/85 backdrop-blur-md
+                border border-white/20 flex items-center justify-center
+                text-white/70 hover:text-white transition-all shadow-2xl"
+              style={{ boxShadow: '0 4px 24px rgba(0,0,0,0.6), 0 0 0 0.5px rgba(255,255,255,0.08)' }}>
               {copied
-                ? <Check className="w-4 h-4 text-green-400" />
-                : <Share2 className="w-4 h-4" />}
+                ? <Check className="w-5 h-5 text-green-400" />
+                : <Share2 className="w-5 h-5" strokeWidth={1.5} />}
             </button>
           </div>
         </div>
 
         {/* Bottom of hero — type + status */}
-        <div className="absolute bottom-5 left-5 right-5 z-20 flex items-center gap-2">
+        <div className="absolute bottom-10 left-5 right-5 z-20 flex items-center gap-2">
           <span className={cn(
-            'micro-caps text-xs px-3 py-1.5 rounded-full border backdrop-blur-md',
+            'micro-caps text-[10px] tracking-[0.2em] px-4 py-2 rounded-xl border backdrop-blur-md shadow-xl',
             isEvent
-              ? 'bg-gold/20 border-gold/50 text-gold'
-              : 'bg-red-900/30 border-red-500/50 text-red-400'
-          )}>
+              ? 'bg-[#0a0a14]/85 border-gold/40 text-gold'
+              : 'bg-[#0a0a14]/85 border-crimson/40 text-crimson-bright'
+          )} style={{ boxShadow: '0 4px 20px rgba(0,0,0,0.5)' }}>
             {isEvent ? '◈ Event' : '⚡ Moment'}
           </span>
           {isPrivate && (
-            <span className="micro-caps text-xs px-3 py-1.5 rounded-full
-              bg-black/40 border border-white/20 text-white/50 backdrop-blur-md
-              flex items-center gap-1">
-              <Lock className="w-2.5 h-2.5" /> Private
+            <span className="micro-caps text-[10px] tracking-[0.2em] px-4 py-2 rounded-xl
+              bg-[#0a0a14]/85 border border-white/20 text-white/50 backdrop-blur-md
+              flex items-center gap-2 shadow-xl" style={{ boxShadow: '0 4px 20px rgba(0,0,0,0.5)' }}>
+              <Lock className="w-3 h-3" /> Private
             </span>
           )}
           {isExpired && (
-            <span className="micro-caps text-xs px-3 py-1.5 rounded-full
-              bg-black/40 border border-white/15 text-white/30 backdrop-blur-md">
+            <span className="micro-caps text-[10px] tracking-[0.2em] px-4 py-2 rounded-xl
+              bg-[#0a0a14]/85 border border-white/20 text-white/30 backdrop-blur-md shadow-xl"
+              style={{ boxShadow: '0 4px 20px rgba(0,0,0,0.5)' }}>
               Expired
             </span>
           )}
@@ -299,10 +310,11 @@ export default function MomentDetailPage() {
 
             {/* Title */}
             <motion.h1
-              initial={{ opacity: 0, y: 16 }}
+              initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
-              className="font-serif text-3xl md:text-4xl lg:text-5xl text-marble 
-                leading-tight mb-3 mt-4 lg:mt-0"
+              transition={{ delay: 0.2, duration: 0.8 }}
+              className="font-serif text-4xl md:text-5xl lg:text-7xl text-marble 
+                leading-[1.1] mb-5 mt-4 lg:mt-0 tracking-tight"
             >
               {moment.title}
             </motion.h1>
@@ -355,48 +367,54 @@ export default function MomentDetailPage() {
             {/* TIMING DETAILS — desktop left col */}
             {(startTime || endTime || venue) && (
               <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.2 }}
-                className="bg-white/4 border border-white/8 rounded-2xl 
-                  overflow-hidden mb-6"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3 }}
+                className="glass-panel hairline-all rounded-3xl 
+                  overflow-hidden mb-8 shadow-2xl"
               >
                 {startTime && (
-                  <div className="flex items-center gap-4 px-5 py-4 border-b border-white/6">
-                    <Calendar className="w-4 h-4 text-gold shrink-0" />
+                  <div className="flex items-center gap-5 px-6 py-5 border-b border-white/5">
+                    <div className="w-10 h-10 rounded-2xl bg-gold/10 flex items-center justify-center border border-gold/20">
+                      <Calendar className="w-5 h-5 text-gold shrink-0" strokeWidth={1.5} />
+                    </div>
                     <div>
-                      <p className="micro-caps text-xs text-marble/30 mb-0.5">
-                        {isEvent ? 'Starts' : 'From'}
+                      <p className="micro-caps text-[9px] text-marble/30 mb-0.5 tracking-widest">
+                        {isEvent ? 'Commencing' : 'Available From'}
                       </p>
-                      <p className="text-marble text-sm font-medium">
+                      <p className="text-marble text-[15px] font-medium tracking-wide">
                         {formatDateTime(startTime)}
                       </p>
                     </div>
                   </div>
                 )}
                 {endTime && (
-                  <div className="flex items-center gap-4 px-5 py-4 border-b border-white/6">
-                    <Clock className="w-4 h-4 text-marble/30 shrink-0" />
+                  <div className="flex items-center gap-5 px-6 py-5 border-b border-white/5">
+                    <div className="w-10 h-10 rounded-2xl bg-white/5 flex items-center justify-center border border-white/10">
+                      <Clock className="w-5 h-5 text-marble/30 shrink-0" strokeWidth={1.5} />
+                    </div>
                     <div>
-                      <p className="micro-caps text-xs text-marble/30 mb-0.5">Ends</p>
-                      <p className="text-marble text-sm font-medium">
+                      <p className="micro-caps text-[9px] text-marble/30 mb-0.5 tracking-widest">Expires</p>
+                      <p className="text-marble text-[15px] font-medium tracking-wide">
                         {formatDateTime(endTime)}
                       </p>
                     </div>
                     {formatDuration() && (
-                      <span className="ml-auto micro-caps text-xs text-gold/60 
-                        bg-gold/8 border border-gold/20 rounded-full px-3 py-1">
+                      <span className="ml-auto micro-caps text-[9px] text-gold/80 
+                        bg-gold/10 border border-gold/30 rounded-full px-4 py-1.5 tracking-[0.2em] font-bold">
                         {formatDuration()}
                       </span>
                     )}
                   </div>
                 )}
                 {venue && (
-                  <div className="flex items-center gap-4 px-5 py-4">
-                    <MapPin className="w-4 h-4 text-marble/30 shrink-0" />
+                  <div className="flex items-center gap-5 px-6 py-5">
+                    <div className="w-10 h-10 rounded-2xl bg-white/5 flex items-center justify-center border border-white/10">
+                      <MapPin className="w-5 h-5 text-marble/30 shrink-0" strokeWidth={1.5} />
+                    </div>
                     <div>
-                      <p className="micro-caps text-xs text-marble/30 mb-0.5">Venue</p>
-                      <p className="text-marble text-sm font-medium">{venue}</p>
+                      <p className="micro-caps text-[9px] text-marble/30 mb-0.5 tracking-widest">Location</p>
+                      <p className="text-marble text-[15px] font-medium tracking-wide">{venue}</p>
                     </div>
                   </div>
                 )}
@@ -582,29 +600,34 @@ export default function MomentDetailPage() {
       </div>
 
       {/* STICKY BOTTOM BAR - Mobile only */}
-      <div className="lg:hidden fixed bottom-20 left-4 right-4 z-40">
+      <div className="lg:hidden fixed bottom-[calc(20px+env(safe-area-inset-bottom))] left-5 right-5 z-40">
         {!isExpired ? (
           <motion.div
-            initial={{ opacity: 0, y: 40 }}
+            initial={{ opacity: 0, y: 50 }}
             animate={{ opacity: 1, y: 0 }}
-            className="flex flex-col gap-2"
+            transition={{ delay: 0.5, type: 'spring', damping: 20 }}
+            className="flex flex-col gap-3"
           >
             {joined && (
               <Link to="/app/chat" className="w-full">
-                <button className="w-full py-4 rounded-2xl micro-caps text-xs
-                  bg-deep/80 backdrop-blur-xl border border-white/10 text-marble/80
-                  shadow-2xl flex items-center justify-center gap-2">
-                  <MessageSquare className="w-4 h-4 text-gold" />
+                <button 
+                  className="w-full py-4.5 rounded-2xl micro-caps text-[10px] tracking-[0.25em] font-bold
+                    bg-[#0a0a14]/90 backdrop-blur-2xl border border-white/20 text-marble
+                    shadow-[0_10px_40px_rgba(0,0,0,0.8)] flex items-center justify-center gap-3 active:scale-[0.98] transition-all"
+                >
+                  <MessageSquare className="w-5 h-5 text-gold" strokeWidth={2} />
                   Open Signal Chat
                 </button>
               </Link>
             )}
             
             {waitlistPosition ? (
-              <div className="w-full py-4 rounded-2xl text-center
-                bg-gold/90 backdrop-blur-md border border-gold/50 shadow-2xl">
-                <p className="micro-caps text-sm text-void font-bold">
-                  ◈ Waitlist: {'#'}{waitlistPosition}
+              <div 
+                className="w-full py-5 rounded-2xl text-center
+                  bg-gold backdrop-blur-md border border-white/20 shadow-[0_10px_40px_rgba(212,175,55,0.2)]"
+              >
+                <p className="micro-caps text-[11px] text-void font-black tracking-[0.3em]">
+                  ◈ Waiting Pool: {'#'}{waitlistPosition}
                 </p>
               </div>
             ) : (
@@ -612,37 +635,37 @@ export default function MomentDetailPage() {
                 onClick={handleJoin}
                 disabled={joined || joining || !user}
                 className={cn(
-                  'w-full py-4 rounded-2xl micro-caps text-sm font-bold transition-all shadow-2xl',
+                  'w-full py-5 rounded-2xl micro-caps text-[11px] tracking-[0.3em] font-black transition-all shadow-[0_10px_50px_rgba(0,0,0,0.6)]',
                   joined
-                    ? 'bg-green-500 text-void border border-green-400'
+                    ? 'bg-emerald-500 text-void border border-emerald-400'
                     : isFull
-                      ? 'bg-gold text-void border border-gold/50'
+                      ? 'bg-gold text-void border border-white/20 shadow-[0_10px_40px_rgba(212,175,55,0.3)]'
                       : 'bg-marble text-void active:scale-95'
                 )}
               >
                 {joining ? (
-                  <span className="flex items-center justify-center gap-2">
-                    <Loader className="w-4 h-4 animate-spin" />
-                    {isFull ? 'Waitlist...' : 'Joining...'}
+                  <span className="flex items-center justify-center gap-3">
+                    <Loader className="w-5 h-5 animate-spin" strokeWidth={3} />
+                    {isFull ? 'Queuing...' : 'Syncing...'}
                   </span>
                 ) : joined ? (
-                  <span className="flex items-center justify-center gap-2">
-                    <Check className="w-4 h-4" /> You're In
+                  <span className="flex items-center justify-center gap-3">
+                    <Check className="w-5 h-5" strokeWidth={3} /> Access Granted
                   </span>
-                ) : isFull ? 'Join Waitlist' : 'Join Signal'}
+                ) : isFull ? 'Join Waiting Pool' : 'Join Signal'}
               </button>
             )}
           </motion.div>
         ) : (
-          <div className="flex gap-2">
+          <div className="flex gap-3">
              <button onClick={() => navigate(-1)}
-              className="flex-1 py-4 rounded-2xl micro-caps text-xs
-                bg-white/10 backdrop-blur-md border border-white/10 text-marble">
-              Go Back
+              className="flex-1 py-5 rounded-2xl micro-caps text-[10px] font-bold tracking-[0.2em]
+                bg-[#0a0a14]/90 backdrop-blur-xl border border-white/10 text-marble shadow-2xl">
+              Back
             </button>
             <Link to="/app/today" className="flex-1">
-              <button className="w-full py-4 rounded-2xl micro-caps text-xs
-                bg-marble text-void font-bold">
+              <button className="w-full py-5 rounded-2xl micro-caps text-[10px] font-black tracking-[0.2em]
+                bg-marble text-void shadow-2xl">
                 Discover
               </button>
             </Link>

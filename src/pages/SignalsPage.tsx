@@ -93,25 +93,34 @@ export default function SignalsPage() {
             </div>
 
             {/* Stats cards — desktop only */}
-            <div className="hidden lg:flex flex-col gap-3 mb-8">
-              <div className="bg-white/4 border border-white/8 rounded-2xl p-5">
-                <p className="micro-caps text-xs text-marble/35 mb-2">New joins today</p>
-                <p className="font-serif text-4xl text-gold">{recentJoins.length}</p>
+            <div className="hidden lg:flex flex-col gap-4 mb-8">
+              <div className="glass-panel hairline-all rounded-3xl p-6 shadow-2xl"
+                style={{ boxShadow: '0 4px 20px rgba(0,0,0,0.4), 0 0 0 0.5px rgba(255,255,255,0.05)' }}>
+                <p className="micro-caps text-[10px] text-marble/35 mb-3 tracking-widest">New joins today</p>
+                <div className="flex items-baseline gap-2">
+                  <p className="font-serif text-5xl text-gold">{recentJoins.length}</p>
+                  <span className="text-gold/30 text-xs micro-caps">Intercepted</span>
+                </div>
               </div>
-              <div className="bg-white/4 border border-white/8 rounded-2xl p-5">
-                <p className="micro-caps text-xs text-marble/35 mb-2">Your active signals</p>
-                <p className="font-serif text-4xl text-marble">
-                  {activeMoments.length}
-                </p>
+              <div className="glass-panel hairline-all rounded-3xl p-6 shadow-2xl"
+                style={{ boxShadow: '0 4px 20px rgba(0,0,0,0.4), 0 0 0 0.5px rgba(255,255,255,0.05)' }}>
+                <p className="micro-caps text-[10px] text-marble/35 mb-3 tracking-widest">Your active signals</p>
+                <div className="flex items-baseline gap-2">
+                  <p className="font-serif text-5xl text-marble">{activeMoments.length}</p>
+                  <span className="text-marble/20 text-xs micro-caps">Live</span>
+                </div>
               </div>
             </div>
 
             {/* Info text — desktop */}
             <div className="hidden lg:block mt-auto">
-              <div className="bg-gold/5 border border-gold/15 rounded-2xl p-4">
-                <p className="micro-caps text-xs text-gold/70 mb-1">Live updates</p>
-                <p className="text-marble/40 text-xs leading-relaxed">
-                  This feed refreshes automatically every 60 seconds.
+              <div className="bg-gold/5 border border-gold/15 rounded-2xl p-5 backdrop-blur-md">
+                <div className="flex items-center gap-2 mb-2">
+                   <RefreshCw className="w-3 h-3 text-gold/70 animate-spin-slow" />
+                   <p className="micro-caps text-[9px] text-gold/70 tracking-widest">Live intelligence</p>
+                </div>
+                <p className="text-marble/40 text-[11px] leading-relaxed">
+                  This feed is synchronizing with local signals every 60 seconds.
                 </p>
               </div>
             </div>
@@ -138,89 +147,90 @@ export default function SignalsPage() {
               </div>
             ) : (recentJoins.length === 0) ? (
               <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="flex flex-col items-center justify-center py-24 gap-6 text-center"
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="flex flex-col items-center justify-center py-32 gap-8 text-center"
               >
-                <div className="w-20 h-20 rounded-full bg-white/4
-                  border border-white/8 flex items-center justify-center">
-                  <Zap className="w-8 h-8 text-marble/15" />
+                <div className="w-24 h-24 rounded-3xl bg-[#0a0a14]/80
+                  border border-white/10 flex items-center justify-center shadow-2xl relative">
+                  <Zap className="w-10 h-10 text-marble/10" strokeWidth={1} />
+                  <div className="absolute inset-0 bg-gold/5 blur-2xl rounded-full" />
                 </div>
-                <div>
-                  <p className="font-serif text-2xl text-marble/30 mb-2">
-                    No activity yet
+                <div className="space-y-3">
+                  <p className="font-serif text-3xl text-marble/25 tracking-tight">
+                    Radio Silence
                   </p>
-                  <p className="text-sm text-marble/20 max-w-xs">
-                    When people join your signals, they'll appear here.
+                  <p className="text-[13px] text-marble/15 max-w-[240px] mx-auto leading-relaxed">
+                    When others intercept your signals, their activity will materialize here.
                   </p>
                 </div>
                 <Link to="/app/create">
-                  <button className="micro-caps text-sm px-6 py-3 rounded-full
-                    bg-white/5 border border-white/10 text-marble/50
-                    hover:text-marble hover:border-white/20 transition-all">
-                    Create a Signal
+                  <button className="micro-caps text-[10px] px-10 py-4 rounded-full
+                    bg-marble text-void font-black tracking-[0.2em] shadow-2xl active:scale-95 transition-all">
+                    Initiate Signal
                   </button>
                 </Link>
               </motion.div>
             ) : (
-              <div className="flex flex-col gap-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2 gap-4">
                 {filteredJoins.map((join, i) => (
                     <motion.div
                       key={join.id}
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: i * 0.05 }}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: i * 0.04 }}
                     >
                       <Link to={`/app/moment/${join.moment_id}`}>
-                        <div className="group relative glass-panel hairline-all rounded-3xl p-5
-                          hover:bg-white/5 transition-all duration-500 cursor-pointer overflow-hidden">
+                        <div className="group relative bg-[#0a0a14]/60 backdrop-blur-md border border-white/10 rounded-3xl p-5
+                          hover:bg-[#0a0a14]/90 hover:border-white/20 transition-all duration-500 cursor-pointer overflow-hidden shadow-xl"
+                          style={{ borderLeft: join.moments?.moment_type === 'event' ? '3px solid #d4af37' : '3px solid #ff0800' }}>
                           
                           {/* Ambient glow */}
                           <div className={cn(
-                            "absolute -right-10 -top-10 w-32 h-32 blur-3xl opacity-0 group-hover:opacity-10 transition-opacity duration-1000",
-                            join.moments?.moment_type === 'event' ? "bg-gold" : "bg-crimson"
+                            "absolute -right-20 -top-20 w-48 h-48 blur-[80px] opacity-0 group-hover:opacity-10 transition-opacity duration-1000",
+                            join.moments?.moment_type === 'event' ? "bg-gold" : "bg-crimson-bright"
                           )} />
 
                           <div className="flex items-center gap-5 relative z-10">
-                            {/* Avatar / Placeholder */}
-                            <div className="relative">
+                            {/* Icon / Type indicator */}
+                            <div className="relative shrink-0">
                               <div className="w-14 h-14 rounded-2xl bg-white/5 border border-white/10
-                                flex items-center justify-center overflow-hidden">
-                                <span className="font-serif text-lg text-marble/20 uppercase">
-                                  {(join.moments?.title ?? 'A')[0]}
-                                </span>
+                                flex items-center justify-center overflow-hidden transition-all duration-500 group-hover:scale-105">
+                                {join.moments?.moment_type === 'event' ? (
+                                  <Calendar className="w-6 h-6 text-gold/30 group-hover:text-gold transition-colors" strokeWidth={1} />
+                                ) : (
+                                  <Zap className="w-6 h-6 text-crimson/30 group-hover:text-crimson-bright transition-colors" strokeWidth={1} />
+                                )}
                               </div>
                               <div className={cn(
-                                "absolute -bottom-1 -right-1 w-5 h-5 rounded-full border-2 border-void flex items-center justify-center",
-                                join.moments?.moment_type === 'event' ? "bg-gold" : "bg-crimson"
+                                "absolute -bottom-1 -right-1 w-6 h-6 rounded-lg border-2 border-[#0a0a14] flex items-center justify-center shadow-xl",
+                                join.moments?.moment_type === 'event' ? "bg-gold" : "bg-crimson-bright"
                               )}>
-                                {join.moments?.moment_type === 'event' ? <Calendar className="w-2.5 h-2.5 text-void" /> : <Zap className="w-2.5 h-2.5 text-void" />}
+                                {join.moments?.moment_type === 'event' ? <Calendar className="w-3 h-3 text-void" /> : <Zap className="w-3 h-3 text-void" />}
                               </div>
                             </div>
 
                             {/* Text content */}
                             <div className="flex-1 min-w-0">
-                              <p className="text-marble/90 text-sm font-medium mb-1 line-clamp-1">
-                                Someone joined <span className="text-gold-pale">
-                                  {join.moments?.title ?? 'your signal'}
-                                </span>
+                              <p className="text-marble/90 text-[14px] font-medium mb-1.5 line-clamp-1 tracking-tight">
+                                <span className="text-marble/40">Intercepted:</span> {join.moments?.title ?? 'Signal'}
                               </p>
                               <div className="flex items-center gap-3">
-                                <span className="micro-caps text-[10px] text-marble/30">
+                                <span className="micro-caps text-[9px] text-marble/30 tracking-[0.15em]">
                                   {timeAgo(join.joined_at)}
-                                </span>
+                                </span >
                                 <span className="w-1 h-1 rounded-full bg-white/10" />
                                 <span className={cn(
-                                  "micro-caps text-[10px]",
-                                  join.moments?.moment_type === 'event' ? "text-gold/50" : "text-crimson/50"
+                                  "micro-caps text-[9px] tracking-[0.15em] font-bold",
+                                  join.moments?.moment_type === 'event' ? "text-gold/60" : "text-crimson-bright/60"
                                 )}>
                                   {join.moments?.moment_type === 'event' ? '◈ Event' : '⚡ Moment'}
                                 </span>
                               </div>
                             </div>
 
-                            <ArrowLeft className="w-4 h-4 text-marble/10 group-hover:text-marble/30 
-                              group-hover:translate-x-1 transition-all rotate-180" />
+                            <ArrowLeft className="w-5 h-5 text-marble/10 group-hover:text-marble/40 
+                              group-hover:translate-x-1.5 transition-all rotate-180" strokeWidth={1.5} />
                           </div>
                         </div>
                       </Link>
