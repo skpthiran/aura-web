@@ -298,12 +298,12 @@ export default function MapPage() {
   }
 
   return (
-    <div className="fixed inset-0 w-full h-screen overflow-hidden bg-obsidian">
+    <div className="fixed inset-0 w-full h-[100dvh] overflow-hidden bg-obsidian">
       {/* Map — Full Bleed */}
       <div ref={mapContainer} className="absolute inset-0 w-full h-full" />
 
       {/* TOP LEFT — Search + Type Filter */}
-      <div className="absolute top-4 left-4 lg:left-[300px] flex flex-col gap-2 z-20 w-[220px] max-w-[calc(100vw-32px)] transition-all duration-500">
+      <div className="absolute top-[calc(76px+env(safe-area-inset-top))] lg:top-4 left-4 lg:left-[300px] flex flex-col gap-2 z-20 w-[220px] max-w-[calc(100vw-32px)] transition-all duration-500">
         {/* Search Box */}
         <div 
           className="flex items-center gap-3 px-4 py-3 rounded-xl border border-white/20 bg-[#0a0a14]/85 backdrop-blur-md shadow-2xl"
@@ -346,7 +346,7 @@ export default function MapPage() {
       </div>
 
       {/* TOP RIGHT — Live Indicator */}
-      <div className="absolute top-4 right-4 flex flex-col items-end gap-2 z-20">
+      <div className="absolute top-[calc(76px+env(safe-area-inset-top))] lg:top-4 right-4 flex flex-col items-end gap-2 z-20">
         <div 
           className="flex items-center gap-2 px-4 py-2 rounded-xl border border-white/20 bg-[#0a0a14]/85 backdrop-blur-md shadow-2xl"
           style={{ boxShadow: '0 4px 24px rgba(0,0,0,0.6), 0 0 0 0.5px rgba(255,255,255,0.08)' }}
@@ -369,7 +369,7 @@ export default function MapPage() {
       </div>
 
       {/* BOTTOM LEFT — Signal Count */}
-      <div className="absolute bottom-6 left-4 lg:left-[300px] z-20 pb-[env(safe-area-inset-bottom)] transition-all duration-500">
+      <div className="absolute bottom-[calc(100px+env(safe-area-inset-bottom))] lg:bottom-6 left-4 lg:left-[300px] z-20 transition-all duration-500">
         <div 
           className="px-5 py-3 rounded-xl border border-white/20 bg-[#0a0a14]/85 backdrop-blur-md shadow-2xl"
           style={{ boxShadow: '0 4px 24px rgba(0,0,0,0.6), 0 0 0 0.5px rgba(255,255,255,0.08)' }}
@@ -380,7 +380,7 @@ export default function MapPage() {
       </div>
 
       {/* BOTTOM RIGHT — Radius Selector */}
-      <div className="absolute bottom-6 right-4 z-20 pb-[env(safe-area-inset-bottom)]">
+      <div className="absolute bottom-[calc(100px+env(safe-area-inset-bottom))] lg:bottom-6 right-4 z-20">
         <div 
           className="flex flex-col gap-1 p-1.5 rounded-xl border border-white/20 bg-[#0a0a14]/85 backdrop-blur-md shadow-2xl w-[90px]"
           style={{ boxShadow: '0 4px 24px rgba(0,0,0,0.6), 0 0 0 0.5px rgba(255,255,255,0.08)' }}
