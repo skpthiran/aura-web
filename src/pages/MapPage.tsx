@@ -96,7 +96,8 @@ export default function MapPage() {
     if (mapRadius < 99999999 && location) {
       const dKm = haversineKm(
         location.latitude, location.longitude,
-        sig.lat || 0, sig.lng || 0
+        sig.latitude || sig.lat || 0, 
+        sig.longitude || sig.lng || 0
       )
       if (dKm > mapRadius / 1000) continue
     }
@@ -273,10 +274,12 @@ export default function MapPage() {
       visibleMoments.forEach(sig => {
         if (markersRef.current[sig.id]) {
           // Update position if needed (though moments shouldn't move much)
-          markersRef.current[sig.id].setLngLat([sig.lng, sig.lat])
+          const lon = sig.longitude || sig.lng || 0
+          const lat = sig.latitude || sig.lat || 0
+          markersRef.current[sig.id].setLngLat([lon, lat])
           return
         }
-
+        
         const el = document.createElement('div')
         el.className = 'flex items-center justify-center cursor-pointer group'
         el.id = `marker-${sig.id}`
@@ -339,21 +342,22 @@ export default function MapPage() {
   }
 
   return (
-    <div className="relative flex-1 w-full h-full lg:overflow-hidden bg-void flex flex-col lg:block" style={{ minHeight: '100dvh' }}>
-      {/* Map Engine */}
-      <div 
-        ref={mapContainer} 
-        className="relative lg:absolute lg:inset-0 w-full h-[45dvh] lg:h-full shrink-0" 
-      />
-      
-      {/* HUD Overlays */}
+    <div className="flex flex-col lg:flex-row h-[100dvh] overflow-hidden bg-void relative">
+      {/* HUD Overlays - Global */}
       <div className="absolute inset-0 pointer-events-none z-10">
         <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:100px_100px]" />
         <div className="absolute inset-0 hud-overlay mix-blend-multiply opacity-40" />
       </div>
 
-      {/* Floating HUD Interface */}
-      <div className="absolute lg:fixed top-6 lg:top-8 left-6 lg:left-8 right-6 lg:right-8 z-20 flex justify-between gap-4 md:gap-6 pointer-events-none items-start safe-area-pt">
+      {/* Map Engine - Main Content */}
+      <div className="flex-1 relative order-1 lg:order-2 h-[60%] lg:h-full min-h-[400px]">
+        <div 
+          ref={mapContainer} 
+          className="absolute inset-0 w-full h-full" 
+        />
+        
+        {/* Floating HUD Interface - Now relative to map area */}
+        <div className="absolute top-6 lg:top-8 left-6 lg:left-8 right-6 lg:right-8 z-20 flex justify-between gap-4 md:gap-6 pointer-events-none items-start safe-area-pt">
         <div className="flex flex-col gap-3 pointer-events-auto w-full max-w-lg">
            <div className="flex items-center gap-3 md:gap-4 mb-1 md:mb-2">
              <h1 className="font-serif text-2xl md:text-4xl text-marble tracking-widest uppercase text-shadow-glow">FORUM</h1>
@@ -391,6 +395,7 @@ export default function MapPage() {
             <span className="absolute top-1 left-1 w-1 h-1 bg-gold-pale rounded-full opacity-0 group-hover:opacity-100" />
             <Settings2 className="w-5 h-5 md:w-6 md:h-6" strokeWidth={1.5} />
           </button>
+        </div>
         </div>
       </div>
 

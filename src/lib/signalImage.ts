@@ -60,13 +60,8 @@ export function getSignalImage(id: string, tags: string[] = [], type: string = '
   const hash = id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
   const fallback = FALLBACK_KEYWORDS[hash % FALLBACK_KEYWORDS.length];
   
-  // Construct the URL using Unsplash Source (deterministic based on keyword + ID)
-  // Format: https://images.unsplash.com/photo-...?auto=format&fit=crop&q=80&w=...
-  // However, Unsplash Source (source.unsplash.com) is deprecated or unreliable sometimes.
-  // We'll use the "search by keyword" pattern with a deterministic seed if possible, 
-  // but for simplicity and quality, we'll use the "featured" query with keywords.
-  
-  // NOTE: source.unsplash.com/featured/?<keywords> is the easiest way to get high quality relevant images.
-  // Adding the ID as a cache-buster but also a seed for consistency.
-  return `https://source.unsplash.com/featured/1200x800/?${keyword},${fallback}&sig=${id}`;
+  // NOTE: source.unsplash.com is deprecated/unreliable. 
+  // We use loremflickr for stable keyword-based images.
+  // Using the id as a path component for deterministic caching.
+  return `https://loremflickr.com/1200/800/${keyword},${fallback}/${id}`;
 }

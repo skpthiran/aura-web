@@ -63,23 +63,23 @@ export async function getActiveMomentsByCreator(userId: string): Promise<Moment[
 }
 
 export async function getJoinedMomentsHistory(userId: string): Promise<Moment[]> {
-  // 1. Get IDs of moments user has joined
+  // 1. Get IDs of moments user has joined (filter for 'joined' status)
   const { data: participantRows, error: e1 } = await supabase
     .from('participants')
     .select('moment_id')
     .eq('user_id', userId)
+    .eq('status', 'joined')
 
   if (e1) throw e1
   if (!participantRows || participantRows.length === 0) return []
 
   const momentIds = participantRows.map(p => p.moment_id)
 
-  // 2. Fetch the moments, excluding those user created (History uses this distinction)
+  // 2. Fetch the moments, filtering out duplicates if they are already in "created"
   const { data: moments, error: e2 } = await supabase
     .from('moments')
     .select('*')
     .in('id', momentIds)
-    .neq('creator_id', userId)
     .order('created_at', { ascending: false })
 
   if (e2) throw e2

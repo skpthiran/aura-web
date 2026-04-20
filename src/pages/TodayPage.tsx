@@ -150,18 +150,8 @@ export default function TodayPage() {
   const { user } = useAuth()
   const { location } = useUserLocation()
   const [activeTab, setActiveTab] = useState<'all' | 'moments' | 'events'>('all')
-  const [radius, setRadius] = useState<number>(50000) // default 50km
-  const [radiusOpen, setRadiusOpen] = useState(false)
   
-  const radiusOptions = [
-    { label: '5 KM', value: 5000 },
-    { label: '50 KM', value: 50000 },
-    { label: 'Province', value: 150000 },
-    { label: 'Country', value: 500000 },
-    { label: 'Global', value: 99999999 },
-  ]
-
-  const { moments, loading, setMoments } = useNearbyMoments(location, radius)
+  const { moments, loading, setMoments } = useNearbyMoments(location, 50000)
   const { addToast } = useToast()
 
   // Realtime Integration
@@ -186,7 +176,7 @@ export default function TodayPage() {
         newMoment.longitude
       )
       
-      if (dist <= radius) {
+      if (dist <= 50000) { // Default 50km for notifications
         addToast({
           title: newMoment.title,
           description: `New ${newMoment.moment_type === 'event' ? 'event' : 'signal'} detected nearby.`,
@@ -195,7 +185,7 @@ export default function TodayPage() {
         })
       }
     }
-  }, [location, radius, addToast, setMoments])
+  }, [location, addToast, setMoments])
 
   const handleRealtimeDelete = useCallback((id: string) => {
     setMoments(prev => prev.filter(m => m.id !== id))
@@ -213,17 +203,6 @@ export default function TodayPage() {
   })
 
 
-  useEffect(() => {
-    if (!radiusOpen) return
-    const handler = (e: MouseEvent) => {
-      const target = e.target as HTMLElement
-      if (!target.closest('[data-radius-dropdown]')) {
-        setRadiusOpen(false)
-      }
-    }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
-  }, [radiusOpen])
 
   const handleJoin = async (momentId: string) => {
     if (!user || joinedIds.has(momentId) || cardActions[momentId] === 'joined') return
@@ -454,49 +433,6 @@ export default function TodayPage() {
                   </button>
                 ))}
 
-                {/* Radius dropdown */}
-                <div className="relative shrink-0 snap-start" data-radius-dropdown>
-                  <button
-                    onClick={() => setRadiusOpen(p => !p)}
-                    className={cn(
-                      "flex items-center gap-1.5 micro-caps text-xs px-5 py-3 rounded-full transition-all min-h-[44px]",
-                      "bg-black/30 backdrop-blur-md border text-white/60 hover:text-white hover:border-white/30",
-                      radiusOpen ? "border-gold/40 text-gold" : "border-white/15"
-                    )}
-                  >
-                    {radiusOptions.find(r => r.value === radius)?.label ?? '50 KM'}
-                    <ChevronDown className="w-3 h-3" />
-                  </button>
-                  
-                  {/* Dropdown panel */}
-                  {radiusOpen && (
-                    <div className="absolute right-0 top-full mt-2 z-50
-                      bg-black/90 backdrop-blur-2xl border border-white/12
-                      rounded-2xl overflow-hidden shadow-2xl shadow-black/60
-                      min-w-[140px]">
-                      {radiusOptions.map(opt => (
-                        <button
-                          key={opt.value}
-                          onClick={() => {
-                            setRadius(opt.value)
-                            setRadiusOpen(false)
-                          }}
-                          className={cn(
-                            'w-full text-left px-4 py-3 micro-caps text-xs min-h-[44px]',
-                            'transition-colors duration-200',
-                            radius === opt.value
-                              ? 'text-gold bg-gold/10'
-                              : 'text-white/50 hover:text-white hover:bg-white/5'
-                          )}
-                        >
-                          {opt.value === radius && (
-                            <span className="mr-2">✓</span>
-                          )}
-                          {opt.label}
-                        </button>
-                      ))}
-                    </div>
-                  )}
                 </div>
 
                 {/* Search icon */}
@@ -507,7 +443,6 @@ export default function TodayPage() {
                     <Search className="w-4 h-4" />
                   </div>
                 </Link>
-              </div>
 
               {/* Redesigned Filter Row 2 — Live Count Badge */}
               <div className="flex items-center gap-2 mt-3 pointer-events-auto">
@@ -516,7 +451,7 @@ export default function TodayPage() {
                   rounded-full px-3 py-1.5 w-fit">
                   <div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
                   <span className="micro-caps text-xs text-white/60">
-                    {filteredMoments.length} signals · {radiusOptions.find(r => r.value === radius)?.label}
+                    {filteredMoments.length} active signals
                   </span>
                 </div>
               </div>

@@ -29,12 +29,15 @@ export default function HistoryPage() {
           getJoinedMomentsHistory(user.id)
         ])
 
-        const all = [...created, ...joined]
-        all.sort((a, b) =>
+        // De-duplicate: a moment might be in both if user is creator and participant
+        const combined = [...created, ...joined]
+        const unique = Array.from(new Map(combined.map(m => [m.id, m])).values())
+        
+        unique.sort((a, b) =>
           new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
         )
 
-        setMoments(all)
+        setMoments(unique)
       } catch (e) {
         console.error('fetchHistory error:', e)
       } finally {
@@ -217,10 +220,13 @@ export default function HistoryPage() {
                         <img 
                           src={getSignalImage(item.id, item.tags, item.moment_type)}
                           className="w-full h-full object-cover grayscale opacity-40 
-                            group-hover:grayscale-0 group-hover:opacity-60 transition-all duration-700"
+                            group-hover:grayscale-0 group-hover:opacity-70 transition-all duration-700"
                           alt=""
+                          onError={(e) => {
+                            e.currentTarget.src = `https://picsum.photos/seed/${item.id}/600/400`
+                          }}
                         />
-                        <div className="absolute inset-0 bg-gradient-to-t from-void via-void/50 to-transparent" />
+                        <div className="absolute inset-0 bg-gradient-to-t from-void via-transparent to-transparent opacity-80" />
                         
                         <div className="absolute top-3 left-3 flex gap-2">
                            <span className={cn(
