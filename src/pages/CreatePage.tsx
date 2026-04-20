@@ -642,61 +642,84 @@ export default function CreatePage() {
 
               {/* ── STEP 4: CAPACITY ── */}
               {step === 4 && (
-                <div className="flex flex-col gap-5">
-                  <p className="text-marble/40 text-sm">Set how many people can join your signal.</p>
+                <div className="flex flex-col w-full px-0 pb-32">
+                  <p className="text-marble/40 text-sm px-4">Set how many people can join your signal.</p>
+
+                  {/* Stepper */}
+                  <div className="flex items-center justify-center gap-4 w-full px-4 mt-6">
+                    <button
+                      onClick={() => setCapacityLimit(prev => Math.max(1, prev - 1))}
+                      className="w-12 h-12 rounded-full bg-white/8 border border-white/15
+                        flex items-center justify-center text-marble text-xl
+                        active:scale-95 transition-transform shrink-0"
+                    >
+                      −
+                    </button>
+
+                    <div className="flex-1 max-w-[200px] text-center">
+                      <span className="font-serif text-6xl text-marble tabular-nums">
+                        {capacityLimit}
+                      </span>
+                      <p className="micro-caps text-xs text-marble/40 mt-1">
+                        {capacityLimit} PEOPLE MAX
+                      </p>
+                    </div>
+
+                    <button
+                      onClick={() => setCapacityLimit(prev => Math.min(500, prev + 1))}
+                      className="w-12 h-12 rounded-full bg-white/8 border border-white/15
+                        flex items-center justify-center text-marble text-xl
+                        active:scale-95 transition-transform shrink-0"
+                    >
+                      +
+                    </button>
+                  </div>
 
                   {/* Presets */}
-                  <div>
-                    <label className="micro-caps text-xs text-marble/40 mb-3 block">Quick select</label>
-                    <div className="grid grid-cols-3 md:grid-cols-6 gap-2 mb-4">
-                      {CAPACITY_PRESETS.map(cap => (
-                        <button key={cap} onClick={() => setCapacityLimit(cap)}
+                  <div className="mt-8">
+                    <label className="micro-caps text-xs text-marble/40 mb-3 block px-4 text-center lg:text-left">Quick select</label>
+                    <div className="grid grid-cols-3 gap-3 w-full px-4">
+                      {CAPACITY_PRESETS.map(n => (
+                        <button
+                          key={n}
+                          onClick={() => setCapacityLimit(n)}
                           className={cn(
-                            'py-3 rounded-xl font-serif text-xl transition-all',
-                            capacityLimit === cap
-                              ? 'bg-gold/15 border border-gold/40 text-gold'
-                              : 'bg-white/4 border border-white/10 text-marble/50 hover:border-white/20'
-                          )}>
-                          {cap}
+                            'py-4 rounded-2xl text-lg font-medium transition-all active:scale-95',
+                            capacityLimit === n
+                              ? 'bg-gold/20 border border-gold/50 text-gold'
+                              : 'bg-white/5 border border-white/10 text-marble/60 hover:text-marble'
+                          )}
+                        >
+                          {n}
                         </button>
                       ))}
                     </div>
-
-                    {/* Stepper */}
-                    <div className="flex items-center gap-3">
-                      <button onClick={() => setCapacityLimit(c => Math.max(1, c - 1))}
-                        className="w-10 h-10 rounded-full bg-white/5 border border-white/10 text-marble/60 hover:text-marble transition-colors flex items-center justify-center text-xl">−</button>
-                      <input type="number" value={capacityLimit}
-                        onChange={e => setCapacityLimit(Math.max(1, parseInt(e.target.value) || 1))}
-                        className="flex-1 text-center bg-white/4 border border-white/10 rounded-xl py-3 text-marble font-serif text-3xl outline-none focus:border-gold/40 transition-all font-bold" />
-                      <button onClick={() => setCapacityLimit(c => c + 1)}
-                        className="w-10 h-10 rounded-full bg-white/5 border border-white/10 text-marble/60 hover:text-marble transition-colors flex items-center justify-center text-xl">+</button>
-                    </div>
-                    <p className="text-center micro-caps text-xs text-marble/25 mt-2">{capacityLimit} {capacityLimit === 1 ? 'person' : 'people'} max</p>
                   </div>
 
                   {/* Summary */}
-                  <div className="bg-white/4 border border-white/8 rounded-2xl p-5">
-                    <p className="micro-caps text-xs text-marble/35 mb-4">Signal Summary</p>
-                    <div className="flex flex-col gap-3">
-                      {[
-                        { label: 'Type', value: momentType === 'event' ? '◈ Event' : '⚡ Moment' },
-                        { label: 'Title', value: title || '—' },
-                        { label: 'Mood', value: selectedMood || '—' },
-                        { label: 'Duration', value: `${durationHours}h` },
-                        { label: 'Capacity', value: `${capacityLimit} people` },
-                        { label: 'Location', value: latitude ? `${latitude.toFixed(4)}, ${longitude?.toFixed(4)}` : '—' },
-                        { label: 'Private', value: isPrivate ? 'Yes' : 'No' },
-                      ].map(row => (
-                        <div key={row.label} className="flex items-center justify-between">
-                          <span className="micro-caps text-xs text-marble/30">{row.label}</span>
-                          <span className="text-marble text-sm truncate max-w-[200px] text-right font-medium">{row.value}</span>
-                        </div>
-                      ))}
+                  <div className="px-4 mt-8">
+                    <div className="bg-white/4 border border-white/8 rounded-2xl p-5">
+                      <p className="micro-caps text-xs text-marble/35 mb-4">Signal Summary</p>
+                      <div className="flex flex-col gap-3">
+                        {[
+                          { label: 'Type', value: momentType === 'event' ? '◈ Event' : '⚡ Moment' },
+                          { label: 'Title', value: title || '—' },
+                          { label: 'Mood', value: selectedMood || '—' },
+                          { label: 'Duration', value: `${durationHours}h` },
+                          { label: 'Capacity', value: `${capacityLimit} people` },
+                          { label: 'Location', value: latitude ? `${latitude.toFixed(4)}, ${longitude?.toFixed(4)}` : '—' },
+                          { label: 'Private', value: isPrivate ? 'Yes' : 'No' },
+                        ].map(row => (
+                          <div key={row.label} className="flex items-center justify-between">
+                            <span className="micro-caps text-xs text-marble/30">{row.label}</span>
+                            <span className="text-marble text-sm truncate max-w-[200px] text-right font-medium">{row.value}</span>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   </div>
 
-                  {error && <p className="text-red-400 text-sm px-1 font-medium">{error}</p>}
+                  {error && <p className="text-red-400 text-sm px-4 mt-4 font-medium">{error}</p>}
                 </div>
               )}
 
