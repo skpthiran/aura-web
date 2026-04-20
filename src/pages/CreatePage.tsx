@@ -181,49 +181,60 @@ export default function CreatePage() {
 
   // Initialize map for Step 3
   useEffect(() => {
-    if (step !== 3 || !mapContainerRef.current) return
-    if (mapRef.current) return // already initialized
+    if (step !== 3) return
 
-    const defaultLat = latitude ?? 6.9271
-    const defaultLng = longitude ?? 79.8612
+    // Wait for DOM to paint before initializing
+    const timer = setTimeout(() => {
+      if (!mapContainerRef.current) return
+      if (mapRef.current) {
+        mapRef.current.resize()
+        return
+      }
 
-    const map = new MapLibreMap({
-      container: mapContainerRef.current,
-      style: MAPTILER_STYLE,
-      center: [defaultLng, defaultLat],
-      zoom: 14,
-    })
+      const defaultLat = latitude ?? 6.9271
+      const defaultLng = longitude ?? 79.8612
 
-    mapRef.current = map
+      const map = new MapLibreMap({
+        container: mapContainerRef.current,
+        style: MAPTILER_STYLE,
+        center: [defaultLng, defaultLat],
+        zoom: 14,
+        attributionControl: false,
+      })
 
-    // Draggable marker
-    const marker = new Marker({ color: '#C9A84C', draggable: true })
-      .setLngLat([defaultLng, defaultLat])
-      .addTo(map)
+      map.on('load', () => {
+        map.resize()
 
-    markerRef.current = marker
+        const marker = new Marker({ color: '#C9A84C', draggable: true })
+          .setLngLat([defaultLng, defaultLat])
+          .addTo(map)
 
-    // Update coordinates on drag
-    marker.on('dragend', () => {
-      const lngLat = marker.getLngLat()
-      setLatitude(lngLat.lat)
-      setLongitude(lngLat.lng)
-    })
+        markerRef.current = marker
 
-    // Also update on map click — moves marker to clicked location
-    map.on('click', (e) => {
-      marker.setLngLat(e.lngLat)
-      setLatitude(e.lngLat.lat)
-      setLongitude(e.lngLat.lng)
-    })
+        marker.on('dragend', () => {
+          const ll = marker.getLngLat()
+          setLatitude(ll.lat)
+          setLongitude(ll.lng)
+        })
 
-    // If we already have location, set it
-    if (latitude && longitude) {
-      map.setCenter([longitude, latitude])
-      marker.setLngLat([longitude, latitude])
-    }
+        map.on('click', (e) => {
+          marker.setLngLat(e.lngLat)
+          setLatitude(e.lngLat.lat)
+          setLongitude(e.lngLat.lng)
+        })
+
+        // Fly to real location if already detected
+        if (latitude && longitude) {
+          map.flyTo({ center: [longitude, latitude], zoom: 15, duration: 800 })
+          marker.setLngLat([longitude, latitude])
+        }
+      })
+
+      mapRef.current = map
+    }, 100)
 
     return () => {
+      clearTimeout(timer)
       if (mapRef.current) {
         mapRef.current.remove()
         mapRef.current = null
@@ -536,9 +547,12 @@ export default function CreatePage() {
                   </p>
 
                   {/* MapLibre interactive map */}
-                  <div className="rounded-2xl overflow-hidden border border-white/10"
-                    style={{ height: '320px', position: 'relative' }}>
-                    <div ref={mapContainerRef} className="w-full h-full" />
+                  <div className="rounded-2xl overflow-hidden border border-white/10 relative"
+                    style={{ height: '320px' }}>
+                    <div
+                      ref={mapContainerRef}
+                      style={{ width: '100%', height: '100%', minHeight: '320px' }}
+                    />
 
                     {/* Center crosshair overlay */}
                     <div className="absolute inset-0 flex items-center justify-center
