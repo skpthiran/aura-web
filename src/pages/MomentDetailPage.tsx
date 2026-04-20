@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, lazy, Suspense } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { motion } from 'motion/react'
 import { useAuth } from '../contexts/AuthContext'
@@ -8,10 +8,12 @@ import { usePageTitle } from '../hooks/usePageTitle'
 import {
   ArrowLeft, MapPin, Clock, Users, Calendar,
   Zap, Tag, MessageSquare, Share2, Loader,
-  Check, Lock
+  Check, Lock, Flag
 } from 'lucide-react'
 import { cn } from '../lib/utils'
 import { Moment } from '../types'
+
+const ReportModal = lazy(() => import('../components/ReportModal'))
 
 export default function MomentDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -23,6 +25,7 @@ export default function MomentDetailPage() {
   const [joining, setJoining] = useState(false)
   const [joined, setJoined] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [showReport, setShowReport] = useState(false)
   const [participantCount, setParticipantCount] = useState(0)
   const [waitlistPosition, setWaitlistPosition] = useState<number | null>(null)
   const [waitlistTotal, setWaitlistTotal] = useState(0)
@@ -216,14 +219,28 @@ export default function MomentDetailPage() {
               text-white/70 hover:text-white transition-colors">
             <ArrowLeft className="w-4 h-4" />
           </button>
-          <button onClick={handleShare}
-            className="w-9 h-9 rounded-full bg-black/40 backdrop-blur-md
-              border border-white/15 flex items-center justify-center
-              text-white/70 hover:text-white transition-colors">
-            {copied
-              ? <Check className="w-4 h-4 text-green-400" />
-              : <Share2 className="w-4 h-4" />}
-          </button>
+
+          <div className="flex items-center gap-2">
+            {/* Report — only show if not creator */}
+            {user && moment && user.id !== (moment as any).creator_id && (
+              <button
+                onClick={() => setShowReport(true)}
+                className="w-9 h-9 rounded-full bg-black/40 backdrop-blur-md
+                  border border-white/15 flex items-center justify-center
+                  text-white/50 hover:text-red-400 transition-colors">
+                <Flag className="w-4 h-4" />
+              </button>
+            )}
+            {/* Share */}
+            <button onClick={handleShare}
+              className="w-9 h-9 rounded-full bg-black/40 backdrop-blur-md
+                border border-white/15 flex items-center justify-center
+                text-white/70 hover:text-white transition-colors">
+              {copied
+                ? <Check className="w-4 h-4 text-green-400" />
+                : <Share2 className="w-4 h-4" />}
+            </button>
+          </div>
         </div>
 
         {/* Bottom of hero — type + status */}
@@ -644,6 +661,16 @@ export default function MomentDetailPage() {
 
         </div>
       </div>
+
+      {showReport && moment && (
+        <Suspense fallback={null}>
+          <ReportModal
+            momentId={moment.id}
+            momentTitle={moment.title}
+            onClose={() => setShowReport(false)}
+          />
+        </Suspense>
+      )}
     </div>
   )
 }
