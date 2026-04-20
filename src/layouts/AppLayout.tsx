@@ -97,7 +97,6 @@ export default function AppLayout() {
 
           {/* Right — search, bell, avatar */}
           <div className="flex items-center gap-1">
-
             {/* Search */}
             <NavLink to="/app/search">
               {({ isActive }) => (
@@ -113,7 +112,7 @@ export default function AppLayout() {
             {/* Notification bell */}
             <button
               onClick={() => navigate('/app/signals')}
-              className="relative w-9 h-9 rounded-full flex items-center 
+              className="relative w-9 h-9 rounded-full flex items-center
                 justify-center text-white/40 hover:text-white/80 transition-colors"
             >
               <Bell className="w-[18px] h-[18px]" />
@@ -123,7 +122,7 @@ export default function AppLayout() {
               )}
             </button>
 
-            {/* Avatar / Profile */}
+            {/* Avatar */}
             <NavLink to="/app/profile">
               <div className="w-8 h-8 rounded-full border border-white/15
                 bg-white/8 overflow-hidden flex items-center justify-center ml-1">
