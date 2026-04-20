@@ -39,6 +39,7 @@ export interface Moment {
   dresscode?: string
   age_min?: number
   age_max?: number
+  image_url?: string
 }
 
 export interface MapPin {

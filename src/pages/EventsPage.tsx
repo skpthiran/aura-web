@@ -1,7 +1,7 @@
-import React,{ useState, useCallback, useEffect } from 'react'
+import React, { useState, useCallback, useEffect } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
-import { Link } from 'react-router-dom'
-import { Calendar, Users, Clock, Loader, Trophy, RefreshCw, X, Lock, Radar } from 'lucide-react'
+import { Link, useNavigate } from 'react-router-dom'
+import { Calendar, Users, Clock, Loader, RefreshCw, Radar, MapPin } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { useUserLocation } from '../hooks/useUserLocation'
 import { useNearbyEvents } from '../hooks/useNearbyEvents'
@@ -12,7 +12,7 @@ import { usePageTitle } from '../hooks/usePageTitle'
 import { useToast } from '../components/ToastProvider'
 import { useRealtimeMoments } from '../hooks/useRealtimeMoments'
 import JoinedOverlay from '../components/JoinedOverlay'
-import { getRejectedIds, addRejectedId } from '../lib/cardState'
+import { getRejectedIds } from '../lib/cardState'
 import { supabase } from '../lib/supabase'
 
 interface PremiumEventCardProps {
@@ -24,17 +24,15 @@ interface PremiumEventCardProps {
 }
 
 const PremiumEventCard: React.FC<PremiumEventCardProps> = ({ event, index, isJoined, isJoining, onJoin }) => {
+  const navigate = useNavigate()
   const distanceLabel = event.distance_meters
     ? event.distance_meters < 1000
       ? `${Math.round(event.distance_meters)}M`
-      : `${(event.distance_meters / 1000).toFixed(1)}KM`
+      : `${((event.distance_meters || 0) / 1000).toFixed(1)}KM`
     : 'NEARBY'
 
   const expiresAt = new Date(event.expires_at)
-  const hoursLeft = Math.max(0, Math.round((expiresAt.getTime() - Date.now()) / (1000 * 60 * 60)))
   const formattedDate = expiresAt.toLocaleDateString('en', { month: 'short', day: 'numeric' })
-  const isExpiringSoon = hoursLeft < 4
-  const timeLeft = hoursLeft === 0 ? 'Expiring' : `${hoursLeft}H LEFT`
 
   return (
     <motion.div
@@ -42,101 +40,108 @@ const PremiumEventCard: React.FC<PremiumEventCardProps> = ({ event, index, isJoi
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.05 }}
       className={cn(
-        "relative w-full rounded-[28px] overflow-hidden cursor-pointer group shadow-2xl glass-panel hairline-all",
-        index === 0 ? "lg:col-span-3 lg:min-h-[420px]" : "lg:col-span-1 lg:min-h-[280px]"
+        "relative rounded-2xl overflow-hidden cursor-pointer group transition-all duration-300 hover:scale-[1.01] hover:shadow-2xl",
+        index === 0 ? "lg:col-span-3" : "lg:col-span-1"
       )}
-      style={{ minHeight: index === 0 ? '420px' : 'clamp(200px, 28vh, 320px)' }}
+      style={{ minHeight: index === 0 ? 'clamp(320px, 45vh, 480px)' : '280px' }}
+      onClick={() => navigate(`/app/moment/${event.id}`)}
     >
-      <Link to={`/app/moment/${event.id}`}>
-        {/* Background image or gradient */}
-        <div className="absolute inset-0">
-          <img 
-            src={`https://picsum.photos/seed/${event.id}/1200/600`}
-            className="w-full h-full object-cover opacity-50 group-hover:scale-105 group-hover:opacity-75 transition-all duration-1000"
-            alt=""
-          />
-          {/* Cinematic Overlays */}
-          <div className="absolute inset-0 bg-gradient-to-t from-[#08080f] via-[#08080f]/60 to-transparent" />
-          <div className="absolute inset-0 bg-gradient-to-b from-[#08080f]/20 via-transparent to-transparent" />
+      {/* BG IMAGE */}
+      <div className="absolute inset-0">
+        <img 
+          src={event.image_url || `https://picsum.photos/seed/${event.id}/1200/800`} 
+          className="w-full h-full object-cover object-center transition-transform duration-700 group-hover:scale-110" 
+          alt="" 
+        />
+        {/* MULTI-LAYER OVERLAYS */}
+        <div className="absolute inset-0 bg-black/40" />
+        <div className="absolute inset-0 bg-gradient-to-t from-obsidian via-obsidian/40 to-transparent opacity-90" />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-transparent" />
+      </div>
+
+      {/* TOP LEFT BADGE */}
+      <div className="absolute top-5 left-5">
+        <div className="px-3 py-1.5 rounded-full bg-gold/90 backdrop-blur-md text-obsidian text-[10px] font-black tracking-[0.15em] uppercase shadow-lg">
+          Gathering
         </div>
-        
-        {/* TOP badges */}
-        <div className="absolute top-5 left-5 flex gap-2">
-          <span className="px-3 py-1.5 rounded-full bg-[#c9a84c]/20 border border-[#c9a84c]/40 text-[#c9a84c] text-[10px] font-bold tracking-widest uppercase backdrop-blur-md">
-            Event
-          </span>
-          <span className="px-3 py-1.5 rounded-full bg-black/40 border border-white/10 text-white/50 text-[10px] font-bold tracking-widest uppercase backdrop-blur-md">
-            {distanceLabel}
-          </span>
+      </div>
+
+      {/* BOTTOM CONTENT */}
+      <div className="absolute bottom-0 left-0 right-0 p-6 flex flex-col justify-end">
+        {/* Tags */}
+        <div className="flex flex-wrap gap-2 mb-3">
+          {event.tags?.slice(0, 2).map(tag => (
+            <span key={tag} className="px-2 py-1 rounded-md bg-white/5 backdrop-blur-md border border-white/10 text-white/50 text-[9px] tracking-widest uppercase">
+              {tag}
+            </span>
+          ))}
         </div>
 
-        {/* BOTTOM content */}
-        <div className={cn("absolute bottom-0 left-0 right-0 p-6", index === 0 && "lg:p-10")}>
-          <div className="mb-4">
-            <h2 className={cn(
-              "text-white text-2xl font-serif tracking-widest uppercase mb-2 drop-shadow-2xl leading-tight",
-              index === 0 && "lg:text-[32px]"
-            )}>
-              {event.title}
-            </h2>
-            <p className="text-white/40 text-xs line-clamp-1 italic tracking-wide max-w-sm">
-              {event.description || "No description provided."}
-            </p>
-          </div>
-          
-          {/* Tags */}
-          {event.tags && event.tags.length > 0 && (
-            <div className="flex flex-wrap gap-2 mb-6">
-              {event.tags.slice(0, 3).map(tag => (
-                <span key={tag} className="px-2.5 py-1 rounded-md bg-white/5 border border-white/10 text-white/30 text-[9px] font-bold tracking-widest uppercase">
-                  {tag}
-                </span>
-              ))}
-            </div>
-          )}
+        {/* TITLE — Strong and clear */}
+        <h2 className={cn(
+          "font-bold tracking-[0.05em] uppercase text-white leading-tight mb-3 drop-shadow-2xl",
+          index === 0 ? "text-[28px] lg:text-[38px] max-w-[80%]" : "text-[20px]"
+        )}>
+          {event.title}
+        </h2>
 
-          {/* Meta row + Attend button */}
-          <div className="flex items-center justify-between pt-4 border-t border-white/5">
-            <div className="flex items-center gap-5 text-[10px] text-white/40 tracking-widest font-medium">
-              <span className="flex items-center gap-2">
-                <Users className="w-3.5 h-3.5 opacity-30 text-[#c9a84c]" />
-                {event.participant_count ?? 0} / {event.capacity_limit}
-              </span>
-              <span className="flex items-center gap-2">
-                <Calendar className="w-3.5 h-3.5 opacity-30 text-[#c9a84c]" />
-                {formattedDate}
-              </span>
-              <span className={cn('flex items-center gap-2', isExpiringSoon ? 'text-red-400 font-bold' : 'text-white/30')}>
-                <Clock className="w-3.5 h-3.5 opacity-30 text-[#c9a84c]" />
-                {timeLeft}
-              </span>
+        {/* META ROW */}
+        <div className="flex items-center justify-between mt-auto">
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 text-white/60 text-[10px] font-medium tracking-wider">
+              <MapPin className="w-3.5 h-3.5 text-gold-pale" />
+              <span>{distanceLabel}</span>
             </div>
-            
-            <button 
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                onJoin();
-              }}
-              disabled={isJoined || isJoining}
-              className={cn(
-                "px-8 py-3 rounded-full text-[11px] font-black tracking-[0.2em] uppercase transition-all active:scale-90",
-                index === 0 && "lg:px-10 lg:py-4 lg:text-[13px]",
-                isJoined 
-                  ? "bg-white/5 border border-white/10 text-white/20"
-                  : "bg-[#c9a84c] text-[#08080f] shadow-[0_0_30px_rgba(201,168,76,0.3)] hover:shadow-[0_0_40px_rgba(201,168,76,0.5)]"
-              )}
-            >
-              {isJoining ? <Loader className="w-3.5 h-3.5 animate-spin" /> : isJoined ? 'Attending' : 'Attend'}
-            </button>
+            <div className="flex items-center gap-2 text-white/60 text-[10px] font-medium tracking-wider">
+              <Calendar className="w-3.5 h-3.5 text-gold-pale" />
+              <span>{formattedDate}</span>
+            </div>
           </div>
+
+          {/* ACTION BUTTON */}
+          <button
+            onClick={(e) => { e.stopPropagation(); onJoin(); }}
+            disabled={isJoining || isJoined}
+            className={cn(
+              "px-6 py-2.5 rounded-full text-[10px] font-black tracking-[0.15em] uppercase transition-all duration-300",
+              isJoined 
+                ? "bg-gold/10 border border-gold/30 text-gold"
+                : "bg-gold text-obsidian hover:bg-gold/90 active:scale-95 shadow-xl shadow-gold/10"
+            )}
+          >
+            {isJoining ? (
+              <Loader className="w-3.5 h-3.5 animate-spin" />
+            ) : isJoined ? (
+              "Joined"
+            ) : (
+              "Attend"
+            )}
+          </button>
         </div>
-      </Link>
-      
-      {/* Joined Overlay */}
-      {isJoined && (
-        <JoinedOverlay title={event.title} />
-      )}
+      </div>
+
+      {/* JOINED OVERLAY — Full card blur */}
+      <AnimatePresence>
+        {isJoined && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="absolute inset-0 z-20 backdrop-blur-xl bg-black/40 flex items-center justify-center p-8 text-center pointer-events-none"
+          >
+            <div className="flex flex-col items-center gap-4">
+              <div className="w-16 h-16 rounded-full bg-gold/10 border border-gold/30 flex items-center justify-center">
+                <div className="w-12 h-12 rounded-full bg-gold flex items-center justify-center">
+                  <Users className="w-6 h-6 text-obsidian" />
+                </div>
+              </div>
+              <div>
+                <p className="text-[10px] tracking-[0.3em] font-black uppercase text-gold mb-1">Confirmed</p>
+                <h3 className="text-white text-lg font-bold tracking-tight uppercase leading-tight">{event.title}</h3>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.div>
   )
 }
@@ -144,19 +149,17 @@ const PremiumEventCard: React.FC<PremiumEventCardProps> = ({ event, index, isJoi
 export default function EventsPage() {
   usePageTitle('Colosseum')
   const { user } = useAuth()
+  const navigate = useNavigate()
   const { location } = useUserLocation()
   const RADIUS_OPTIONS = [5, 10, 25, 50, 100, 500]
-  const [radius, setRadius] = useState<number>(50) // default 50km
+  const [radius, setRadius] = useState<number>(50)
   const [radiusOpen, setRadiusOpen] = useState(false)
 
   const { events, loading, refetch, setEvents } = useNearbyEvents(location, radius * 1000)
   const { addToast } = useToast()
 
-  // Realtime Integration
   const handleRealtimeInsert = useCallback((newMoment: Moment) => {
     if (newMoment.moment_type !== 'event') return
-
-    // Sync state
     setEvents?.(prev => {
       const idx = prev.findIndex(m => m.id === newMoment.id)
       if (idx >= 0) {
@@ -167,7 +170,6 @@ export default function EventsPage() {
       return [newMoment, ...prev]
     })
 
-    // Notify if nearby
     if (location && newMoment.latitude !== undefined && newMoment.longitude !== undefined) {
       const dist = calculateDistance(
         location.latitude,
@@ -175,11 +177,10 @@ export default function EventsPage() {
         newMoment.latitude,
         newMoment.longitude
       )
-      
       if (dist <= radius * 1000) {
         addToast({
           title: newMoment.title,
-          description: "A new structured gathering has been initialized nearby.",
+          description: "New structured gathering initialized nearby.",
           link: `/app/moment/${newMoment.id}`,
           type: 'signal'
         })
@@ -195,42 +196,23 @@ export default function EventsPage() {
 
   const [joiningId, setJoiningId] = useState<string | null>(null)
   const [joinedIds, setJoinedIds] = useState<Set<string>>(new Set())
-  const [cardActions, setCardActions] = useState<Record<string, 'joined' | 'rejected' | null>>(() => {
-    const rejected = getRejectedIds()
-    const initial: Record<string, 'joined' | 'rejected' | null> = {}
-    rejected.forEach(id => { initial[id] = 'rejected' })
-    return initial
-  })
   const [cardJoining, setCardJoining] = useState<Record<string, boolean>>({})
 
   const handleJoin = async (momentId: string) => {
-    if (!user || joinedIds.has(momentId) || cardActions[momentId] === 'joined') return
+    if (!user || joinedIds.has(momentId) || joiningId) return
     setJoiningId(momentId)
     setCardJoining(prev => ({ ...prev, [momentId]: true }))
     
     try {
       await joinMoment(momentId)
       setJoinedIds(prev => new Set([...prev, momentId]))
-      setCardActions(prev => ({ ...prev, [momentId]: 'joined' }))
     } catch (err: any) {
       console.error('Join failed:', err)
-      alert(err.message ?? 'Failed to join signal')
     } finally {
       setJoiningId(null)
       setCardJoining(prev => ({ ...prev, [momentId]: false }))
     }
   }
-
-  useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      const target = e.target as HTMLElement
-      if (radiusOpen && !target.closest('[data-radius-dropdown]')) {
-        setRadiusOpen(false)
-      }
-    }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
-  }, [radiusOpen])
 
   useEffect(() => {
     if (!user || events.length === 0) return
@@ -242,7 +224,7 @@ export default function EventsPage() {
       .in('moment_id', ids)
       .eq('status', 'joined')
       .then(({ data, error }) => {
-        if (error) { console.error('joined state error:', error); return }
+        if (error) return
         if (!data) return
         setJoinedIds(prev => {
           const next = new Set(prev)
@@ -254,77 +236,54 @@ export default function EventsPage() {
 
   return (
     <div className="flex flex-col h-screen bg-obsidian overflow-hidden">
-      <div className="flex-1 flex flex-col w-full max-w-screen-2xl mx-auto overflow-hidden lg:px-10 lg:pt-8">
-        {/* HEADER — fixed, never scrolls */}
-        <div className="flex-shrink-0 px-8 pt-8 pb-4 lg:px-0">
-          <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between mb-4 lg:mb-6">
+      <div className="flex-1 flex flex-col w-full max-w-screen-2xl mx-auto overflow-hidden">
+        {/* HEADER — High intensity consolidation */}
+        <div className="flex-shrink-0 px-6 lg:px-12 pt-8 pb-6 border-b border-white/[0.03]">
+          <div className="flex items-start justify-between">
             <div>
-              <p className="text-[10px] tracking-[0.3em] font-mono font-bold uppercase text-[#c9a84c]/60 mb-2">
-                Structured Gatherings
-              </p>
-              <h1 className="text-4xl lg:text-5xl font-serif tracking-[0.05em] uppercase text-white mb-2 shadow-sm">
-                Colosseum
-              </h1>
-              <div className="hidden lg:block h-px bg-gradient-to-r from-gold/40 via-gold/10 to-transparent mt-3 mb-1" />
-              <div className="flex items-center gap-3">
-                 <div className="w-1.5 h-1.5 rounded-full bg-gold animate-pulse shadow-[0_0_10px_rgba(201,168,76,0.8)]" />
-                 <p className="text-[10px] tracking-[0.2em] uppercase text-white/30 font-medium">
-                   {events.length} Active Projections
-                 </p>
-              </div>
+              <p className="text-[10px] tracking-[0.25em] uppercase text-gold/60 mb-2 font-black">Structured Gatherings</p>
+              <h1 className="text-[32px] lg:text-[42px] font-bold tracking-[0.05em] uppercase text-white leading-none">Colosseum</h1>
             </div>
-
-            <div className="flex items-center gap-4 mt-6 lg:mt-0">
-               {/* Radius Filter Dropdown */}
-               <div className="relative" data-radius-dropdown>
+            
+            <div className="flex items-center gap-3">
+              {/* RADIUS DROPDOWN */}
+              <div className="relative" data-radius-dropdown>
                 <button
                   onClick={() => setRadiusOpen(o => !o)}
-                  className="flex items-center gap-2.5 px-5 py-2.5 rounded-full
-                    bg-white/[0.02] border border-white/10 text-white/50
-                    text-[10px] font-bold tracking-[0.15em] uppercase transition-all active:scale-95 hover:border-white/20"
+                  className="flex items-center gap-3 px-5 py-2.5 rounded-full bg-white/[0.03] border border-white/10 text-white/70 text-[10px] font-black tracking-widest uppercase hover:bg-white/[0.06] transition-all"
                 >
-                  <Radar className="w-3.5 h-3.5 text-[#c9a84c]" />
+                  <Radar className="w-3.5 h-3.5 text-gold" />
                   {radius >= 500 ? 'Global' : `${radius} KM`}
-                  <svg className={cn('w-3.5 h-3.5 transition-transform duration-300', radiusOpen && 'rotate-180')}
-                    viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                    <polyline points="6 9 12 15 18 9"></polyline>
-                  </svg>
                 </button>
-
+                
                 <AnimatePresence>
                   {radiusOpen && (
                     <motion.div
-                      initial={{ opacity: 0, y: 15, scale: 0.95 }}
+                      initial={{ opacity: 0, y: 10, scale: 0.95 }}
                       animate={{ opacity: 1, y: 0, scale: 1 }}
-                      exit={{ opacity: 0, y: 15, scale: 0.95 }}
-                      className="absolute top-full mt-3 right-0 lg:right-0 left-0 lg:left-auto z-[100] bg-[#0a0a14]/95 backdrop-blur-2xl border
-                        border-white/10 rounded-2xl overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.8)] min-w-[160px]"
+                      exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                      className="absolute top-full mt-3 right-0 z-[100] min-w-[160px] bg-obsidian border border-white/10 rounded-2xl overflow-hidden shadow-2xl backdrop-blur-2xl"
                     >
                       {RADIUS_OPTIONS.map(r => (
                         <button
                           key={r}
-                          onClick={() => { setRadius(r); setRadiusOpen(false) }}
+                          onClick={() => { setRadius(r); setRadiusOpen(false); }}
                           className={cn(
-                            'w-full px-6 py-4 text-left text-[10px] font-bold tracking-widest uppercase transition-colors',
-                            radius === r
-                              ? 'text-[#c9a84c] bg-[#c9a84c]/10'
-                              : 'text-white/40 hover:text-white hover:bg-white/5'
+                            "w-full px-6 py-4 text-left text-[10px] font-bold tracking-[0.2em] uppercase transition-colors border-b border-white/[0.03]",
+                            radius === r ? "text-gold bg-gold/5" : "text-white/40 hover:bg-white/5 hover:text-white"
                           )}
                         >
                           {r} KM
                         </button>
                       ))}
-                      <div className="h-px bg-white/5 mx-2" />
                       <button
-                        onClick={() => { setRadius(999999); setRadiusOpen(false) }}
+                        onClick={() => { setRadius(99999); setRadiusOpen(false); }}
                         className={cn(
-                          'w-full px-6 py-4 text-left text-[10px] font-bold tracking-widest uppercase transition-colors',
-                          radius >= 999999
-                            ? 'text-[#c9a84c] bg-[#c9a84c]/10'
-                            : 'text-white/40 hover:text-white hover:bg-white/5'
+                          "w-full px-6 py-4 text-left text-[10px] font-bold tracking-[0.2em] uppercase transition-colors",
+                          radius >= 99999 ? "text-gold bg-gold/5" : "text-white/40 hover:bg-white/5 hover:text-white"
                         )}
                       >
-                        Global Range
+                        Global
                       </button>
                     </motion.div>
                   )}
@@ -333,64 +292,65 @@ export default function EventsPage() {
 
               <button
                 onClick={() => refetch()}
-                className="w-11 h-11 rounded-full border border-white/5 bg-white/[0.02] 
-                  flex items-center justify-center text-white/20 
-                  hover:text-[#c9a84c] hover:border-[#c9a84c]/20 transition-all cursor-pointer active:scale-95 shadow-xl"
+                className="w-10 h-10 rounded-full border border-white/10 bg-white/[0.03] flex items-center justify-center text-white/40 hover:text-white hover:border-gold/30 transition-all active:scale-95 shadow-xl"
               >
-                <RefreshCw className="w-4 h-4" />
+                <RefreshCw className={cn("w-4 h-4", loading && "animate-spin text-gold")} />
               </button>
             </div>
+          </div>
+          
+          <div className="flex items-center gap-3 mt-6">
+            <div className="px-2 py-0.5 rounded bg-gold/20 mr-1">
+              <p className="text-[11px] font-black text-gold tracking-tighter">{events.length}</p>
+            </div>
+            <p className="text-[10px] tracking-[0.1em] text-white/30 uppercase font-medium">Active Signals Broadcasted</p>
           </div>
         </div>
 
-        {/* EVENTS LIST — scrollable, fills remaining height */}
-        <div className="flex-1 overflow-y-auto px-6 lg:px-0 pb-6 scrollbar-hide pt-4">
-        {loading ? (
-          <div className="flex flex-col items-center justify-center py-32 gap-6">
-            <div className="relative w-12 h-12">
-              <Loader className="w-12 h-12 text-[#c9a84c] animate-spin absolute inset-0 opacity-20" />
-              <div className="w-12 h-12 border-2 border-[#c9a84c] rounded-full border-t-transparent animate-[spin_1.5s_linear_infinite]" />
+        {/* LIST CONTAINER */}
+        <div className="flex-1 overflow-y-auto px-6 lg:px-12 pt-8 pb-32 scrollbar-hide">
+          {loading ? (
+            <div className="flex flex-col items-center justify-center py-32">
+              <div className="relative w-16 h-16 mb-6">
+                <div className="absolute inset-0 border-2 border-gold/10 rounded-full" />
+                <div className="absolute inset-0 border-2 border-gold border-t-transparent rounded-full animate-spin" />
+                <Radar className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-6 h-6 text-gold opacity-50" />
+              </div>
+              <p className="text-[11px] tracking-[0.4em] font-black uppercase text-gold/40 animate-pulse">Syncing Streams...</p>
             </div>
-            <p className="text-[10px] tracking-[0.3em] uppercase text-white/20 animate-pulse">Syncing Colosseum...</p>
-          </div>
-        ) : events.length === 0 ? (
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="rounded-[32px] border border-white/5 bg-white/[0.01] p-12 text-center py-24 shadow-inner"
-          >
-            <div className="w-16 h-16 rounded-3xl border border-white/5 bg-white/[0.02] flex items-center justify-center mx-auto mb-8 shadow-2xl">
-              <Calendar className="w-6 h-6 text-white/10" />
-            </div>
-            <p className="text-white/20 text-xs tracking-[0.3em] uppercase mb-10">Historical silence observed</p>
-            <Link to="/app/create">
-              <button className="text-[11px] font-black tracking-[0.25em] uppercase px-12 py-4 rounded-full bg-marble text-void hover:bg-[#c9a84c] transition-all shadow-xl active:scale-95">
-                Establish Signal
-              </button>
-            </Link>
-          </motion.div>
-        ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-5 content-start pb-32">
-            <AnimatePresence mode="popLayout">
-              {events
-                .filter(event => cardActions[event.id] !== 'rejected')
-                .map((event, i) => (
+          ) : events.length === 0 ? (
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="rounded-3xl border border-white/5 bg-white/[0.01] p-16 text-center shadow-inner mt-4"
+            >
+              <div className="w-20 h-20 rounded-full border border-white/5 bg-white/[0.02] flex items-center justify-center mx-auto mb-8 shadow-2xl">
+                <MapPin className="w-8 h-8 text-white/10" />
+              </div>
+              <p className="text-white/20 text-[10px] tracking-[0.4em] uppercase mb-10 font-bold">No structured signals detected</p>
+              <Link to="/app/create">
+                <button className="px-10 py-4 rounded-full bg-gold text-obsidian text-[11px] font-black tracking-widest uppercase hover:scale-105 transition-all shadow-xl shadow-gold/20">
+                  Initialize Gathering
+                </button>
+              </Link>
+            </motion.div>
+          ) : (
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 auto-rows-min">
+              <AnimatePresence mode="popLayout">
+                {events.map((event, i) => (
                   <PremiumEventCard 
                     key={event.id}
                     event={event}
                     index={i}
-                    isJoined={joinedIds.has(event.id) || cardActions[event.id] === 'joined'}
-                    isJoining={joiningId === event.id || cardJoining[event.id]}
+                    isJoined={joinedIds.has(event.id)}
+                    isJoining={cardJoining[event.id]}
                     onJoin={() => handleJoin(event.id)}
                   />
                 ))}
-            </AnimatePresence>
-          </div>
-        )}
-      </div>
-
-        {/* Safe Area Spacer for Nav Integration */}
-        <div className="flex-shrink-0 h-[calc(64px+env(safe-area-inset-bottom))]" />
+              </AnimatePresence>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   )
