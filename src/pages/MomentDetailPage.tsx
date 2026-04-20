@@ -196,13 +196,14 @@ export default function MomentDetailPage() {
     <div className="flex-1 overflow-y-auto bg-void">
 
       {/* HERO */}
-      <div className="relative overflow-hidden" style={{ height: '65dvh', minHeight: '320px', maxHeight: '700px' }}>
+      <div className="relative w-full overflow-hidden" style={{ height: '55vw', maxHeight: '380px', minHeight: '220px' }}>
         <motion.img
           initial={{ scale: 1.15, filter: 'blur(10px)', opacity: 0 }}
           animate={{ scale: 1, filter: 'blur(0px)', opacity: 1 }}
           transition={{ duration: 1.2, ease: [0.22, 1, 0.36, 1] }}
           src={getSignalImage(moment.id, moment.tags, moment.moment_type)}
-          className="absolute inset-0 w-full h-full object-cover"
+          className="w-full h-full object-cover object-center block"
+          style={{ display: 'block' }}
           onError={(e) => { 
             e.currentTarget.src = `https://picsum.photos/seed/${moment.id}/1200/600`
           }}
@@ -278,8 +279,8 @@ export default function MomentDetailPage() {
       </div>
 
       {/* CONTENT — two column on desktop */}
-      <div className="max-w-5xl mx-auto px-5 lg:px-8 pb-24">
-        <div className="lg:grid lg:grid-cols-[1fr_360px] lg:gap-8 lg:mt-8">
+      <div className="max-w-5xl mx-auto px-0 lg:px-8 pb-12">
+        <div className="lg:grid lg:grid-cols-[1fr_360px] lg:gap-8 lg:mt-8 px-5 lg:px-0">
           
           {/* LEFT COLUMN — main info */}
           <div>
