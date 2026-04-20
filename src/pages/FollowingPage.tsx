@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
+import { useNavigate, Link, useLocation } from 'react-router-dom'
 import { motion } from 'motion/react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
@@ -7,56 +7,78 @@ import { usePageTitle } from '../hooks/usePageTitle'
 import { ArrowLeft, Users, User, ArrowRight, Loader } from 'lucide-react'
 import { cn } from '../lib/utils'
 
-interface ConnectionProfile {
+interface FollowUser {
   id: string
   full_name: string | null
   username: string | null
   avatar_url: string | null
-  bio: string | null
 }
 
 export default function FollowingPage() {
   const navigate = useNavigate()
+  const location = useLocation()
   const { user } = useAuth()
   usePageTitle('Connections')
 
-  const [activeTab, setActiveTab] = useState<'following' | 'followers'>('following')
-  const [profiles, setProfiles] = useState<ConnectionProfile[]>([])
+  const [activeTab, setActiveTab] = useState<'following' | 'followers'>(
+    location.state?.tab === 'followers' ? 'followers' : 'following'
+  )
+  const [followers, setFollowers] = useState<FollowUser[]>([])
+  const [following, setFollowing] = useState<FollowUser[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    if (user) fetchConnections()
-  }, [user, activeTab])
+    if (user) fetchAll()
+  }, [user])
 
-  const fetchConnections = async () => {
+  const fetchAll = async () => {
+    if (!user) return
     setLoading(true)
     try {
-      const matchField = activeTab === 'following' ? 'follower_id' : 'following_id'
-      const selectField = activeTab === 'following' ? 'following_id' : 'follower_id'
-
-      const { data, error } = await supabase
+      // Get IDs of people I follow
+      const { data: followingData } = await supabase
         .from('follows')
-        .select(`
-          profile:profiles!${selectField}(
-            id,
-            full_name,
-            username,
-            avatar_url,
-            bio
-          )
-        `)
-        .eq(matchField, user!.id)
+        .select('following_id')
+        .eq('follower_id', user.id)
 
-      if (error) throw error
-      
-      const extractedProfiles = (data || []).map((item: any) => item.profile)
-      setProfiles(extractedProfiles)
+      // Get IDs of people who follow me
+      const { data: followersData } = await supabase
+        .from('follows')
+        .select('follower_id')
+        .eq('following_id', user.id)
+
+      // Fetch profiles for following
+      if (followingData && followingData.length > 0) {
+        const ids = followingData.map((f: any) => f.following_id)
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('id, full_name, username, avatar_url')
+          .in('id', ids)
+        setFollowing((profiles ?? []) as FollowUser[])
+      } else {
+        setFollowing([])
+      }
+
+      // Fetch profiles for followers
+      if (followersData && followersData.length > 0) {
+        const ids = followersData.map((f: any) => f.follower_id)
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('id, full_name, username, avatar_url')
+          .in('id', ids)
+        setFollowers((profiles ?? []) as FollowUser[])
+      } else {
+        setFollowers([])
+      }
+
     } catch (err) {
-      console.error('Error fetching connections:', err)
+      console.error(err)
     } finally {
       setLoading(false)
     }
   }
+
+  const currentList = activeTab === 'following' ? following : followers
 
   return (
     <div className="flex-1 overflow-y-auto bg-void pb-20">
@@ -105,7 +127,7 @@ export default function FollowingPage() {
             <Loader className="w-6 h-6 text-gold animate-spin" />
             <p className="micro-caps text-xs text-marble/30">Synchronizing nexus...</p>
           </div>
-        ) : profiles.length === 0 ? (
+        ) : currentList.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-center gap-4">
             <div className="w-16 h-16 rounded-full bg-white/5 border border-white/10
               flex items-center justify-center">
@@ -122,7 +144,7 @@ export default function FollowingPage() {
           </div>
         ) : (
           <div className="flex flex-col gap-3">
-            {profiles.map((profile, i) => (
+            {currentList.map((profile, i) => (
               <motion.div
                 key={profile.id}
                 initial={{ opacity: 0, x: -10 }}

@@ -229,7 +229,11 @@ export default function ProfilePage() {
                 { value: activeEvents.length, label: 'Events' },
               ].map(stat => (
                 stat.link ? (
-                  <Link key={stat.label} to={stat.link}>
+                  <Link 
+                    key={stat.label} 
+                    to={stat.link}
+                    state={stat.label === 'Followers' ? { tab: 'followers' } : { tab: 'following' }}
+                  >
                     <div className="flex flex-col items-center text-center cursor-pointer
                       hover:opacity-70 transition-opacity">
                       <p className="font-semibold text-marble text-lg leading-none mb-1">
@@ -312,7 +316,7 @@ export default function ProfilePage() {
           {/* Action buttons row */}
           {!editing && (
             <div className="flex gap-2 mt-4">
-              <Link to="/app/following" className="flex-1">
+              <Link to="/app/following" state={{ tab: 'following' }} className="flex-1">
                 <button className="w-full py-2 rounded-xl bg-white/8
                   border border-white/12 micro-caps text-xs text-marble/70
                   hover:bg-white/12 transition-all font-medium">
