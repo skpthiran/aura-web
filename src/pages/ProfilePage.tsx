@@ -157,7 +157,7 @@ export default function ProfilePage() {
     <div className="flex-1 overflow-y-auto bg-void">
 
       {/* Banner */}
-      <div className="relative overflow-hidden" style={{ height: '180px' }}>
+      <div className="relative overflow-hidden" style={{ height: '240px' }}>
         <div className="absolute inset-0 bg-gradient-to-br from-void via-obsidian to-black" />
         <div className="absolute inset-0 pointer-events-none">
           <div className="absolute top-0 right-1/4 w-64 h-64 bg-gold/6 rounded-full blur-[80px]" />
@@ -214,14 +214,14 @@ export default function ProfilePage() {
       <div className="max-w-2xl mx-auto px-6">
 
         {/* Avatar */}
-        <div className="flex items-end justify-between -mt-14 mb-6">
-          <div className="relative">
+        <div className="flex items-end justify-between -mt-10 mb-6">
+          <div className="relative z-10">
             <button
               onClick={handleAvatarClick}
               className={cn(
                 'w-24 h-24 rounded-full border-4 border-void',
                 'bg-marble/10 overflow-hidden flex items-center justify-center',
-                'shadow-xl transition-all',
+                'shadow-xl transition-all relative z-10',
                 editing ? 'cursor-pointer hover:opacity-80' : 'cursor-default'
               )}
             >

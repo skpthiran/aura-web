@@ -216,7 +216,7 @@ export default function PublicProfilePage() {
     <div className="flex-1 overflow-y-auto bg-void">
 
       {/* Header banner */}
-      <div className="relative overflow-hidden" style={{ height: '200px' }}>
+      <div className="relative overflow-hidden" style={{ height: '240px' }}>
         <div className="absolute inset-0 bg-gradient-to-br from-void via-obsidian to-black" />
         <div className="absolute inset-0 pointer-events-none">
           <div className="absolute top-0 left-1/3 w-72 h-72 bg-gold/6 rounded-full blur-[90px]" />
@@ -232,12 +232,12 @@ export default function PublicProfilePage() {
         </button>
       </div>
 
-      <div className="max-w-2xl mx-auto px-6">
+      <div className="max-w-2xl mx-auto px-6 relative">
 
         {/* Avatar overlapping banner */}
-        <div className="flex items-end justify-between -mt-14 mb-6">
+        <div className="flex items-end justify-between -mt-10 mb-6">
           <div className="w-24 h-24 rounded-full border-4 border-void
-            bg-marble/10 overflow-hidden flex items-center justify-center shadow-xl">
+            bg-marble/10 overflow-hidden flex items-center justify-center shadow-xl relative z-10">
             {profile?.avatar_url ? (
               <img src={profile.avatar_url}
                 className="w-full h-full object-cover"
