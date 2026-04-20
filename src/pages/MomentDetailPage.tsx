@@ -198,7 +198,7 @@ export default function MomentDetailPage() {
     <div className="flex-1 overflow-y-auto bg-void">
 
       {/* HERO */}
-      <div className="relative" style={{ height: '45vh', minHeight: '280px', maxHeight: '380px' }}>
+      <div className="relative" style={{ height: '55vh', minHeight: '320px', maxHeight: '500px' }}>
         <img
           src={`https://picsum.photos/seed/${moment.id}/1200/600`}
           className="absolute inset-0 w-full h-full object-cover"
@@ -252,287 +252,397 @@ export default function MomentDetailPage() {
         </div>
       </div>
 
-      {/* CONTENT */}
-      <div className="max-w-lg mx-auto px-5 -mt-2 pb-24">
+      {/* CONTENT — two column on desktop */}
+      <div className="max-w-5xl mx-auto px-5 lg:px-8 pb-24">
+        <div className="lg:grid lg:grid-cols-[1fr_360px] lg:gap-8 lg:mt-8">
+          
+          {/* LEFT COLUMN — main info */}
+          <div>
+            {/* Type badge — desktop shows above title */}
+            <div className="hidden lg:flex items-center gap-2 mb-4">
+              <span className={cn(
+                'micro-caps text-xs px-3 py-1.5 rounded-full border',
+                isEvent
+                  ? 'bg-gold/15 border-gold/40 text-gold'
+                  : 'bg-red-900/20 border-red-500/40 text-red-400'
+              )}>
+                {isEvent ? '◈ Event' : '⚡ Moment'}
+              </span>
+              {isPrivate && (
+                <span className="micro-caps text-xs px-3 py-1.5 rounded-full
+                  bg-white/5 border border-white/15 text-white/40
+                  flex items-center gap-1">
+                  <Lock className="w-2.5 h-2.5" /> Private
+                </span>
+              )}
+              {isExpired && (
+                <span className="micro-caps text-xs px-3 py-1.5 rounded-full
+                  bg-white/5 border border-white/10 text-white/25">
+                  Expired
+                </span>
+              )}
+            </div>
 
-        {/* Title */}
-        <motion.h1
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="font-serif text-3xl md:text-4xl text-marble leading-tight mb-2 mt-4"
-        >
-          {moment.title}
-        </motion.h1>
+            {/* Title */}
+            <motion.h1
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="font-serif text-3xl md:text-4xl lg:text-5xl text-marble 
+                leading-tight mb-3 mt-4 lg:mt-0"
+            >
+              {moment.title}
+            </motion.h1>
 
-        {/* Creator row */}
-        {creator && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.1 }}
-            className="mb-5"
-          >
-            <Link to={`/app/user/${creator.id}`}>
-              <div className="flex items-center gap-2.5 group w-fit">
-                <div className="w-7 h-7 rounded-full bg-marble/10
-                  border border-white/15 overflow-hidden flex items-center justify-center">
-                  {creator.avatar_url ? (
-                    <img src={creator.avatar_url} className="w-full h-full object-cover"
-                      onError={(e) => { e.currentTarget.style.display='none' }} />
+            {/* Creator */}
+            {creator && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.1 }}
+                className="mb-5"
+              >
+                <Link to={`/app/user/${creator.id}`}>
+                  <div className="flex items-center gap-2.5 group w-fit">
+                    <div className="w-7 h-7 rounded-full bg-marble/10
+                      border border-white/15 overflow-hidden flex items-center justify-center">
+                      {creator.avatar_url ? (
+                        <img src={creator.avatar_url} className="w-full h-full object-cover"
+                          onError={(e) => { e.currentTarget.style.display='none' }} />
+                      ) : (
+                        <span className="font-serif text-xs text-marble/50">
+                          {(creator.full_name ?? 'A')[0].toUpperCase()}
+                        </span>
+                      )}
+                    </div>
+                    <span className="text-sm text-marble/50 group-hover:text-marble transition-colors">
+                      {creator.full_name ?? 'Anonymous'}
+                      {creator.username && (
+                        <span className="text-marble/30 ml-1">@{creator.username}</span>
+                      )}
+                    </span>
+                  </div>
+                </Link>
+              </motion.div>
+            )}
+
+            {/* Description */}
+            {moment.description && (
+              <motion.p
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.1 }}
+                className="text-marble/55 text-base leading-relaxed mb-8 
+                  max-w-prose"
+              >
+                {moment.description}
+              </motion.p>
+            )}
+
+            {/* TIMING DETAILS — desktop left col */}
+            {(startTime || endTime || venue) && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.2 }}
+                className="bg-white/4 border border-white/8 rounded-2xl 
+                  overflow-hidden mb-6"
+              >
+                {startTime && (
+                  <div className="flex items-center gap-4 px-5 py-4 border-b border-white/6">
+                    <Calendar className="w-4 h-4 text-gold shrink-0" />
+                    <div>
+                      <p className="micro-caps text-xs text-marble/30 mb-0.5">
+                        {isEvent ? 'Starts' : 'From'}
+                      </p>
+                      <p className="text-marble text-sm font-medium">
+                        {formatDateTime(startTime)}
+                      </p>
+                    </div>
+                  </div>
+                )}
+                {endTime && (
+                  <div className="flex items-center gap-4 px-5 py-4 border-b border-white/6">
+                    <Clock className="w-4 h-4 text-marble/30 shrink-0" />
+                    <div>
+                      <p className="micro-caps text-xs text-marble/30 mb-0.5">Ends</p>
+                      <p className="text-marble text-sm font-medium">
+                        {formatDateTime(endTime)}
+                      </p>
+                    </div>
+                    {formatDuration() && (
+                      <span className="ml-auto micro-caps text-xs text-gold/60 
+                        bg-gold/8 border border-gold/20 rounded-full px-3 py-1">
+                        {formatDuration()}
+                      </span>
+                    )}
+                  </div>
+                )}
+                {venue && (
+                  <div className="flex items-center gap-4 px-5 py-4">
+                    <MapPin className="w-4 h-4 text-marble/30 shrink-0" />
+                    <div>
+                      <p className="micro-caps text-xs text-marble/30 mb-0.5">Venue</p>
+                      <p className="text-marble text-sm font-medium">{venue}</p>
+                    </div>
+                  </div>
+                )}
+              </motion.div>
+            )}
+
+            {/* Event details */}
+            {(dresscode || ageMin) && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.22 }}
+                className="grid grid-cols-2 gap-3 mb-6"
+              >
+                {dresscode && (
+                  <div className="bg-white/4 border border-white/8 rounded-2xl p-4">
+                    <p className="micro-caps text-xs text-marble/30 mb-1.5">Dress Code</p>
+                    <p className="text-marble text-sm font-medium">{dresscode}</p>
+                  </div>
+                )}
+                {ageMin && (
+                  <div className="bg-white/4 border border-white/8 rounded-2xl p-4">
+                    <p className="micro-caps text-xs text-marble/30 mb-1.5">Age Range</p>
+                    <p className="text-marble text-sm font-medium">
+                      {ageMin}+{ageMax ? ` – ${ageMax}` : ''}
+                    </p>
+                  </div>
+                )}
+              </motion.div>
+            )}
+
+            {/* Tags */}
+            {moment.tags && moment.tags.length > 0 && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.25 }}
+                className="flex flex-wrap gap-2 mb-6"
+              >
+                {moment.tags.map(tag => (
+                  <span key={tag}
+                    className="micro-caps text-xs px-3 py-1.5 rounded-full
+                      bg-white/5 border border-white/10 text-marble/50">
+                    #{tag}
+                  </span>
+                ))}
+              </motion.div>
+            )}
+
+            {/* Mobile actions — only on mobile */}
+            <div className="lg:hidden">
+              {/* Mobile capacity + join — keep as before */}
+              {!isExpired && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.3 }}
+                  className="flex flex-col gap-3"
+                >
+                  {waitlistPosition ? (
+                    <div className="w-full py-4 rounded-2xl text-center
+                      bg-gold/8 border border-gold/25">
+                      <p className="micro-caps text-sm text-gold font-medium">
+                        ◈ On Waitlist — Position #{waitlistPosition}
+                      </p>
+                    </div>
                   ) : (
-                    <span className="font-serif text-xs text-marble/50">
-                      {(creator.full_name ?? 'A')[0].toUpperCase()}
+                    <button
+                      onClick={handleJoin}
+                      disabled={joined || joining || !user}
+                      className={cn(
+                        'w-full py-4 rounded-2xl micro-caps text-sm font-medium transition-all',
+                        joined
+                          ? 'bg-green-500/15 text-green-400 border border-green-500/30 cursor-default'
+                          : isFull
+                            ? 'bg-white/6 text-marble/60 border border-white/12 hover:bg-white/10'
+                            : 'bg-marble text-void hover:bg-green-400 hover:shadow-xl hover:shadow-green-400/20'
+                      )}
+                    >
+                      {joining ? (
+                        <span className="flex items-center justify-center gap-2">
+                          <Loader className="w-4 h-4 animate-spin" />
+                          {isFull ? 'Joining waitlist...' : 'Joining...'}
+                        </span>
+                      ) : joined ? (
+                        <span className="flex items-center justify-center gap-2">
+                          <Check className="w-4 h-4" /> Joined
+                        </span>
+                      ) : isFull ? 'Join Waitlist' : 'Join Signal'}
+                    </button>
+                  )}
+                  {joined && (
+                    <Link to="/app/chat" className="w-full">
+                      <button className="w-full py-3.5 rounded-2xl micro-caps text-sm
+                        bg-white/5 border border-white/10 text-marble/60
+                        hover:text-marble transition-all flex items-center justify-center gap-2">
+                        <MessageSquare className="w-4 h-4" />
+                        Open Signal Chat
+                      </button>
+                    </Link>
+                  )}
+                  <Link to="/app/map">
+                    <button className="w-full py-3 micro-caps text-xs text-marble/25
+                      hover:text-marble/50 transition-colors
+                      flex items-center justify-center gap-2">
+                      <MapPin className="w-3.5 h-3.5" />
+                      View on Map
+                    </button>
+                  </Link>
+                </motion.div>
+              )}
+              {isExpired && (
+                <div className="flex gap-3 mt-2">
+                  <button onClick={() => navigate(-1)}
+                    className="flex-1 py-3.5 rounded-2xl micro-caps text-sm
+                      bg-white/5 border border-white/10 text-marble/50
+                      hover:text-marble transition-all">
+                    Go Back
+                  </button>
+                  <Link to="/app/today" className="flex-1">
+                    <button className="w-full py-3.5 rounded-2xl micro-caps text-sm
+                      bg-marble text-void hover:bg-gold transition-all">
+                      Discover Signals
+                    </button>
+                  </Link>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* RIGHT COLUMN — desktop sidebar panel */}
+          <div className="hidden lg:block">
+            <div className="sticky top-8 flex flex-col gap-4">
+
+              {/* Capacity card */}
+              <div className="bg-white/4 border border-white/8 rounded-2xl p-5">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <Users className="w-4 h-4 text-gold" />
+                    <p className="micro-caps text-xs text-marble/50">Capacity</p>
+                  </div>
+                  <span className="micro-caps text-xs text-marble/30">
+                    {participantCount}/{moment.capacity_limit}
+                  </span>
+                </div>
+                <div className="w-full h-2 bg-white/8 rounded-full overflow-hidden mb-3">
+                  <div className={cn(
+                    'h-full rounded-full transition-all duration-500',
+                    isFull ? 'bg-red-500' : capacityPct > 80 ? 'bg-gold' : 'bg-green-500'
+                  )} style={{ width: `${capacityPct}%` }} />
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5">
+                    <div className={cn(
+                      'w-2 h-2 rounded-full',
+                      isExpired ? 'bg-marble/20' : 'bg-green-400 animate-pulse'
+                    )} />
+                    <span className="micro-caps text-xs text-marble/40">
+                      {isExpired ? 'Ended' : isFull ? 'Full' : 'Open'}
+                    </span>
+                  </div>
+                  {waitlistTotal > 0 && (
+                    <span className="micro-caps text-xs text-gold/50">
+                      +{waitlistTotal} waitlist
                     </span>
                   )}
                 </div>
-                <span className="text-sm text-marble/50 group-hover:text-marble transition-colors">
-                  {creator.full_name ?? 'Anonymous'}
-                  {creator.username && (
-                    <span className="text-marble/30 ml-1">@{creator.username}</span>
+              </div>
+
+              {/* Status card */}
+              {!isExpired && (
+                <div className="bg-white/4 border border-white/8 rounded-2xl p-5">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Clock className="w-4 h-4 text-gold" />
+                    <p className="micro-caps text-xs text-marble/50">Time Remaining</p>
+                  </div>
+                  <p className="font-serif text-4xl text-marble mb-1">{hoursLeft}h</p>
+                  <p className="micro-caps text-xs text-marble/30">until signal expires</p>
+                </div>
+              )}
+
+              {/* Join button — desktop */}
+              {!isExpired && (
+                <div className="flex flex-col gap-3">
+                  {waitlistPosition ? (
+                    <div className="w-full py-4 rounded-2xl text-center
+                      bg-gold/8 border border-gold/25">
+                      <p className="micro-caps text-sm text-gold font-medium">
+                        ◈ On Waitlist — #{waitlistPosition}
+                      </p>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={handleJoin}
+                      disabled={joined || joining || !user}
+                      className={cn(
+                        'w-full py-4 rounded-2xl micro-caps text-sm font-medium transition-all',
+                        joined
+                          ? 'bg-green-500/15 text-green-400 border border-green-500/30 cursor-default'
+                          : isFull
+                            ? 'bg-white/6 text-marble/60 border border-white/12 hover:bg-white/10'
+                            : 'bg-marble text-void hover:bg-green-400 hover:shadow-2xl hover:shadow-green-400/20'
+                      )}
+                    >
+                      {joining ? (
+                        <span className="flex items-center justify-center gap-2">
+                          <Loader className="w-4 h-4 animate-spin" />
+                          Joining...
+                        </span>
+                      ) : joined ? (
+                        <span className="flex items-center justify-center gap-2">
+                          <Check className="w-4 h-4" /> Joined
+                        </span>
+                      ) : isFull ? 'Join Waitlist' : 'Join Signal'}
+                    </button>
                   )}
-                </span>
-              </div>
-            </Link>
-          </motion.div>
-        )}
 
-        {/* Description */}
-        {moment.description && (
-          <motion.p
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.1 }}
-            className="text-marble/55 text-sm leading-relaxed mb-6"
-          >
-            {moment.description}
-          </motion.p>
-        )}
+                  {joined && (
+                    <Link to="/app/chat">
+                      <button className="w-full py-3.5 rounded-2xl micro-caps text-sm
+                        bg-white/5 border border-white/10 text-marble/60
+                        hover:text-marble transition-all flex items-center justify-center gap-2">
+                        <MessageSquare className="w-4 h-4" />
+                        Open Signal Chat
+                      </button>
+                    </Link>
+                  )}
 
-        {/* KEY INFO CARDS */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.15 }}
-          className="grid grid-cols-2 gap-2.5 mb-6"
-        >
-          {/* Capacity */}
-          <div className="bg-white/4 border border-white/8 rounded-2xl p-4">
-            <div className="flex items-center gap-2 mb-3">
-              <Users className="w-4 h-4 text-gold" />
-              <p className="micro-caps text-xs text-marble/40">Capacity</p>
+                  <Link to="/app/map">
+                    <button className="w-full py-3 micro-caps text-xs text-marble/25
+                      hover:text-marble/50 transition-colors
+                      flex items-center justify-center gap-2">
+                      <MapPin className="w-3.5 h-3.5" />
+                      View on Map
+                    </button>
+                  </Link>
+                </div>
+              )}
+
+              {isExpired && (
+                <div className="flex flex-col gap-3">
+                  <button onClick={() => navigate(-1)}
+                    className="w-full py-3.5 rounded-2xl micro-caps text-sm
+                      bg-white/5 border border-white/10 text-marble/50
+                      hover:text-marble transition-all">
+                    Go Back
+                  </button>
+                  <Link to="/app/today">
+                    <button className="w-full py-3.5 rounded-2xl micro-caps text-sm
+                      bg-marble text-void hover:bg-gold transition-all">
+                      Discover Signals
+                    </button>
+                  </Link>
+                </div>
+              )}
+
             </div>
-            <p className="font-serif text-2xl text-marble mb-2">
-              {participantCount}<span className="text-marble/30 text-lg">/{moment.capacity_limit}</span>
-            </p>
-            <div className="w-full h-1 bg-white/8 rounded-full overflow-hidden">
-              <div className={cn(
-                'h-full rounded-full transition-all duration-500',
-                isFull ? 'bg-red-500' : capacityPct > 80 ? 'bg-gold' : 'bg-green-500'
-              )} style={{ width: `${capacityPct}%` }} />
-            </div>
-            {waitlistTotal > 0 && (
-              <p className="micro-caps text-xs text-gold/50 mt-2">+{waitlistTotal} waitlist</p>
-            )}
           </div>
 
-          {/* Time */}
-          <div className="bg-white/4 border border-white/8 rounded-2xl p-4">
-            <div className="flex items-center gap-2 mb-3">
-              <Clock className="w-4 h-4 text-gold" />
-              <p className="micro-caps text-xs text-marble/40">
-                {isExpired ? 'Ended' : 'Status'}
-              </p>
-            </div>
-            {isExpired ? (
-              <p className="font-serif text-xl text-marble/30">Expired</p>
-            ) : (
-              <>
-                <div className="flex items-center gap-1.5 mb-1">
-                  <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
-                  <p className="micro-caps text-xs text-green-400">Live</p>
-                </div>
-                <p className="font-serif text-2xl text-marble">{moment.expires_at ? hoursLeft : '∞'}h</p>
-                <p className="micro-caps text-xs text-marble/30">remaining</p>
-              </>
-            )}
-          </div>
-        </motion.div>
-
-        {/* TIMING DETAILS */}
-        {(startTime || endTime || venue) && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.2 }}
-            className="bg-white/4 border border-white/8 rounded-2xl overflow-hidden mb-6"
-          >
-            {startTime && (
-              <div className="flex items-center gap-4 px-4 py-3.5 border-b border-white/6">
-                <Calendar className="w-4 h-4 text-gold shrink-0" />
-                <div>
-                  <p className="micro-caps text-xs text-marble/30 mb-0.5">
-                    {isEvent ? 'Starts' : 'From'}
-                  </p>
-                  <p className="text-marble text-sm">{formatDateTime(startTime)}</p>
-                </div>
-              </div>
-            )}
-            {endTime && (
-              <div className="flex items-center gap-4 px-4 py-3.5 border-b border-white/6">
-                <Clock className="w-4 h-4 text-marble/30 shrink-0" />
-                <div>
-                  <p className="micro-caps text-xs text-marble/30 mb-0.5">Ends</p>
-                  <p className="text-marble text-sm">{formatDateTime(endTime)}</p>
-                </div>
-                {formatDuration() && (
-                  <span className="ml-auto micro-caps text-xs text-gold/60 bg-gold/8
-                    border border-gold/20 rounded-full px-2.5 py-1">
-                    {formatDuration()}
-                  </span>
-                )}
-              </div>
-            )}
-            {venue && (
-              <div className="flex items-center gap-4 px-4 py-3.5">
-                <MapPin className="w-4 h-4 text-marble/30 shrink-0" />
-                <div>
-                  <p className="micro-caps text-xs text-marble/30 mb-0.5">Venue</p>
-                  <p className="text-marble text-sm">{venue}</p>
-                </div>
-              </div>
-            )}
-          </motion.div>
-        )}
-
-        {/* EVENT DETAILS — dress code + age */}
-        {(dresscode || ageMin) && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.22 }}
-            className="grid grid-cols-2 gap-2.5 mb-6"
-          >
-            {dresscode && (
-              <div className="bg-white/4 border border-white/8 rounded-2xl p-4">
-                <p className="micro-caps text-xs text-marble/30 mb-1.5">Dress Code</p>
-                <p className="text-marble text-sm font-medium">{dresscode}</p>
-              </div>
-            )}
-            {ageMin && (
-              <div className="bg-white/4 border border-white/8 rounded-2xl p-4">
-                <p className="micro-caps text-xs text-marble/30 mb-1.5">Age Range</p>
-                <p className="text-marble text-sm font-medium">
-                  {ageMin}+{ageMax ? ` – ${ageMax}` : ''}
-                </p>
-              </div>
-            )}
-          </motion.div>
-        )}
-
-        {/* TAGS */}
-        {moment.tags && moment.tags.length > 0 && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.25 }}
-            className="flex flex-wrap gap-2 mb-6"
-          >
-            {moment.tags.map(tag => (
-              <span key={tag}
-                className="micro-caps text-xs px-3 py-1.5 rounded-full
-                  bg-white/5 border border-white/10 text-marble/50">
-                #{tag}
-              </span>
-            ))}
-          </motion.div>
-        )}
-
-        {/* ACTIONS */}
-        {!isExpired && (
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-            className="flex flex-col gap-3"
-          >
-            {/* Join / Waitlist */}
-            {waitlistPosition ? (
-              <div className="w-full py-4 rounded-2xl text-center
-                bg-gold/8 border border-gold/25">
-                <p className="micro-caps text-sm text-gold font-medium">
-                  ◈ On Waitlist — Position #{waitlistPosition}
-                </p>
-              </div>
-            ) : (
-              <button
-                onClick={handleJoin}
-                disabled={joined || joining || !user}
-                className={cn(
-                  'w-full py-4 rounded-2xl micro-caps text-sm font-medium',
-                  'transition-all duration-300',
-                  joined
-                    ? 'bg-green-500/15 text-green-400 border border-green-500/30 cursor-default'
-                    : isFull
-                      ? 'bg-white/6 text-marble/60 border border-white/12 hover:bg-white/10'
-                      : 'bg-marble text-void hover:bg-green-400 hover:shadow-xl hover:shadow-green-400/20'
-                )}
-              >
-                {joining ? (
-                  <span className="flex items-center justify-center gap-2">
-                    <Loader className="w-4 h-4 animate-spin" />
-                    {isFull ? 'Joining waitlist...' : 'Joining...'}
-                  </span>
-                ) : joined ? (
-                  <span className="flex items-center justify-center gap-2">
-                    <Check className="w-4 h-4" /> Joined
-                  </span>
-                ) : isFull ? 'Join Waitlist' : 'Join Signal'}
-              </button>
-            )}
-
-            {/* Open chat if joined */}
-            {joined && (
-              <Link to="/app/chat" className="w-full">
-                <button className="w-full py-3.5 rounded-2xl micro-caps text-sm
-                  bg-white/5 border border-white/10 text-marble/60
-                  hover:text-marble hover:bg-white/8 transition-all
-                  flex items-center justify-center gap-2">
-                  <MessageSquare className="w-4 h-4" />
-                  Open Signal Chat
-                </button>
-              </Link>
-            )}
-
-            {/* View on map */}
-            <Link to="/app/map">
-              <button className="w-full py-3 micro-caps text-xs text-marble/25
-                hover:text-marble/50 transition-colors
-                flex items-center justify-center gap-2">
-                <MapPin className="w-3.5 h-3.5" />
-                View on Map
-              </button>
-            </Link>
-          </motion.div>
-        )}
-
-        {/* Expired state actions */}
-        {isExpired && (
-          <div className="flex gap-3 mt-2">
-            <button onClick={() => navigate(-1)}
-              className="flex-1 py-3.5 rounded-2xl micro-caps text-sm
-                bg-white/5 border border-white/10 text-marble/50
-                hover:text-marble transition-all">
-              Go Back
-            </button>
-            <Link to="/app/today" className="flex-1">
-              <button className="w-full py-3.5 rounded-2xl micro-caps text-sm
-                bg-marble text-void hover:bg-gold transition-all">
-                Discover Signals
-              </button>
-            </Link>
-          </div>
-        )}
-
+        </div>
       </div>
     </div>
   )
