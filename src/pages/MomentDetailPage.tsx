@@ -93,6 +93,51 @@ export default function MomentDetailPage() {
     fetchMoment()
   }, [id, user])
 
+  // Realtime participant sync
+  useEffect(() => {
+    if (!id) return
+
+    const channelName = `participants-sync:${id}:${Math.random().toString(36).slice(2)}`
+    
+    const channel = supabase
+      .channel(channelName)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'participants',
+          filter: `moment_id=eq.${id}`,
+        },
+        async () => {
+          // Re-fetch counts for absolute state accuracy
+          const { count: joinedCount } = await supabase
+            .from('participants')
+            .select('id', { count: 'exact', head: true })
+            .eq('moment_id', id)
+            .eq('status', 'joined')
+          
+          const { count: wlCount } = await supabase
+            .from('participants')
+            .select('id', { count: 'exact', head: true })
+            .eq('moment_id', id)
+            .eq('status', 'waitlist')
+
+          setParticipantCount(joinedCount || 0)
+          setWaitlistTotal(wlCount || 0)
+          
+          if (moment) {
+            setIsFull((joinedCount || 0) >= (moment.capacity_limit || 999))
+          }
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [id, moment])
+
   const handleJoin = async () => {
     if (!user || !moment || joining || isJoined) return
     setJoining(true)
@@ -380,11 +425,28 @@ export default function MomentDetailPage() {
               transition={{ delay: 0.15 }}
               className="grid grid-cols-2 gap-3 mb-6"
             >
-              <div className="glass-panel hairline-all rounded-2xl p-4 text-center">
-                <Users className="w-4 h-4 text-gold mx-auto mb-2" />
-                <p className="font-serif text-2xl text-marble">
-                  {participantCount}
-                </p>
+              <div className="glass-panel hairline-all rounded-2xl p-4 text-center relative overflow-hidden group">
+                <div className="absolute top-2 right-2 flex items-center gap-1">
+                  <motion.div 
+                    animate={{ opacity: [0.3, 1, 0.3] }}
+                    transition={{ duration: 2, repeat: Infinity }}
+                    className="w-1 h-1 rounded-full bg-gold" 
+                  />
+                </div>
+                <Users className={cn(
+                  "w-4 h-4 mx-auto mb-2 transition-colors",
+                  participantCount > 0 ? "text-gold" : "text-marble/20"
+                )} />
+                <AnimatePresence mode="wait">
+                  <motion.p 
+                    key={participantCount}
+                    initial={{ opacity: 0, y: 5 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="font-serif text-2xl text-marble"
+                  >
+                    {participantCount}
+                  </motion.p>
+                </AnimatePresence>
                 <p className="micro-caps text-[10px] text-marble/30">
                   {waitlistTotal > 0 ? `+${waitlistTotal} waiting` : `/ ${moment.capacity_limit || '∞'} spots`}
                 </p>
