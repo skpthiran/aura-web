@@ -6,6 +6,8 @@ import { cn } from "../lib/utils";
 import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../lib/supabase";
 import OnboardingFlow, { needsOnboarding } from '../components/OnboardingFlow'
+import PageTransition from '../components/PageTransition'
+import RouteProgress from '../components/RouteProgress'
 
 const NAV_ITEMS = [
   { path: "/app/today", label: "Pulse", icon: Compass },
@@ -78,6 +80,7 @@ export default function AppLayout() {
 
   return (
     <div className="min-h-screen bg-void text-marble flex flex-col lg:flex-row overflow-hidden relative selection:bg-gold/20">
+      <RouteProgress />
       {showOnboarding && (
         <OnboardingFlow onComplete={() => setShowOnboarding(false)} />
       )}
@@ -250,17 +253,10 @@ export default function AppLayout() {
 
       {/* Main Content Area */}
       <main className="flex-1 flex flex-col overflow-y-auto pt-16 lg:pt-0 pb-28 lg:pb-0 relative z-10 scroll-smooth h-[100dvh]">
-        <AnimatePresence mode="popLayout">
-          <motion.div
-            key={location.pathname}
-            initial={{ opacity: 0, filter: "blur(12px)", scale: 0.98 }}
-            animate={{ opacity: 1, filter: "blur(0px)", scale: 1 }}
-            exit={{ opacity: 0, filter: "blur(12px)" }}
-            transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-            className="flex-1 flex flex-col"
-          >
+        <AnimatePresence mode="wait" initial={false}>
+          <PageTransition key={location.pathname}>
             <Outlet />
-          </motion.div>
+          </PageTransition>
         </AnimatePresence>
       </main>
 

@@ -348,7 +348,7 @@ export default function TodayPage() {
   }
 
   return (
-    <div className="flex-1 bg-void min-h-screen overflow-x-hidden">
+    <div className="flex-1 overflow-y-auto bg-void">
       {/* 100SVH MAGAZINE HERO */}
       {heroMoment ? (
         <section className="relative h-[100svh] w-full overflow-hidden">
