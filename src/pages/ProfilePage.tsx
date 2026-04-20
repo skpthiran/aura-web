@@ -146,14 +146,14 @@ export default function ProfilePage() {
 
   return (
     <div className="flex-1 overflow-y-auto bg-void">
-      <div className="max-w-5xl mx-auto px-5 lg:px-10 py-10">
+      <div className="max-w-5xl mx-auto px-5 lg:px-10 pt-4 pb-10">
         {!profile ? (
           <ProfileSkeleton />
         ) : (
           <>
 
         {/* TOP BAR */}
-        <div className="flex items-center justify-between px-5 lg:px-10 pt-10 pb-6">
+        <div className="flex items-center justify-between px-5 lg:px-10 pt-4 pb-6">
           <h1 className="font-serif text-2xl text-marble">
             {profile?.username ? `@${profile.username}` : displayName}
           </h1>
