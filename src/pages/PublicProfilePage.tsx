@@ -7,6 +7,7 @@ import { usePageTitle } from '../hooks/usePageTitle'
 import { ArrowLeft, Zap, Calendar, Users, Clock } from 'lucide-react'
 import { cn } from '../lib/utils'
 import { Moment } from '../types'
+import { useFollow } from '../hooks/useFollow'
 
 interface PublicProfile {
   id: string
@@ -29,6 +30,14 @@ export default function PublicProfilePage() {
   const [events, setEvents] = useState<Moment[]>([])
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<TabType>('active')
+
+  const { 
+    isFollowing, 
+    followersCount, 
+    followingCount, 
+    toggleFollow, 
+    loading: followLoading 
+  } = useFollow(userId)
 
   usePageTitle(profile?.full_name ?? 'Profile')
 
@@ -238,6 +247,20 @@ export default function PublicProfilePage() {
               <span className="font-serif text-3xl text-marble/60">{initials}</span>
             )}
           </div>
+
+          {/* Follow button */}
+          <button
+            onClick={toggleFollow}
+            disabled={followLoading}
+            className={cn(
+              "micro-caps text-xs px-6 py-2.5 rounded-full transition-all duration-300 font-bold",
+              isFollowing
+                ? "glass-panel hairline-all text-marble/60 hover:text-red-400 hover:border-red-500/30"
+                : "bg-gold text-void hover:bg-gold/80 hover:shadow-[0_0_15px_rgba(255,184,0,0.3)] shadow-lg shadow-gold/10"
+            )}
+          >
+            {isFollowing ? 'Unfollow' : 'Follow'}
+          </button>
         </div>
 
         {/* Name + bio */}
@@ -274,11 +297,12 @@ export default function PublicProfilePage() {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="grid grid-cols-3 gap-3 mb-8"
+          className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8"
         >
           {[
+            { label: 'Followers', value: followersCount },
+            { label: 'Following', value: followingCount },
             { label: 'Active', value: activeMoments.length },
-            { label: 'Past', value: pastMoments.length },
             { label: 'Events', value: events.length },
           ].map(stat => (
             <div key={stat.label}

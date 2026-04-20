@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect, useCallback } from 'react'
 import { motion } from 'motion/react'
 import { Link } from 'react-router-dom'
 import { Radio, Users, Loader, MapPin, Zap } from 'lucide-react'
+import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 import { useUserLocation } from '../hooks/useUserLocation'
 import { useNearbyMoments } from '../hooks/useNearbyMoments'
@@ -139,6 +140,7 @@ export default function TodayPage() {
   const { user } = useAuth()
   const { location } = useUserLocation()
   const [activeTab, setActiveTab] = useState('All')
+  const [followingIds, setFollowingIds] = useState<Set<string>>(new Set())
   const [radius, setRadius] = useState<number>(50000) // default 50km
   const [radiusOpen, setRadiusOpen] = useState(false)
   
@@ -204,6 +206,23 @@ export default function TodayPage() {
   })
 
   useEffect(() => {
+    if (user) fetchFollowing()
+  }, [user])
+
+  const fetchFollowing = async () => {
+    try {
+      const { data } = await supabase
+        .from('follows')
+        .select('following_id')
+        .eq('follower_id', user!.id)
+      
+      setFollowingIds(new Set((data || []).map(f => f.following_id)))
+    } catch (err) {
+      console.error('Error fetching following:', err)
+    }
+  }
+
+  useEffect(() => {
     if (!radiusOpen) return
     const handler = (e: MouseEvent) => {
       const target = e.target as HTMLElement
@@ -244,9 +263,10 @@ export default function TodayPage() {
       
       if (activeTab === 'Moments') return m.moment_type === 'moment'
       if (activeTab === 'Events') return m.moment_type === 'event'
+      if (activeTab === 'Following') return followingIds.has(m.creator_id)
       return true // 'All'
     })
-  }, [moments, rejectedIds, activeTab])
+  }, [moments, rejectedIds, activeTab, followingIds])
 
   const heroMoment = filteredMoments[0]
   const gridMoments = filteredMoments.slice(1)
@@ -326,7 +346,7 @@ export default function TodayPage() {
             <div className="mt-2 md:mt-0 flex flex-col items-start md:items-end gap-4 md:gap-6 pointer-events-auto">
               {/* Redesigned Filter Row 1 — Type tabs & Radius Dropdown */}
               <div className="flex items-center gap-2 mt-4 pointer-events-auto">
-                {['All', 'Moments', 'Events'].map(tab => (
+                {['All', 'Following', 'Moments', 'Events'].map(tab => (
                   <button
                     key={tab}
                     onClick={() => setActiveTab(tab)}

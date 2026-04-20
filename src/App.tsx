@@ -21,6 +21,7 @@ const MomentDetailPage = lazy(() => import("./pages/MomentDetailPage"));
 const PublicProfilePage = lazy(() => import("./pages/PublicProfilePage"));
 const SearchPage = lazy(() => import("./pages/SearchPage"));
 const HistoryPage = lazy(() => import("./pages/HistoryPage"));
+const FollowingPage = lazy(() => import("./pages/FollowingPage"));
 
 const PageLoader = () => (
   <div className="flex-1 flex items-center justify-center bg-void min-h-screen">
@@ -67,6 +68,7 @@ export default function App() {
                   <Route path="moment/:id" element={<MomentDetailPage />} />
                   <Route path="profile" element={<ProfilePage />} />
                   <Route path="history" element={<HistoryPage />} />
+                  <Route path="connections" element={<FollowingPage />} />
                   <Route path="user/:userId" element={<PublicProfilePage />} />
                 </Route>
 

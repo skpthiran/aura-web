@@ -10,6 +10,7 @@ import {
 import { cn } from '../lib/utils'
 import { Link } from 'react-router-dom'
 import { Moment } from '../types'
+import { useFollow } from '../hooks/useFollow'
 
 export default function ProfilePage() {
   const { user, profile, signOut } = useAuth()
@@ -29,6 +30,8 @@ export default function ProfilePage() {
   const [myMoments, setMyMoments] = useState<Moment[]>([])
   const [loadingMoments, setLoadingMoments] = useState(true)
   const [activeTab, setActiveTab] = useState<'moments' | 'events' | 'past'>('moments')
+
+  const { followersCount, followingCount } = useFollow(user?.id)
 
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -367,11 +370,12 @@ export default function ProfilePage() {
         )}
 
         {/* Stats */}
-        <div className="grid grid-cols-3 gap-3 mb-8">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
           {[
+            { label: 'Followers', value: followersCount },
+            { label: 'Following', value: followingCount },
             { label: 'Moments', value: myMoments.filter(m => m.moment_type === 'moment').length },
             { label: 'Events', value: myMoments.filter(m => m.moment_type === 'event').length },
-            { label: 'Total', value: myMoments.length },
           ].map(stat => (
             <div key={stat.label}
               className="glass-panel hairline-all rounded-2xl p-4 text-center">
@@ -382,26 +386,49 @@ export default function ProfilePage() {
         </div>
 
         {/* Signal History Link */}
-        <Link to="/app/history">
-          <div className="glass-panel hairline-all rounded-2xl px-5 py-4 mb-6
-            flex items-center justify-between
-            hover:border-white/20 transition-all group cursor-pointer">
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-white/5 border border-white/10
-                flex items-center justify-center">
-                <Clock className="w-4 h-4 text-marble/40" />
+        <div className="flex flex-col gap-3 mb-8">
+          <Link to="/app/connections">
+            <div className="glass-panel hairline-all rounded-2xl px-5 py-4
+              flex items-center justify-between
+              hover:border-white/20 transition-all group cursor-pointer">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-gold/10 border border-gold/20
+                  flex items-center justify-center">
+                  <User className="w-4 h-4 text-gold" />
+                </div>
+                <div>
+                  <p className="text-sm text-marble font-medium">Connections</p>
+                  <p className="micro-caps text-xs text-marble/30 mt-0.5">
+                    View followers and people you follow
+                  </p>
+                </div>
               </div>
-              <div>
-                <p className="text-sm text-marble font-medium">Signal History</p>
-                <p className="micro-caps text-xs text-marble/30 mt-0.5">
-                  View expired moments you attended
-                </p>
-              </div>
+              <span className="text-marble/20 group-hover:text-marble/50
+                transition-colors">→</span>
             </div>
-            <span className="text-marble/20 group-hover:text-marble/50
-              transition-colors">→</span>
-          </div>
-        </Link>
+          </Link>
+
+          <Link to="/app/history">
+            <div className="glass-panel hairline-all rounded-2xl px-5 py-4
+              flex items-center justify-between
+              hover:border-white/20 transition-all group cursor-pointer">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-white/5 border border-white/10
+                  flex items-center justify-center">
+                  <Clock className="w-4 h-4 text-marble/40" />
+                </div>
+                <div>
+                  <p className="text-sm text-marble font-medium">Signal History</p>
+                  <p className="micro-caps text-xs text-marble/30 mt-0.5">
+                    View expired moments you attended
+                  </p>
+                </div>
+              </div>
+              <span className="text-marble/20 group-hover:text-marble/50
+                transition-colors">→</span>
+            </div>
+          </Link>
+        </div>
 
         {/* My Signals */}
         <div className="mb-10">
