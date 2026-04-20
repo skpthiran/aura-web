@@ -26,38 +26,8 @@ export default function AppLayout() {
   const { user, profile, signOut } = useAuth();
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
-  const [unreadCount, setUnreadCount] = useState(0);
   const [showOnboarding, setShowOnboarding] = useState(() => needsOnboarding())
 
-  useEffect(() => {
-    if (!user) return;
-    fetchUnreadCount();
-    const interval = setInterval(fetchUnreadCount, 60000);
-    return () => clearInterval(interval);
-  }, [user]);
-
-  const fetchUnreadCount = async () => {
-    if (!user) return
-    try {
-      // Use a single query with a join to avoid large IN lists (prevents 400 error)
-      const since = new Date(Date.now() - 86400000).toISOString()
-      
-      const { count } = await supabase
-        .from('participants')
-        .select(`
-          id,
-          moment:moments!inner(id, creator_id)
-        `, { count: 'exact', head: true })
-        .eq('status', 'joined')
-        .neq('user_id', user.id)
-        .gte('created_at', since)
-        .eq('moment.creator_id', user.id)
-      
-      setUnreadCount(count ?? 0)
-    } catch {
-      setUnreadCount(0)
-    }
-  }
 
 
   const handleSignOut = async () => {
@@ -121,10 +91,6 @@ export default function AppLayout() {
                 justify-center text-white/40 hover:text-white/80 transition-colors"
             >
               <Bell className="w-[18px] h-[18px]" />
-              {unreadCount > 0 && (
-                <span className="absolute top-1.5 right-1.5 min-w-[7px] h-[7px]
-                  rounded-full bg-red-500 ring-[1.5px] ring-black" />
-              )}
             </button>
 
             {/* Avatar */}
@@ -201,13 +167,6 @@ export default function AppLayout() {
                   )}>
                     {item.label}
                   </span>
-
-                  {/* Desktop Unread Badge */}
-                  {item.label === 'Signals' && unreadCount > 0 && (
-                    <span className="ml-auto min-w-[18px] h-[18px] rounded-full bg-crimson-bright flex items-center justify-center micro-caps text-[10px] text-white px-1 shadow-[0_0_10px_rgba(255,8,0,0.4)]">
-                      {unreadCount}
-                    </span>
-                  )}
                 </>
               )}
             </NavLink>
