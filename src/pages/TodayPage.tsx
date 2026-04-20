@@ -279,6 +279,38 @@ export default function TodayPage() {
     setCardActions(prev => ({ ...prev, [momentId]: 'rejected' }))
   }
 
+  const [swipeState, setSwipeState] = useState<Record<string, number>>({})
+  const SWIPE_THRESHOLD = 80
+
+  const handleTouchStart = (momentId: string, e: React.TouchEvent) => {
+    setSwipeState(prev => ({ ...prev, [`${momentId}_startX`]: e.touches[0].clientX }))
+  }
+
+  const handleTouchMove = (momentId: string, e: React.TouchEvent) => {
+    const startX = swipeState[`${momentId}_startX`]
+    if (startX == null) return
+    const deltaX = e.touches[0].clientX - startX
+    setSwipeState(prev => ({ ...prev, [`${momentId}_deltaX`]: deltaX }))
+  }
+
+  const handleTouchEnd = (momentId: string) => {
+    const deltaX = swipeState[`${momentId}_deltaX`] ?? 0
+    if (deltaX < -SWIPE_THRESHOLD) {
+      // Swipe left = Join
+      const fakeEvent = { preventDefault: () => {}, stopPropagation: () => {} } as unknown as React.MouseEvent
+      handleCardJoin(momentId, fakeEvent)
+    } else if (deltaX > SWIPE_THRESHOLD) {
+      // Swipe right = Reject
+      const fakeEvent = { preventDefault: () => {}, stopPropagation: () => {} } as unknown as React.MouseEvent
+      handleCardReject(momentId, fakeEvent)
+    }
+    setSwipeState(prev => ({
+      ...prev,
+      [`${momentId}_startX`]: 0,
+      [`${momentId}_deltaX`]: 0,
+    }))
+  }
+
   const filteredMoments = useMemo(() => {
     return moments.filter(m => {
       if (rejectedIds.has(m.id)) return false
@@ -603,6 +635,14 @@ export default function TodayPage() {
               </div>
             </div>
 
+            {/* Swipe hint — mobile only, shows once */}
+            <div className="flex sm:hidden items-center gap-2 mb-3 
+              text-marble/25 text-xs micro-caps">
+              <span>← swipe to join</span>
+              <span className="text-marble/15">·</span>
+              <span>swipe to skip →</span>
+            </div>
+
             {/* Magazine grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 auto-rows-auto">
               {filteredMoments
@@ -620,12 +660,23 @@ export default function TodayPage() {
                   <motion.div
                     key={moment.id}
                     initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: i * 0.05, duration: 0.4 }}
+                    animate={{
+                      opacity: 1,
+                      y: 0,
+                      x: swipeState[`${moment.id}_deltaX`] ?? 0,
+                    }}
+                    transition={{
+                      delay: i * 0.05,
+                      duration: 0.4,
+                      x: { type: 'spring', stiffness: 300, damping: 30 }
+                    }}
+                    onTouchStart={e => handleTouchStart(moment.id, e)}
+                    onTouchMove={e => handleTouchMove(moment.id, e)}
+                    onTouchEnd={() => handleTouchEnd(moment.id)}
                     className={cn(
                       'group relative overflow-hidden rounded-2xl cursor-pointer',
                       'border border-white/8 hover:border-white/20',
-                      'transition-all duration-500',
+                      'transition-all duration-500 select-none touch-pan-y',
                       isTall ? 'row-span-1 sm:row-span-2' : 'row-span-1'
                     )}
                     style={{ minHeight: isTall ? '380px' : '220px' }}
@@ -646,6 +697,46 @@ export default function TodayPage() {
                           background: 'linear-gradient(to top, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.4) 50%, rgba(0,0,0,0.1) 100%)'
                         }}
                       />
+
+                      {/* Swipe LEFT hint — Join (green) */}
+                      <div
+                        className="absolute inset-0 z-20 flex items-center justify-end pr-8
+                          pointer-events-none transition-opacity duration-150 rounded-2xl"
+                        style={{
+                          background: 'rgba(34,197,94,0.25)',
+                          opacity: Math.max(0, Math.min(1,
+                            -((swipeState[`${moment.id}_deltaX`] ?? 0) + 30) / 60
+                          )),
+                        }}
+                      >
+                        <div className="flex flex-col items-center gap-1">
+                          <div className="w-12 h-12 rounded-full bg-green-500/30
+                            border-2 border-green-400 flex items-center justify-center">
+                            <Check className="w-6 h-6 text-green-400" />
+                          </div>
+                          <span className="micro-caps text-xs text-green-400 font-bold">Join</span>
+                        </div>
+                      </div>
+
+                      {/* Swipe RIGHT hint — Reject (red) */}
+                      <div
+                        className="absolute inset-0 z-20 flex items-center justify-start pl-8
+                          pointer-events-none transition-opacity duration-150 rounded-2xl"
+                        style={{
+                          background: 'rgba(239,68,68,0.25)',
+                          opacity: Math.max(0, Math.min(1,
+                            ((swipeState[`${moment.id}_deltaX`] ?? 0) - 30) / 60
+                          )),
+                        }}
+                      >
+                        <div className="flex flex-col items-center gap-1">
+                          <div className="w-12 h-12 rounded-full bg-red-500/30
+                            border-2 border-red-400 flex items-center justify-center">
+                            <X className="w-6 h-6 text-red-400" />
+                          </div>
+                          <span className="micro-caps text-xs text-red-400 font-bold">Skip</span>
+                        </div>
+                      </div>
 
                       {/* Hover overlay — subtle gold tint */}
                       <div className="absolute inset-0 opacity-0 group-hover:opacity-100
