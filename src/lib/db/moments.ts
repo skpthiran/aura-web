@@ -162,39 +162,21 @@ export async function createMoment(payload: {
 }
 
 export async function joinMoment(momentId: string): Promise<void> {
-  const { data: { user } } = await supabase.auth.getUser()
+  const { data: { user }, error: authError } = await supabase.auth.getUser()
+  console.log('[joinMoment] user:', user?.id, 'authError:', authError)
   if (!user) throw new Error('Not authenticated')
 
-  // Check if already joined
-  const { data: existing } = await supabase
+  const { data: existing, error: existingError } = await supabase
     .from('participants')
     .select('id')
     .eq('moment_id', momentId)
     .eq('user_id', user.id)
     .maybeSingle()
+  console.log('[joinMoment] existing check:', existing, existingError)
 
-  if (existing) return // already joined, silent success
+  if (existing) return
 
-  // Check capacity
-  const { data: moment } = await supabase
-    .from('moments')
-    .select('capacity_limit')
-    .eq('id', momentId)
-    .single()
-
-  if (!moment) throw new Error('Signal not found')
-
-  const { count } = await supabase
-    .from('participants')
-    .select('id', { count: 'exact', head: true })
-    .eq('moment_id', momentId)
-
-  if (count !== null && moment.capacity_limit !== null && count >= moment.capacity_limit) {
-    throw new Error('Signal is full')
-  }
-
-  // Insert participant
-  const { error } = await supabase
+  const { error: insertError } = await supabase
     .from('participants')
     .insert({
       moment_id: momentId,
@@ -202,11 +184,9 @@ export async function joinMoment(momentId: string): Promise<void> {
       status: 'joined',
       joined_at: new Date().toISOString(),
     })
+  console.log('[joinMoment] insert result — error:', insertError)
 
-  if (error) {
-    console.error('joinMoment error:', error)
-    throw new Error(error.message)
-  }
+  if (insertError) throw new Error(insertError.message)
 }
 
 
