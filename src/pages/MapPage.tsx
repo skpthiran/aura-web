@@ -305,17 +305,29 @@ export default function MapPage() {
       {/* TOP LEFT — Search + Type Filter */}
       <div className="absolute top-4 left-4 flex flex-col gap-2 z-20 w-[220px] max-w-[calc(100vw-32px)]">
         {/* Search Box */}
-        <div className="flex items-center gap-3 px-4 py-3 rounded-xl border border-white/10 bg-black/60 backdrop-blur-xl shadow-2xl">
-          <Search className="w-4 h-4 text-white/40" strokeWidth={1.5} />
+        <div 
+          className="flex items-center gap-3 px-4 py-3 rounded-xl border border-white/20 bg-[#0a0a14]/85 backdrop-blur-md shadow-2xl"
+          style={{ 
+            boxShadow: '0 4px 24px rgba(0,0,0,0.6), 0 0 0 0.5px rgba(255,255,255,0.08)',
+            borderLeft: '2px solid rgba(201,168,76,0.5)'
+          }}
+        >
+          <Search className="w-4 h-4 text-white/60" strokeWidth={1.5} />
           <input 
             type="text" 
             placeholder="SEARCH / COORDINATES" 
-            className="bg-transparent border-none outline-none font-mono text-[9px] text-white w-full uppercase tracking-widest placeholder:text-white/20"
+            className="bg-transparent border-none outline-none font-mono text-[9px] text-white w-full uppercase tracking-widest placeholder:text-white/60"
           />
         </div>
 
         {/* ALL / MOMENTS / EVENTS Pills */}
-        <div className="flex gap-1 p-1.5 rounded-xl border border-white/10 bg-black/60 backdrop-blur-xl shadow-2xl">
+        <div 
+          className="flex gap-1 p-1.5 rounded-xl border border-white/20 bg-[#0a0a14]/85 backdrop-blur-md shadow-2xl"
+          style={{ 
+            boxShadow: '0 4px 24px rgba(0,0,0,0.6), 0 0 0 0.5px rgba(255,255,255,0.08)',
+            borderLeft: '2px solid rgba(201,168,76,0.5)'
+          }}
+        >
           {['ALL', 'MOMENTS', 'EVENTS'].map(f => (
             <button
               key={f}
@@ -324,7 +336,7 @@ export default function MapPage() {
                 "flex-1 py-2 rounded-lg text-[9px] tracking-widest uppercase transition-all duration-300",
                 mapFilter === f 
                   ? "bg-gold/20 border border-gold/40 text-gold font-bold" 
-                  : "text-white/35 hover:text-white/60"
+                  : "text-white/55 hover:text-white/80"
               )}
             >
               {f}
@@ -335,9 +347,12 @@ export default function MapPage() {
 
       {/* TOP RIGHT — Live Indicator */}
       <div className="absolute top-4 right-4 flex flex-col items-end gap-2 z-20">
-        <div className="flex items-center gap-2 px-4 py-2 rounded-xl border border-white/10 bg-black/60 backdrop-blur-xl shadow-2xl">
+        <div 
+          className="flex items-center gap-2 px-4 py-2 rounded-xl border border-white/20 bg-[#0a0a14]/85 backdrop-blur-md shadow-2xl"
+          style={{ boxShadow: '0 4px 24px rgba(0,0,0,0.6), 0 0 0 0.5px rgba(255,255,255,0.08)' }}
+        >
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_rgba(52,211,153,0.5)]" />
-          <span className="text-white/55 text-[9px] tracking-[0.2em] uppercase font-bold">Live Radar</span>
+          <span className="text-white/75 text-[9px] tracking-[0.2em] uppercase font-bold">Live Radar</span>
         </div>
         
         <button 
@@ -346,7 +361,8 @@ export default function MapPage() {
               mapRef.current.flyTo({ center: [location.longitude, location.latitude], zoom: 15, duration: 1500 })
             }
           }}
-          className="w-10 h-10 rounded-xl border border-white/10 bg-black/60 backdrop-blur-xl flex items-center justify-center text-white/40 hover:text-gold transition-colors shadow-2xl"
+          className="w-10 h-10 rounded-xl border border-white/20 bg-[#0a0a14]/85 backdrop-blur-md flex items-center justify-center text-white/55 hover:text-gold transition-colors shadow-2xl"
+          style={{ boxShadow: '0 4px 24px rgba(0,0,0,0.6), 0 0 0 0.5px rgba(255,255,255,0.08)' }}
         >
           <Crosshair className="w-4 h-4" strokeWidth={1.5} />
         </button>
@@ -354,15 +370,21 @@ export default function MapPage() {
 
       {/* BOTTOM LEFT — Signal Count */}
       <div className="absolute bottom-6 left-4 z-20 pb-[env(safe-area-inset-bottom)]">
-        <div className="px-5 py-3 rounded-xl border border-white/10 bg-black/60 backdrop-blur-xl shadow-2xl">
-          <p className="text-white/35 text-[9px] tracking-[0.2em] uppercase mb-1 font-bold">Signals Intercepted</p>
-          <p className="text-gold text-2xl font-bold tracking-wider text-shadow-glow">{visibleMoments.length}</p>
+        <div 
+          className="px-5 py-3 rounded-xl border border-white/20 bg-[#0a0a14]/85 backdrop-blur-md shadow-2xl"
+          style={{ boxShadow: '0 4px 24px rgba(0,0,0,0.6), 0 0 0 0.5px rgba(255,255,255,0.08)' }}
+        >
+          <p className="text-white/60 text-[9px] tracking-[0.2em] uppercase mb-1 font-bold">Signals Intercepted</p>
+          <p className="text-[#c9a84c] text-2xl font-bold tracking-wider text-shadow-glow">{visibleMoments.length}</p>
         </div>
       </div>
 
       {/* BOTTOM RIGHT — Radius Selector */}
       <div className="absolute bottom-6 right-4 z-20 pb-[env(safe-area-inset-bottom)]">
-        <div className="flex flex-col gap-1 p-1.5 rounded-xl border border-white/10 bg-black/60 backdrop-blur-xl shadow-2xl w-[90px]">
+        <div 
+          className="flex flex-col gap-1 p-1.5 rounded-xl border border-white/20 bg-[#0a0a14]/85 backdrop-blur-md shadow-2xl w-[90px]"
+          style={{ boxShadow: '0 4px 24px rgba(0,0,0,0.6), 0 0 0 0.5px rgba(255,255,255,0.08)' }}
+        >
           <p className="text-white/20 text-[8px] tracking-[0.2em] uppercase text-center py-1 font-bold">Radius</p>
           {radiusOptions.map(r => (
             <button
@@ -372,7 +394,7 @@ export default function MapPage() {
                 "py-2 px-2 rounded-lg text-[9px] tracking-wider uppercase text-center transition-all duration-300",
                 mapRadius === r 
                   ? "bg-gold/20 border border-gold/35 text-gold font-bold" 
-                  : "text-white/30 hover:text-white/60"
+                  : "text-white/55 hover:text-white/80"
               )}
             >
               {typeof r === 'number' ? `${r} km` : r}
@@ -383,7 +405,10 @@ export default function MapPage() {
 
       {/* BOTTOM CENTER — Forum Label (Hidden on mobile) */}
       <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20 hidden sm:flex pb-[env(safe-area-inset-bottom)]">
-        <div className="flex items-center gap-3 px-6 py-3 rounded-xl border border-white/10 bg-black/60 backdrop-blur-xl shadow-2xl">
+        <div 
+          className="flex items-center gap-3 px-6 py-3 rounded-xl border border-white/20 bg-[#0a0a14]/85 backdrop-blur-md shadow-2xl"
+          style={{ boxShadow: '0 4px 24px rgba(0,0,0,0.6), 0 0 0 0.5px rgba(255,255,255,0.08)' }}
+        >
           <Radar className="w-4 h-4 text-gold animate-pulse" strokeWidth={1.5} />
           <div className="flex flex-col">
             <span className="text-white/90 text-[13px] font-bold tracking-[0.25em] uppercase">FORUM</span>
