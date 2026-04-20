@@ -8,6 +8,7 @@ import { Camera, Check, X, Loader, LogOut, Settings, Grid, Clock, Calendar } fro
 import { cn } from '../lib/utils'
 import { Link, useNavigate } from 'react-router-dom'
 import { Moment } from '../types'
+import { ProfileSkeleton, SignalCardSkeleton } from '../components/Skeleton'
 
 export default function ProfilePage() {
   const { user, profile, signOut } = useAuth()
@@ -145,7 +146,11 @@ export default function ProfilePage() {
 
   return (
     <div className="flex-1 overflow-y-auto bg-void">
-      <div className="max-w-5xl mx-auto">
+      <div className="max-w-5xl mx-auto px-5 lg:px-10 py-10">
+        {!profile ? (
+          <ProfileSkeleton />
+        ) : (
+          <>
 
         {/* TOP BAR */}
         <div className="flex items-center justify-between px-5 lg:px-10 pt-10 pb-6">
@@ -373,8 +378,10 @@ export default function ProfilePage() {
 
             {/* GRID */}
             {loadingMoments ? (
-              <div className="flex items-center justify-center py-16">
-                <Loader className="w-5 h-5 text-gold animate-spin" />
+              <div className="grid grid-cols-3 gap-0.5">
+                {[...Array(6)].map((_, i) => (
+                  <SignalCardSkeleton key={i} />
+                ))}
               </div>
             ) : tabMoments.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-24 gap-3 text-center px-6">
@@ -432,6 +439,8 @@ export default function ProfilePage() {
             <div className="h-20" />
           </div>
         </div>
+          </>
+        )}
       </div>
     </div>
   )

@@ -13,6 +13,8 @@ import {
 import { cn } from '../lib/utils'
 import { Moment } from '../types'
 import { getSignalImage } from '../lib/signalImage'
+import { MomentDetailSkeleton } from '../components/Skeleton'
+import { Radio } from 'lucide-react'
 
 const ReportModal = lazy(() => import('../components/ReportModal'))
 
@@ -145,25 +147,18 @@ export default function MomentDetailPage() {
     } catch {}
   }
 
-  if (loading) {
-    return (
-      <div className="flex-1 flex items-center justify-center bg-void">
-        <Loader className="w-6 h-6 text-gold animate-spin" />
-      </div>
-    )
-  }
-
+  if (loading) return <MomentDetailSkeleton />
+  
   if (!moment) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center
-        bg-void gap-4 text-center px-6">
-        <Zap className="w-8 h-8 text-marble/20" />
-        <p className="font-serif text-2xl text-marble/40">Signal not found</p>
-        <button onClick={() => navigate(-1)}
-          className="micro-caps text-sm px-6 py-3 rounded-full
-            border border-white/20 text-marble/50 hover:text-marble transition-all">
-          Go Back
-        </button>
+      <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-void">
+         <Radio className="w-16 h-16 text-marble/5 mb-8" />
+         <h1 className="font-serif text-3xl text-marble/20">Signal Lost in Transmission</h1>
+         <Link to="/app/today" className="mt-8">
+            <button className="micro-caps px-8 py-3 glass-panel hairline-all rounded-full text-marble/50 hover:text-marble transition-all">
+              Return to Pulse
+            </button>
+         </Link>
       </div>
     )
   }

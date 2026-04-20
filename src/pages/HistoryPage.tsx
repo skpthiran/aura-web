@@ -6,6 +6,7 @@ import { usePageTitle } from '../hooks/usePageTitle'
 import { Clock, Zap, Calendar, Users } from 'lucide-react'
 import { cn } from '../lib/utils'
 import { Link } from 'react-router-dom'
+import { HistoryCardSkeleton } from '../components/Skeleton'
 
 interface HistoryMoment {
   id: string
@@ -222,8 +223,10 @@ export default function HistoryPage() {
             </div>
 
             {loading ? (
-              <div className="flex items-center justify-center py-24">
-                <Clock className="w-6 h-6 text-gold animate-pulse" />
+              <div className="space-y-3">
+                {[...Array(6)].map((_, i) => (
+                  <HistoryCardSkeleton key={i} />
+                ))}
               </div>
             ) : filtered.length === 0 ? (
               <motion.div

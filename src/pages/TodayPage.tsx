@@ -14,6 +14,7 @@ import { getSignalImage } from '../lib/signalImage'
 import { useToast } from '../components/ToastProvider'
 import { useRealtimeMoments } from '../hooks/useRealtimeMoments'
 import { calculateDistance } from '../lib/utils'
+import { SignalCardSkeleton, SkeletonBlock } from '../components/Skeleton'
 
 interface MomentGridCardProps {
   moment: Moment
@@ -330,19 +331,27 @@ export default function TodayPage() {
 
   if (loading && moments.length === 0) {
     return (
-      <div className="relative flex-1" style={{ height: '100vh', minHeight: '700px' }}>
-        <div className="absolute inset-0 bg-gradient-to-br from-void via-obsidian to-black animate-pulse" />
-        <div className="absolute top-8 left-10 right-10">
-          <div className="h-3 w-32 bg-white/5 rounded-full mb-4" />
-          <div className="h-24 w-64 bg-white/5 rounded-xl" />
-        </div>
-        <div className="absolute bottom-10 left-10 right-10">
-          <div className="h-4 w-48 bg-white/5 rounded-full mb-3" />
-          <div className="h-16 w-3/4 bg-white/5 rounded-xl mb-6" />
-          <div className="flex gap-3">
-            <div className="h-10 w-24 bg-white/5 rounded-full" />
-            <div className="h-10 w-32 bg-white/5 rounded-full" />
+      <div className="flex-1 bg-void overflow-hidden">
+        {/* Skeleton Hero */}
+        <div className="h-[70vh] w-full relative bg-white/3 overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-r from-white/4 via-white/8 to-white/4 bg-[length:200%_100%] animate-pulse" 
+            style={{ animation: 'skeleton-shimmer 2s ease-in-out infinite' }}
+          />
+          <div className="absolute bottom-20 left-10 space-y-4">
+             <SkeletonBlock className="h-4 w-32" />
+             <SkeletonBlock className="h-16 w-96 max-w-[80vw]" />
+             <div className="flex gap-3">
+               <SkeletonBlock className="h-10 w-24 rounded-full" />
+               <SkeletonBlock className="h-10 w-32 rounded-full" />
+             </div>
           </div>
+        </div>
+
+        {/* Skeleton Grid */}
+        <div className="p-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {[...Array(4)].map((_, i) => (
+            <SignalCardSkeleton key={i} tall={i % 2 === 0} />
+          ))}
         </div>
       </div>
     )
