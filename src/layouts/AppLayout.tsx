@@ -9,7 +9,6 @@ import { supabase } from "../lib/supabase";
 const NAV_ITEMS = [
   { path: "/app/today", label: "Pulse", icon: Compass },
   { path: "/app/map", label: "Forum", icon: MapIcon },
-  { path: "/app/search", label: "Search", icon: Search },
   { path: "/app/create", label: "Summon", icon: Plus, isAction: true },
   { path: "/app/events", label: "Colosseum", icon: Landmark },
   { path: "/app/chat", label: "Agora", icon: MessageSquareText },
@@ -154,6 +153,22 @@ export default function AppLayout() {
             <span className="micro-caps text-[9px] text-gold-pale/50 tracking-[0.3em]">VERSION 2.0.4</span>
           </div>
         </Link>
+
+        {/* Search bar — desktop */}
+        <NavLink to="/app/search">
+          {({ isActive }) => (
+            <div className={cn(
+              'mx-3 mb-4 flex items-center gap-3 px-4 py-2.5 rounded-xl',
+              'border transition-all duration-200 cursor-pointer group',
+              isActive
+                ? 'bg-gold/10 border-gold/30 text-gold'
+                : 'bg-white/4 border-white/8 text-marble/30 hover:text-marble/60 hover:border-white/15'
+            )}>
+              <Search className="w-4 h-4 shrink-0" />
+              <span className="text-sm">Search</span>
+            </div>
+          )}
+        </NavLink>
         
         <nav className="flex flex-col gap-2 flex-1 w-full px-4">
           {NAV_ITEMS.map((item) => (
