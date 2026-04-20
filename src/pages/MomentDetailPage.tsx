@@ -20,6 +20,7 @@ export default function MomentDetailPage() {
   const [joining, setJoining] = useState(false)
   const [joined, setJoined] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [imgError, setImgError] = useState(false)
   const [creator, setCreator] = useState<{
     id: string
     full_name: string | null
@@ -105,9 +106,6 @@ export default function MomentDetailPage() {
     } catch {}
   }
 
-  const allKeys = moment ? Object.keys(moment) : [];
-  console.log('ALL moment keys:', allKeys);
-  console.log('ALL moment values:', JSON.stringify(moment));
 
   if (loading) return <MomentDetailSkeleton />
   if (!moment) return (
@@ -129,7 +127,14 @@ export default function MomentDetailPage() {
   const isJoined = joined
 
   // Fallback image logic
-  const displayImage = moment.image_url || getSignalImage(moment.id, moment.tags, moment.moment_type)
+  // Robust image logic: 
+  // 1. Skip if we've already had an error
+  // 2. Ensure it's a full URL
+  // 3. Otherwise use the generative fallback
+  const hasValidImageUrl = moment.image_url && moment.image_url.startsWith('http');
+  const displayImage = (!imgError && hasValidImageUrl) 
+    ? moment.image_url 
+    : getSignalImage(moment.id, moment.tags, moment.moment_type);
 
   return (
     <div className="min-h-screen bg-[#08080f] lg:flex lg:flex-row overflow-x-hidden">
@@ -140,8 +145,9 @@ export default function MomentDetailPage() {
         {displayImage ? (
           <img 
             src={displayImage} 
-            className="absolute inset-0 w-full h-full object-cover object-center transition-transform duration-1000 hover:scale-105" 
+            className="absolute inset-0 w-full h-full object-cover object-center transition-transform duration-1000 group-hover:scale-105" 
             alt={moment.title}
+            onError={() => setImgError(true)}
           />
         ) : (
           <div className="absolute inset-0 bg-gradient-to-br from-[#1e1628] via-[#130e1f] to-[#08080f]" />
@@ -308,7 +314,7 @@ export default function MomentDetailPage() {
                 className="w-full py-4 rounded-2xl text-[#08080f] text-[12px] font-black tracking-[0.2em] uppercase transition-all duration-300 hover:opacity-90 active:scale-[0.98]"
                 style={{ background: 'linear-gradient(135deg, #c9a84c, #e2c06a, #c9a84c)' }}
               >
-                {joining ? <Loader className="w-5 h-5 animate-spin" /> : 
+                {joining ? <Loader className="w-5 h-5 animate-spin mx-auto" /> : 
                   (moment.capacity_limit > 0 && (moment.attendee_count || 0) >= moment.capacity_limit ? "SIGNAL FULL" : "Join Moment")}
               </button>
             )}
