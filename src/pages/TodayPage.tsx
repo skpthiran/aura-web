@@ -704,7 +704,7 @@ export default function TodayPage() {
                     )}
                     style={{ minHeight: isTall ? '380px' : '220px' }}
                   >
-                    <Link to={`/app/moment/${moment.id}`} className="block h-full">
+                    <Link to={`/app/moment/${moment.id}`} className="relative block h-full">
 
                       {/* Background image */}
                       <img
@@ -715,11 +715,6 @@ export default function TodayPage() {
                           e.currentTarget.src = `https://picsum.photos/seed/${moment.id}/600/500`
                         }}
                       />
-
-                      {/* Joined Overlay */}
-                      {cardActions[moment.id] === 'joined' && (
-                        <JoinedOverlay />
-                      )}
 
                       {/* Gradient overlay */}
                       <div className="absolute inset-0 transition-opacity duration-500"
@@ -884,6 +879,11 @@ export default function TodayPage() {
                       </div>
 
                     </Link>
+
+                    {/* Joined Overlay — sibling of Link, inside relative motion.div */}
+                    {cardActions[moment.id] === 'joined' && (
+                      <JoinedOverlay title={moment.title} />
+                    )}
                   </motion.div>
                 )
               })}

@@ -1,5 +1,5 @@
 import { motion } from 'motion/react'
-import { Check, Lock } from 'lucide-react'
+import { Lock, Check } from 'lucide-react'
 
 interface JoinedOverlayProps {
   title?: string
@@ -10,33 +10,70 @@ export default function JoinedOverlay({ title }: JoinedOverlayProps) {
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      transition={{ duration: 0.4 }}
-      className="absolute inset-0 z-50 flex flex-col items-center justify-center rounded-2xl"
+      transition={{ duration: 0.3 }}
+      style={{
+        position: 'absolute',
+        inset: 0,
+        zIndex: 20,
+        borderRadius: 'inherit',
+        background: 'linear-gradient(135deg, rgba(8,8,15,0.88) 0%, rgba(201,168,76,0.06) 100%)',
+        backdropFilter: 'blur(3px)',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: '8px',
+        pointerEvents: 'none',
+      }}
     >
-      <div className="absolute inset-0 bg-void/80 backdrop-blur-md" />
-      
       <motion.div
-        initial={{ scale: 0.8, opacity: 0 }}
+        initial={{ scale: 0.7, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
-        transition={{ delay: 0.1, type: "spring", damping: 15 }}
-        className="relative z-10 flex flex-col items-center"
+        transition={{ type: 'spring', stiffness: 220, damping: 18, delay: 0.05 }}
+        style={{
+          width: 48,
+          height: 48,
+          borderRadius: '50%',
+          background: 'rgba(201,168,76,0.12)',
+          border: '1.5px solid rgba(201,168,76,0.45)',
+          boxShadow: '0 0 24px rgba(201,168,76,0.15)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
       >
-        <div className="w-20 h-20 rounded-full bg-gold/10 border border-gold/40 
-          flex items-center justify-center mb-4 shadow-[0_0_40px_rgba(201,168,76,0.2)]">
-          <Lock className="w-8 h-8 text-gold" />
-        </div>
-        
-        <h3 className="font-serif text-2xl text-marble mb-1">Joined</h3>
-        <p className="micro-caps text-[10px] text-gold tracking-widest">
-          Access Granted · Secured
-        </p>
-        
-        <div className="mt-6 flex items-center gap-2 px-4 py-1.5 rounded-full
-          bg-gold/10 border border-gold/30">
-          <Check className="w-3 h-3 text-gold" />
-          <span className="micro-caps text-[9px] text-gold font-bold">Aura Verified</span>
-        </div>
+        <Lock style={{ width: 20, height: 20, color: '#C9A84C' }} />
       </motion.div>
+
+      <motion.div
+        initial={{ opacity: 0, y: 4 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.12 }}
+        style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+      >
+        <Check style={{ width: 12, height: 12, color: '#4ade80' }} />
+        <span style={{
+          fontFamily: 'inherit',
+          fontSize: 10,
+          letterSpacing: '0.12em',
+          textTransform: 'uppercase',
+          color: '#4ade80',
+          fontWeight: 500,
+        }}>Joined</span>
+      </motion.div>
+
+      {title && (
+        <p style={{
+          fontSize: 11,
+          color: 'rgba(255,255,255,0.35)',
+          maxWidth: 120,
+          textAlign: 'center',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap',
+          marginTop: 2,
+        }}>{title}</p>
+      )}
     </motion.div>
   )
 }

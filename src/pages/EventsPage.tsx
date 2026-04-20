@@ -65,11 +65,6 @@ const EventCard: React.FC<EventCardProps> = ({ event, index, isJoined, isJoining
             from-void via-void/80 to-void/20" />
         </div>
 
-        {/* Joined Overlay */}
-        {isJoined && (
-          <JoinedOverlay />
-        )}
-
         {/* Content */}
         <div className="relative z-10 p-6 md:p-8 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-6 md:gap-8"
           style={{ minHeight: '180px' }}>
@@ -170,6 +165,11 @@ const EventCard: React.FC<EventCardProps> = ({ event, index, isJoined, isJoining
           </div>
         </div>
       </Link>
+
+      {/* Joined Overlay — sibling of Link, scoped to relative motion.div */}
+      {isJoined && (
+        <JoinedOverlay title={event.title} />
+      )}
     </motion.div>
   )
 }
