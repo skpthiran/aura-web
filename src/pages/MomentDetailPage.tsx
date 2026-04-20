@@ -180,7 +180,7 @@ export default function MomentDetailPage() {
             alt={moment.title}
           />
         ) : (
-          <div className="absolute inset-0 bg-gradient-to-br from-deep via-obsidian to-black" />
+          <div className="absolute inset-0 bg-gradient-to-br from-[#1e1628] via-[#130e1f] to-[#08080f]" />
         )}
         
         {/* Cinematic Overlays */}
@@ -278,7 +278,7 @@ export default function MomentDetailPage() {
             <section>
               <h3 className="text-gold text-[10px] font-black tracking-[0.3em] uppercase mb-6 flex items-center gap-3">
                 <span className="w-6 h-px bg-gold/30" />
-                The Briefing
+                The Mission
               </h3>
               <p className="text-white/60 text-lg leading-relaxed font-light font-serif italic">
                 "{moment.description || "Entering unchartered territories. No mission brief provided."}"
@@ -288,7 +288,7 @@ export default function MomentDetailPage() {
             <section>
               <h3 className="text-gold text-[10px] font-black tracking-[0.3em] uppercase mb-6 flex items-center gap-3">
                 <span className="w-6 h-px bg-gold/30" />
-                Intelligence
+                Details
               </h3>
               <div className="space-y-4">
                 <div className="flex items-center justify-between p-5 rounded-2xl bg-white/[0.02] border border-white/5 hover:bg-white/[0.04] transition-all group">
@@ -297,7 +297,6 @@ export default function MomentDetailPage() {
                          <MapPin className="w-4 h-4 text-gold/60" />
                       </div>
                       <div>
-                         <p className="text-white/30 text-[8px] tracking-[0.2em] uppercase">Sector</p>
                          <p className="text-white font-bold tracking-widest uppercase text-xs">{distanceLabel}</p>
                       </div>
                    </div>
@@ -315,7 +314,7 @@ export default function MomentDetailPage() {
                           }
                         </div>
                         <div>
-                          <p className="text-white/30 text-[8px] tracking-[0.2em] uppercase">Superordinated by</p>
+                          <p className="text-white/30 text-[8px] tracking-[0.2em] uppercase">Organized by</p>
                           <p className="text-white font-bold tracking-widest uppercase text-xs">{creator.username}</p>
                         </div>
                     </div>
@@ -370,7 +369,7 @@ export default function MomentDetailPage() {
                 <div className="absolute inset-0 flex items-center justify-center">
                   <span className="text-[#08080f] text-[13px] font-black tracking-[0.4em] uppercase">
                     {joining ? <Loader className="w-5 h-5 animate-spin" /> : 
-                      (moment.capacity_limit > 0 && participantCount >= moment.capacity_limit ? "SIGNAL FULL" : "INITIALIZE JOIN")}
+                      (moment.capacity_limit > 0 && participantCount >= moment.capacity_limit ? "SIGNAL FULL" : "Join Moment")}
                   </span>
                 </div>
               </button>
