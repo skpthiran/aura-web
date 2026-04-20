@@ -7,7 +7,7 @@ import { MAPTILER_STYLE } from '../lib/constants'
 import { useUserLocation } from '../hooks/useUserLocation'
 import { useNearbyMoments } from '../hooks/useNearbyMoments'
 import { joinMoment } from '../lib/db/moments'
-import { Crosshair, Search, Flame, Target, Users, Settings2, Target as Radar, Loader, Shield } from 'lucide-react'
+import { Crosshair, Search, Flame, Target, Users, Settings2, Target as Radar, Loader, Shield, X } from 'lucide-react'
 import { cn } from '../lib/utils'
 import { Moment } from '../types'
 import { usePageTitle } from '../hooks/usePageTitle'
@@ -342,64 +342,109 @@ export default function MapPage() {
   }
 
   return (
-    <div className="fixed inset-0 flex flex-col lg:flex-row overflow-hidden bg-void pb-[calc(64px+env(safe-area-inset-bottom))] lg:pb-0">
-      {/* Background Grids */}
-      <div className="absolute inset-0 pointer-events-none z-0">
-        <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:100px_100px]" />
-        <div className="absolute inset-0 hud-overlay mix-blend-multiply opacity-20" />
+    <div className="flex flex-col lg:flex-row h-screen bg-obsidian overflow-hidden">
+      {/* MAP SECTION — Fixed 40vh on mobile, full-height desktop */}
+      <div className="relative w-full lg:flex-1 shrink-0 h-[40vh] lg:h-full order-1 lg:order-2 border-b lg:border-l border-white/5">
+        <div ref={mapContainer} className="absolute inset-0 w-full h-full" />
+        
+        {/* Floating Controls — Keeping these but ensuring they are clean */}
+        <div className="absolute top-4 right-4 flex flex-col gap-2 z-10">
+          <button 
+            onClick={handleFlyToUser}
+            className="w-10 h-10 rounded-sm glass-panel flex items-center justify-center hover:bg-white/10 transition-all border border-white/10 active:scale-95 text-marble/60 hover:text-gold"
+          >
+            <Crosshair className="w-4 h-4" strokeWidth={1.5} />
+          </button>
+        </div>
+
+        {/* Location Alerts */}
+        {locationError && (
+          <div className="absolute top-4 left-4 z-20 glass-panel border-crimson/30 bg-crimson/5 px-4 py-2 flex items-center gap-3 animate-pulse">
+            <Shield className="w-3 h-3 text-crimson-bright" />
+            <span className="micro-caps text-crimson-bright text-[9px]">SIGNAL LOST</span>
+          </div>
+        )}
       </div>
 
-      {/* Control / Signal Panel — Left on Desktop, Bottom on Mobile */}
-      <aside className="w-full lg:w-[400px] h-[320px] lg:h-full bg-void border-t lg:border-t-0 lg:border-r border-white/10 flex flex-col z-20 order-2 lg:order-1 relative shadow-2xl">
-        {/* Header Section */}
-        <div className="p-6 pb-2 shrink-0">
-          <div className="flex items-center gap-3 mb-6">
-            <h1 className="font-serif text-2xl text-marble tracking-widest uppercase text-shadow-glow">FORUM</h1>
-            <span className="micro-caps text-[9px] text-gold-pale/50">GEOSPATIAL INTELLIGENCE</span>
+      {/* PANEL SECTION — Remaining 60vh on mobile, sidebar on desktop */}
+      <aside className="flex-1 lg:w-[400px] lg:h-full flex flex-col bg-obsidian z-20 order-2 lg:order-1 relative shadow-2xl overflow-hidden pb-[calc(64px+env(safe-area-inset-bottom))] lg:pb-6">
+        {/* Background Grids */}
+        <div className="absolute inset-0 pointer-events-none z-0">
+          <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.01)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.01)_1px,transparent_1px)] bg-[size:50px_50px]" />
+        </div>
+
+        {/* Header content */}
+        <div className="p-6 pb-2 shrink-0 relative z-10">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-3">
+              <h1 className="font-serif text-2xl text-marble tracking-widest uppercase text-shadow-glow">FORUM</h1>
+              <span className="micro-caps text-[9px] text-gold-pale/50 hidden sm:inline">GEOSPATIAL INTELLIGENCE</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-1.5 h-1.5 rounded-full bg-gold animate-pulse" />
+              <span className="micro-caps text-[9px] text-gold/60">LIVE</span>
+            </div>
           </div>
           
           {/* Search Box */}
           <div className="glass-panel border-white/10 rounded-sm flex items-center px-4 py-3 relative overflow-hidden group mb-4">
-            <div className="absolute inset-0 w-1 bg-gold transition-all duration-300 left-0" />
-            <Search className="w-4 h-4 text-gold-pale/50 mr-3 group-hover:text-gold transition-colors" strokeWidth={1.5} />
+            <div className="absolute inset-y-0 left-0 w-[2px] bg-gold" />
+            <Search className="w-4 h-4 text-gold-pale/50 mr-3" strokeWidth={1.5} />
             <input 
               type="text" 
-              placeholder="TARGET COORDINATES / SEARCH" 
+              placeholder="FILTER COORDINATES..." 
               className="bg-transparent border-none outline-none font-mono text-xs text-marble w-full uppercase tracking-wider placeholder:text-marble/20"
             />
           </div>
 
-          {/* Filter Pills */}
-          <div className="flex gap-2 mb-4 overflow-x-auto scrollbar-hide">
+          {/* Filter Row 1: Signal Types */}
+          <div className="flex gap-2 mb-4 overflow-x-auto scrollbar-hide py-1">
             {['All', 'Moments', 'Events'].map(f => (
               <button
                 key={f}
                 onClick={() => setMapFilter(f as any)}
                 className={cn(
                   "glass-panel hairline-all px-4 py-1.5 micro-caps text-[9px] transition-all duration-300 whitespace-nowrap",
-                  mapFilter === f ? "bg-gold/20 text-gold border-gold/40" : "text-marble/40 hover:text-marble/70"
+                  mapFilter === f ? "bg-gold/20 text-gold border-gold/40" : "text-marble/40 hover:text-marble/70 hover:border-white/20"
                 )}
               >
                 {f}
               </button>
             ))}
+
+            {/* Radius Dropdown (Moved into scroll row) */}
+            <div className="h-6 w-[1px] bg-white/10 self-center mx-1" />
+            {radiusOptions.map(opt => (
+              <button
+                key={opt.value}
+                onClick={() => setMapRadius(opt.value)}
+                className={cn(
+                  'micro-caps text-[9px] px-3 py-1.5 rounded-sm whitespace-nowrap shrink-0 transition-all duration-300 border',
+                  mapRadius === opt.value
+                    ? 'bg-gold/90 border-gold text-void font-bold'
+                    : 'bg-white/5 border-white/10 text-white/50 hover:border-gold/30 hover:text-gold'
+                )}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+
+          <div className="flex items-center justify-between mb-4 border-b border-white/5 pb-3">
+             <p className="micro-caps text-[9px] text-marble/30 tracking-widest">{visibleMoments.length} SIGNALS INTERCEPTED</p>
+             <div className="flex items-center gap-2">
+                <Radar className="w-3 h-3 text-gold/40" />
+                <span className="micro-caps text-[9px] text-marble/40">READY</span>
+             </div>
           </div>
         </div>
 
         {/* Scrollable Signal List */}
-        <div className="flex-1 overflow-y-auto overscroll-contain px-6 pb-6 scrollbar-hide">
-          <div className="flex items-center justify-between mb-4 mt-2">
-            <p className="micro-caps text-[9px] text-marble/30 tracking-widest">{visibleMoments.length} ACTIVE SIGNALS FOUND</p>
-            <div className="flex items-center gap-2">
-              <div className="w-1.5 h-1.5 rounded-full bg-gold animate-pulse" />
-              <span className="micro-caps text-[9px] text-gold/60">LIVE RADAR</span>
-            </div>
-          </div>
-
+        <div className="flex-1 overflow-y-auto overscroll-contain px-6 pb-20 lg:pb-10 scrollbar-hide relative z-10">
           {visibleMoments.length === 0 ? (
             <div className="h-32 flex flex-col items-center justify-center border border-dashed border-white/5 rounded-sm opacity-40">
               <Radar className="w-6 h-6 mb-2 text-marble/20" />
-              <p className="micro-caps text-[9px]">No signals in radius</p>
+              <p className="micro-caps text-[9px]">NO SIGNALS IN SECTOR</p>
             </div>
           ) : (
             visibleMoments.map(sig => (
@@ -417,7 +462,7 @@ export default function MapPage() {
                 }}
                 className="w-full glass-panel border-white/5 p-3 flex items-start gap-4 hover:bg-white/5 active:scale-[0.98] transition-all text-left mb-2 group text-marble"
               >
-                <div className="w-10 h-10 bg-white/5 shrink-0 overflow-hidden rounded-xs border border-white/10 group-hover:border-gold/30 transition-colors">
+                <div className="w-12 h-12 bg-white/5 shrink-0 overflow-hidden rounded-xs border border-white/10 group-hover:border-gold/30 transition-colors">
                   <img 
                     src={`https://picsum.photos/seed/${sig.id}/100/100`} 
                     className="w-full h-full object-cover grayscale opacity-60 group-hover:grayscale-0 group-hover:opacity-100 transition-all" 
@@ -427,12 +472,14 @@ export default function MapPage() {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between gap-2 mb-0.5">
                     <span className="micro-caps text-[8px] text-gold/60">{sig.moment_type}</span>
-                    <span className="font-mono text-[8px] text-marble/30">{haversineKm(location?.latitude || 0, location?.longitude || 0, sig.latitude || 0, sig.longitude || 0).toFixed(1)}KM</span>
+                    <span className="font-mono text-[8px] text-marble/30">
+                      {location ? haversineKm(location.latitude, location.longitude, sig.latitude || 0, sig.longitude || 0).toFixed(1) : '??'}KM
+                    </span>
                   </div>
                   <h3 className="text-marble font-medium text-[11px] truncate uppercase tracking-wider">{sig.title}</h3>
                   <div className="flex items-center gap-1.5 mt-1">
-                    <Users className="w-2.5 h-2.5 text-marble/30" />
-                    <span className="text-marble/30 text-[9px] micro-caps">{sig.participant_count || 0} ENTS</span>
+                    <div className="w-1 h-1 rounded-full bg-gold/50" />
+                    <span className="text-marble/30 text-[9px] micro-caps">{sig.participant_count || 0} ENTS ACTIVE</span>
                   </div>
                 </div>
               </button>
@@ -441,54 +488,10 @@ export default function MapPage() {
         </div>
       </aside>
 
-      {/* Map Engine — Main View */}
-      <main className="flex-1 relative order-1 lg:order-2">
-        <div ref={mapContainer} className="absolute inset-0 w-full h-full" />
-        
-        {/* Map Toolbars */}
-        <div className="absolute top-6 right-6 flex flex-col gap-3 pointer-events-auto z-10">
-          <button 
-            onClick={handleFlyToUser}
-            className="w-12 h-12 rounded-sm glass-panel flex items-center justify-center hover:bg-white/10 transition-all border border-white/10 active:scale-95 text-marble/60 hover:text-gold relative group"
-          >
-            <Crosshair className="w-5 h-5" strokeWidth={1.5} />
-          </button>
-          <button className="w-12 h-12 rounded-sm glass-panel flex items-center justify-center hover:bg-white/10 transition-all border border-white/10 active:scale-95 text-marble/60 hover:text-gold relative group">
-            <Settings2 className="w-5 h-5" strokeWidth={1.5} />
-          </button>
-        </div>
-
-        {/* Global Radius Control — Integrated but floating slightly above the panel on mobile */}
-        <div className="absolute bottom-6 left-6 right-6 lg:left-auto lg:right-6 lg:bottom-12 z-20 flex gap-2 overflow-x-auto scrollbar-hide pb-2">
-          {radiusOptions.map(opt => (
-            <button
-              key={opt.value}
-              onClick={() => setMapRadius(opt.value)}
-              className={cn(
-                'micro-caps text-[9px] px-4 py-2.5 rounded-sm whitespace-nowrap shrink-0 transition-all duration-300 border',
-                mapRadius === opt.value
-                  ? 'bg-gold border-gold text-void font-bold shadow-lg'
-                  : 'bg-black/60 backdrop-blur-md border-white/10 text-white/50 hover:border-gold/30 hover:text-gold'
-              )}
-            >
-              {opt.label}
-            </button>
-          ))}
-        </div>
-
-        {/* Location Alerts */}
-        {locationError && (
-          <div className="absolute top-6 left-6 z-20 glass-panel border-crimson/30 bg-crimson/5 px-4 py-2 flex items-center gap-3 animate-pulse">
-            <Shield className="w-4 h-4 text-crimson-bright" />
-            <span className="micro-caps text-crimson-bright text-[10px]">FIX GPS CONNECTION</span>
-          </div>
-        )}
-      </main>
-
       {/* Moment Dossier Overlay */}
       <AnimatePresence>
         {selectedMoment && (
-          <div className="absolute inset-0 z-40 flex items-center justify-center p-4 md:p-12 pointer-events-none">
+          <div className="absolute inset-0 z-[100] flex items-center justify-center p-4 md:p-12 pointer-events-none">
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -498,70 +501,73 @@ export default function MapPage() {
             />
             
             <motion.article
-              initial={{ opacity: 0, y: 50, scale: 0.95 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 50, scale: 0.95 }}
-              className="relative w-full max-w-2xl bg-card border border-white/10 pointer-events-auto flex flex-col overflow-hidden rounded-sm shadow-2xl max-h-[90dvh]"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="relative w-full max-w-2xl bg-card border border-white/10 pointer-events-auto flex flex-col overflow-hidden rounded-sm shadow-2xl max-h-[85dvh]"
               onClick={e => e.stopPropagation()}
             >
-              <div className="h-[200px] md:h-[300px] w-full relative shrink-0">
+              <div className="h-[180px] md:h-[260px] w-full relative shrink-0">
                 <img 
                   src={`https://picsum.photos/seed/${selectedMoment.id}/1000/600`} 
                   className="w-full h-full object-cover grayscale contrast-125" 
                   referrerPolicy="no-referrer" 
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-card via-transparent to-transparent" />
+                <button 
+                  onClick={() => setSelectedMoment(null)}
+                  className="absolute top-4 right-4 w-10 h-10 glass-panel rounded-full flex items-center justify-center text-marble/50 hover:text-white"
+                >
+                  <X className="w-5 h-5" />
+                </button>
                 <div className="absolute bottom-6 left-6 right-6">
-                  <div className="micro-caps text-[9px] text-gold-pale mb-2 flex items-center gap-2">
-                    <Radar className="w-3 h-3" /> Signal Dossier
+                  <div className="micro-caps text-[9px] text-gold-pale mb-1 flex items-center gap-2">
+                    <div className="w-1 h-1 bg-gold rounded-full animate-pulse" /> Signal Dossier
                   </div>
-                  <h2 className="font-serif text-2xl md:text-5xl text-marble tracking-tight">{selectedMoment.title}</h2>
+                  <h2 className="font-serif text-2xl md:text-4xl text-marble tracking-tight">{selectedMoment.title}</h2>
                 </div>
               </div>
 
-              <div className="p-6 md:p-10 overflow-y-auto">
-                 <div className="grid grid-cols-2 lg:grid-cols-3 gap-6 mb-8 border-b border-white/10 pb-8">
+              <div className="p-6 md:p-8 overflow-y-auto scrollbar-hide">
+                 <div className="grid grid-cols-2 md:grid-cols-3 gap-6 mb-8 border-b border-white/5 pb-8">
                     <div>
                       <p className="micro-caps text-[9px] text-marble/30 mb-1">Range</p>
                       <p className="font-mono text-sm text-marble">
-                        {haversineKm(location?.latitude || 0, location?.longitude || 0, selectedMoment.latitude || 0, selectedMoment.longitude || 0).toFixed(2)} KM
+                        {location ? haversineKm(location.latitude, location.longitude, selectedMoment.latitude || 0, selectedMoment.longitude || 0).toFixed(2) : '---'} KM
                       </p>
                     </div>
                     <div>
                       <p className="micro-caps text-[9px] text-marble/30 mb-1">Entities</p>
                       <p className="font-mono text-sm text-marble flex items-center gap-2">
-                        <Users className="w-4 h-4" /> {selectedMoment.participant_count ?? 0}
+                        <Users className="w-3.5 h-3.5 text-gold/60" /> {selectedMoment.participant_count ?? 0}
                       </p>
                     </div>
-                    <div>
-                      <p className="micro-caps text-[9px] text-marble/30 mb-1">Status</p>
-                      <div className="flex items-center gap-1.5">
-                        <div className="w-1.5 h-1.5 rounded-full bg-gold animate-pulse" />
-                        <p className="micro-caps text-[10px] text-gold">Intercepted</p>
-                      </div>
+                    <div className="hidden md:block">
+                      <p className="micro-caps text-[9px] text-marble/30 mb-1">Type</p>
+                      <p className="micro-caps text-[10px] text-gold uppercase">{selectedMoment.moment_type}</p>
                     </div>
                  </div>
 
-                 <p className="text-sm text-marble/50 font-light mb-8 leading-relaxed">
+                 <p className="text-xs text-marble/50 font-light mb-8 leading-relaxed uppercase tracking-wider">
                    {selectedMoment.description || "Active signal detected at coordinates. Local fluctuations indicate human gathering patterns. Metadata incomplete."}
                  </p>
 
-                 <div className="flex flex-col sm:flex-row gap-4">
+                 <div className="flex flex-col sm:flex-row gap-3">
                     <button 
                       disabled={isJoining || hasJoined}
                       onClick={handleJoinMoment}
                       className={cn(
-                        "flex-1 px-8 py-4 micro-caps text-xs tracking-[0.3em] font-bold transition-all relative overflow-hidden",
-                        hasJoined ? "bg-gold text-void" : "bg-marble text-void hover:bg-gold-pale"
+                        "flex-1 px-8 py-4 micro-caps text-[10px] tracking-[0.3em] font-bold transition-all border",
+                        hasJoined ? "bg-gold border-gold text-void" : "bg-marble border-marble text-void hover:bg-gold-pale"
                       )}
                     >
                       {isJoining ? "SYCHRONIZING..." : hasJoined ? "CONNECTION ACTIVE" : "ENGAGE SIGNAL"}
                     </button>
                     <Link 
                       to={`/app/moment/${selectedMoment.id}`}
-                      className="px-8 py-4 micro-caps text-xs tracking-[0.3em] font-bold text-marble border border-white/10 hover:bg-white/5 text-center"
+                      className="px-8 py-4 micro-caps text-[10px] tracking-[0.3em] font-bold text-marble border border-white/10 hover:bg-white/5 text-center"
                     >
-                      FULL DOSSIER
+                      FULL RECORD
                     </Link>
                  </div>
               </div>
@@ -572,14 +578,23 @@ export default function MapPage() {
 
       {/* Global Loading */}
       {momentsLoading && moments.length === 0 && (
-        <div className="absolute inset-0 z-50 bg-void flex items-center justify-center">
-          <motion.div
-             animate={{ opacity: [0.3, 1, 0.3] }}
-             transition={{ duration: 1.5, repeat: Infinity }}
-             className="text-gold font-serif text-5xl tracking-[0.5em]"
-          >
-            AURA
-          </motion.div>
+        <div className="absolute inset-0 z-[200] bg-obsidian flex items-center justify-center">
+          <div className="flex flex-col items-center gap-4">
+            <div className="w-12 h-[2px] bg-gold/30 relative overflow-hidden">
+               <motion.div 
+                 animate={{ left: ['-100%', '100%'] }}
+                 transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                 className="absolute top-0 bottom-0 w-1/2 bg-gold"
+               />
+            </div>
+            <motion.div
+               animate={{ opacity: [0.3, 1, 0.3] }}
+               transition={{ duration: 2, repeat: Infinity }}
+               className="text-gold/50 micro-caps text-[9px] tracking-[0.6em]"
+            >
+              SCANNING SECTORS
+            </motion.div>
+          </div>
         </div>
       )}
     </div>
