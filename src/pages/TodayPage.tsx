@@ -9,6 +9,9 @@ import { joinMoment } from '../lib/db/moments'
 import { Moment } from '../types'
 import { cn } from '../lib/utils'
 import { usePageTitle } from '../hooks/usePageTitle'
+import { useToast } from '../components/ToastProvider'
+import { useRealtimeMoments } from '../hooks/useRealtimeMoments'
+import { calculateDistance } from '../lib/utils'
 
 interface MomentGridCardProps {
   moment: Moment
@@ -148,6 +151,32 @@ export default function TodayPage() {
   ]
 
   const { moments, loading } = useNearbyMoments(location, radius)
+  const { addToast } = useToast()
+
+  // Realtime Notification Listener
+  useRealtimeMoments({
+    onInsert: (newMoment) => {
+      // Only show toast if user is nearby
+      if (location && newMoment.latitude !== undefined && newMoment.longitude !== undefined) {
+        const dist = calculateDistance(
+          location.latitude,
+          location.longitude,
+          newMoment.latitude,
+          newMoment.longitude
+        )
+        
+        // If within current radius, show toast
+        if (dist <= radius) {
+          addToast({
+            title: newMoment.title,
+            description: `New ${newMoment.moment_type === 'event' ? 'event' : 'signal'} detected nearby.`,
+            link: `/app/moment/${newMoment.id}`,
+            type: 'signal'
+          })
+        }
+      }
+    }
+  })
   
   const [joiningId, setJoiningId] = useState<string | null>(null)
   const [joinedIds, setJoinedIds] = useState<Set<string>>(new Set())

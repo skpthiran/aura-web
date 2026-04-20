@@ -4,6 +4,8 @@ import LandingLayout from "./layouts/LandingLayout";
 import AppLayout from "./layouts/AppLayout";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { ErrorBoundary } from "./components/ErrorBoundary";
+import { ToastProvider } from "./components/ToastProvider";
+import { AuthProvider } from "./contexts/AuthContext";
 
 // Lazy Pages
 const LandingPage = lazy(() => import("./pages/LandingPage"));
@@ -35,41 +37,45 @@ export default function App() {
   return (
     <Router>
       <ErrorBoundary>
-        <Suspense fallback={<PageLoader />}>
-          <Routes>
-            {/* Public Routes */}
-            <Route element={<LandingLayout />}>
-              <Route path="/" element={<LandingPage />} />
-              <Route path="/auth" element={<AuthPage />} />
-            </Route>
+        <AuthProvider>
+          <ToastProvider>
+            <Suspense fallback={<PageLoader />}>
+              <Routes>
+                {/* Public Routes */}
+                <Route element={<LandingLayout />}>
+                  <Route path="/" element={<LandingPage />} />
+                  <Route path="/auth" element={<AuthPage />} />
+                </Route>
 
-            {/* Authenticated Routes */}
-            <Route 
-              path="/app" 
-              element={
-                <ProtectedRoute>
-                  <AppLayout />
-                </ProtectedRoute>
-              }
-            >
-              <Route index element={<Navigate to="/app/today" replace />} />
-              <Route path="today" element={<TodayPage />} />
-              <Route path="map" element={<MapPage />} />
-              <Route path="create" element={<CreatePage />} />
-              <Route path="events" element={<EventsPage />} />
-              <Route path="search" element={<SearchPage />} />
-              <Route path="chat" element={<ChatPage />} />
-              <Route path="signals" element={<SignalsPage />} />
-              <Route path="moment/:id" element={<MomentDetailPage />} />
-              <Route path="profile" element={<ProfilePage />} />
-              <Route path="history" element={<HistoryPage />} />
-              <Route path="user/:userId" element={<PublicProfilePage />} />
-            </Route>
+                {/* Authenticated Routes */}
+                <Route 
+                  path="/app" 
+                  element={
+                    <ProtectedRoute>
+                      <AppLayout />
+                    </ProtectedRoute>
+                  }
+                >
+                  <Route index element={<Navigate to="/app/today" replace />} />
+                  <Route path="today" element={<TodayPage />} />
+                  <Route path="map" element={<MapPage />} />
+                  <Route path="create" element={<CreatePage />} />
+                  <Route path="events" element={<EventsPage />} />
+                  <Route path="search" element={<SearchPage />} />
+                  <Route path="chat" element={<ChatPage />} />
+                  <Route path="signals" element={<SignalsPage />} />
+                  <Route path="moment/:id" element={<MomentDetailPage />} />
+                  <Route path="profile" element={<ProfilePage />} />
+                  <Route path="history" element={<HistoryPage />} />
+                  <Route path="user/:userId" element={<PublicProfilePage />} />
+                </Route>
 
-            {/* Fallback */}
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </Suspense>
+                {/* Fallback */}
+                <Route path="*" element={<Navigate to="/" replace />} />
+              </Routes>
+            </Suspense>
+          </ToastProvider>
+        </AuthProvider>
       </ErrorBoundary>
     </Router>
   );

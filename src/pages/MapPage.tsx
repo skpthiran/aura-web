@@ -11,6 +11,9 @@ import { Crosshair, Search, Flame, Target, Users, Settings2, Target as Radar, Lo
 import { cn } from '../lib/utils'
 import { Moment } from '../types'
 import { usePageTitle } from '../hooks/usePageTitle'
+import { useToast } from '../components/ToastProvider'
+import { useRealtimeMoments } from '../hooks/useRealtimeMoments'
+import { calculateDistance } from '../lib/utils'
 
 // Distance utility
 function haversineKm(
@@ -44,6 +47,30 @@ export default function MapPage() {
   const [mapFilter, setMapFilter] = useState<'All' | 'Moments' | 'Events'>('All')
 
   const { moments, loading: momentsLoading, refetch: refetchMoments } = useNearbyMoments(location, mapRadius)
+  const { addToast } = useToast()
+
+  // Realtime Integration for Map (Toasts)
+  useRealtimeMoments({
+    onInsert: (newMoment) => {
+        if (location && newMoment.latitude !== undefined && newMoment.longitude !== undefined) {
+          const dist = calculateDistance(
+            location.latitude,
+            location.longitude,
+            newMoment.latitude,
+            newMoment.longitude
+          )
+        // If within map radius, notify
+        if (dist <= mapRadius) {
+          addToast({
+            title: newMoment.title,
+            description: `Intercepted new ${newMoment.moment_type} at coordinates.`,
+            link: `/app/moment/${newMoment.id}`,
+            type: 'signal'
+          })
+        }
+      }
+    }
+  })
 
   // === SIGNAL FILTERING — NO .filter() TO AVOID TDZ ===
   const visibleMoments: Moment[] = []
@@ -207,25 +234,41 @@ export default function MapPage() {
     }
   }, [location])
 
-  // Sync Moment Markers - ROBUST VERSION
+  // Sync Moment Markers - OPTIMIZED VERSION
+  const markersRef = useRef<{ [id: string]: Marker }>({})
+
   useEffect(() => {
     if (!mapRef.current) return
     const map = mapRef.current
 
     const syncMarkers = () => {
-      // Clear old
-      momentMarkersRef.current.forEach(sig => sig.remove())
-      momentMarkersRef.current = []
+      const currentIds = new Set(visibleMoments.map(m => m.id))
+      
+      // Remove old markers
+      Object.keys(markersRef.current).forEach(id => {
+        if (!currentIds.has(id)) {
+          markersRef.current[id].remove()
+          delete markersRef.current[id]
+        }
+      })
 
-      // Add new
+      // Add new markers
       visibleMoments.forEach(sig => {
+        if (markersRef.current[sig.id]) {
+          // Update position if needed (though moments shouldn't move much)
+          markersRef.current[sig.id].setLngLat([sig.lng, sig.lat])
+          return
+        }
+
         const el = document.createElement('div')
         el.className = 'flex items-center justify-center cursor-pointer group'
         el.id = `marker-${sig.id}`
         
         const isEvent = sig.moment_type === 'event'
+        // Add "new-signal-flash" class for animation
         el.innerHTML = `
           <div class="relative w-10 h-10 flex items-center justify-center bg-obsidian rounded-sm border border-white/20 shadow-2xl transition-all group-hover:scale-110 group-hover:border-gold/50">
+             <div class="absolute inset-0 bg-gold/10 animate-[ping_2s_infinite] rounded-full scale-150 opacity-20 pointer-events-none"></div>
             <div class="absolute inset-0 bg-gold/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
             <span class="text-lg relative z-10">${isEvent ? '📅' : '⚡'}</span>
             <div class="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-gold rounded-full opacity-50 group-hover:opacity-100 glow-sm"></div>
@@ -241,17 +284,16 @@ export default function MapPage() {
           .setLngLat([sig.lng, sig.lat])
           .addTo(map)
         
-        momentMarkersRef.current.push(marker)
+        markersRef.current[sig.id] = marker
       })
     }
 
-    // Handle style loading races
     if (map.isStyleLoaded()) {
       syncMarkers()
     } else {
       map.once('load', syncMarkers)
     }
-  }, [visibleMoments, updateRadiusCircle])
+  }, [visibleMoments]) 
 
 
   const handleFlyToUser = () => {

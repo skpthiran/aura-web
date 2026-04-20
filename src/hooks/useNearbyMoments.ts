@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { Moment } from '../types'
 import { getNearbyMoments, getAllActiveMoments } from '../lib/db/moments'
 import { UserLocation } from '../types'
+import { useRealtimeMoments } from './useRealtimeMoments'
 
 export function useNearbyMoments(
   location: UserLocation | null,
@@ -33,7 +34,6 @@ export function useNearbyMoments(
       let data: Moment[]
       
       if (r >= 99999999) {
-        // Global — fetch everything
         data = await getAllActiveMoments()
       } else if (loc) {
         data = await getNearbyMoments(loc.latitude, loc.longitude, r)
@@ -52,16 +52,33 @@ export function useNearbyMoments(
     }
   }, [])
 
-  // Fetch when radius changes — pass new radius directly
+  // Update moments in state via realtime
+  const handleRealtimeInsert = useCallback((newMoment: Moment) => {
+    setMoments(prev => {
+      // Avoid duplicates
+      if (prev.some(m => m.id === newMoment.id)) return prev
+      return [newMoment, ...prev]
+    })
+  }, [])
+
+  const handleRealtimeUpdate = useCallback((updatedMoment: Moment) => {
+    setMoments(prev => prev.map(m => m.id === updatedMoment.id ? updatedMoment : m))
+  }, [])
+
+  const handleRealtimeDelete = useCallback((id: string) => {
+    setMoments(prev => prev.filter(m => m.id !== id))
+  }, [])
+
+  useRealtimeMoments({
+    onInsert: handleRealtimeInsert,
+    onUpdate: handleRealtimeUpdate,
+    onDelete: handleRealtimeDelete
+  })
+
+  // Fetch when radius changes
   useEffect(() => {
     fetchMoments(radiusMeters)
   }, [radiusMeters, fetchMoments])
 
-  // Periodic refresh
-  useEffect(() => {
-    const interval = setInterval(() => fetchMoments(), 30000)
-    return () => clearInterval(interval)
-  }, [fetchMoments])
-
-  return { moments, loading, error, refetch: fetchMoments }
+  return { moments, loading, error, refetch: fetchMoments, setMoments }
 }

@@ -21,6 +21,8 @@ export interface Moment {
   tags: string[]
   lat?: number
   lng?: number
+  latitude?: number
+  longitude?: number
   distance_meters?: number
   participant_count?: number
   start_time?: string

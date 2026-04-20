@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { Moment } from '../types'
 import { getNearbyMoments, getAllActiveMoments } from '../lib/db/moments'
 import { UserLocation } from '../types'
+import { useRealtimeMoments } from './useRealtimeMoments'
 
 export function useNearbyEvents(
   location: UserLocation | null,
@@ -46,16 +47,34 @@ export function useNearbyEvents(
     }
   }, [radiusMeters])
 
+  // Update events in state via realtime
+  const handleRealtimeInsert = useCallback((newMoment: Moment) => {
+    if (newMoment.moment_type !== 'event') return
+    setEvents(prev => {
+      if (prev.some(m => m.id === newMoment.id)) return prev
+      return [newMoment, ...prev]
+    })
+  }, [])
+
+  const handleRealtimeUpdate = useCallback((updatedMoment: Moment) => {
+    if (updatedMoment.moment_type !== 'event') return
+    setEvents(prev => prev.map(m => m.id === updatedMoment.id ? updatedMoment : m))
+  }, [])
+
+  const handleRealtimeDelete = useCallback((id: string) => {
+    setEvents(prev => prev.filter(m => m.id !== id))
+  }, [])
+
+  useRealtimeMoments({
+    onInsert: handleRealtimeInsert,
+    onUpdate: handleRealtimeUpdate,
+    onDelete: handleRealtimeDelete
+  })
+
   // Fetch when radius changes
   useEffect(() => {
     fetchEvents(radiusMeters)
   }, [radiusMeters, fetchEvents])
-
-  // Periodic refresh
-  useEffect(() => {
-    const interval = setInterval(() => fetchEvents(), 60000)
-    return () => clearInterval(interval)
-  }, [fetchEvents])
 
   return { events, loading, error, refetch: fetchEvents }
 }

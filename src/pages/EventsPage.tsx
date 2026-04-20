@@ -7,8 +7,10 @@ import { useUserLocation } from '../hooks/useUserLocation'
 import { useNearbyEvents } from '../hooks/useNearbyEvents'
 import { joinMoment } from '../lib/db/moments'
 import { Moment } from '../types'
-import { cn } from '../lib/utils'
+import { cn, calculateDistance } from '../lib/utils'
 import { usePageTitle } from '../hooks/usePageTitle'
+import { useToast } from '../components/ToastProvider'
+import { useRealtimeMoments } from '../hooks/useRealtimeMoments'
 
 interface EventCardProps {
   event: Moment
@@ -162,6 +164,34 @@ export default function EventsPage() {
   ]
 
   const { events, loading, refetch } = useNearbyEvents(location, radius)
+  const { addToast } = useToast()
+
+  // Realtime Event Notifications
+  useRealtimeMoments({
+    onInsert: (newMoment) => {
+      if (newMoment.moment_type !== 'event') return
+      
+      // Only toast if nearby
+      if (location && newMoment.latitude !== undefined && newMoment.longitude !== undefined) {
+        const dist = calculateDistance(
+          location.latitude,
+          location.longitude,
+          newMoment.latitude,
+          newMoment.longitude
+        )
+        
+        if (dist <= radius) {
+          addToast({
+            title: newMoment.title,
+            description: "A new structured gathering has been initialized nearby.",
+            link: `/app/moment/${newMoment.id}`,
+            type: 'signal'
+          })
+        }
+      }
+    }
+  })
+
   const [joiningId, setJoiningId] = useState<string | null>(null)
   const [joinedIds, setJoinedIds] = useState<Set<string>>(new Set())
 
