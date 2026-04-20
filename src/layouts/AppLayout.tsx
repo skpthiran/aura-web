@@ -5,6 +5,7 @@ import { Compass, Map as MapIcon, Plus, Building2, MessageSquare, Landmark, Mess
 import { cn } from "../lib/utils";
 import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../lib/supabase";
+import OnboardingFlow, { needsOnboarding } from '../components/OnboardingFlow'
 
 const NAV_ITEMS = [
   { path: "/app/today", label: "Pulse", icon: Compass },
@@ -24,6 +25,7 @@ export default function AppLayout() {
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [showOnboarding, setShowOnboarding] = useState(() => needsOnboarding())
 
   useEffect(() => {
     if (!user) return;
@@ -76,6 +78,9 @@ export default function AppLayout() {
 
   return (
     <div className="min-h-screen bg-void text-marble flex flex-col lg:flex-row overflow-hidden relative selection:bg-gold/20">
+      {showOnboarding && (
+        <OnboardingFlow onComplete={() => setShowOnboarding(false)} />
+      )}
       {/* Premium Mobile Top Bar */}
       <div className="lg:hidden fixed top-0 left-0 right-0 z-50"
         style={{ paddingTop: 'env(safe-area-inset-top)' }}>
