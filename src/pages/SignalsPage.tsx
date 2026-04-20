@@ -164,46 +164,66 @@ export default function SignalsPage() {
             ) : (
               <div className="flex flex-col gap-3">
                 {filteredJoins.map((join) => (
-                  <motion.div
-                    key={join.id}
-                    initial={{ opacity: 0, y: 16 }}
-                    animate={{ opacity: 1, y: 0 }}
-                  >
-                    <Link to={`/app/moment/${join.moment_id}`}>
-                      <div className="group flex items-center gap-4
-                        bg-white/3 hover:bg-white/6 border border-white/7
-                        hover:border-white/15 rounded-2xl px-5 py-4
-                        transition-all duration-300 cursor-pointer">
+                    <motion.div
+                      key={join.id}
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: i * 0.05 }}
+                    >
+                      <Link to={`/app/moment/${join.moment_id}`}>
+                        <div className="group relative glass-panel hairline-all rounded-3xl p-5
+                          hover:bg-white/5 transition-all duration-500 cursor-pointer overflow-hidden">
+                          
+                          {/* Ambient glow */}
+                          <div className={cn(
+                            "absolute -right-10 -top-10 w-32 h-32 blur-3xl opacity-0 group-hover:opacity-10 transition-opacity duration-1000",
+                            join.moments?.moment_type === 'event' ? "bg-gold" : "bg-crimson"
+                          )} />
 
-                        {/* Icon/Avatar */}
-                        <div className="w-11 h-11 rounded-full bg-gold/10
-                          border border-white/10 overflow-hidden
-                          flex items-center justify-center shrink-0">
-                          <Users className="w-5 h-5 text-gold/50" />
+                          <div className="flex items-center gap-5 relative z-10">
+                            {/* Avatar / Placeholder */}
+                            <div className="relative">
+                              <div className="w-14 h-14 rounded-2xl bg-white/5 border border-white/10
+                                flex items-center justify-center overflow-hidden">
+                                <span className="font-serif text-lg text-marble/20 uppercase">
+                                  {(join.moments?.title ?? 'A')[0]}
+                                </span>
+                              </div>
+                              <div className={cn(
+                                "absolute -bottom-1 -right-1 w-5 h-5 rounded-full border-2 border-void flex items-center justify-center",
+                                join.moments?.moment_type === 'event' ? "bg-gold" : "bg-crimson"
+                              )}>
+                                {join.moments?.moment_type === 'event' ? <Calendar className="w-2.5 h-2.5 text-void" /> : <Zap className="w-2.5 h-2.5 text-void" />}
+                              </div>
+                            </div>
+
+                            {/* Text content */}
+                            <div className="flex-1 min-w-0">
+                              <p className="text-marble/90 text-sm font-medium mb-1 line-clamp-1">
+                                Someone joined <span className="text-gold-pale">
+                                  {join.moments?.title ?? 'your signal'}
+                                </span>
+                              </p>
+                              <div className="flex items-center gap-3">
+                                <span className="micro-caps text-[10px] text-marble/30">
+                                  {timeAgo(join.joined_at)}
+                                </span>
+                                <span className="w-1 h-1 rounded-full bg-white/10" />
+                                <span className={cn(
+                                  "micro-caps text-[10px]",
+                                  join.moments?.moment_type === 'event' ? "text-gold/50" : "text-crimson/50"
+                                )}>
+                                  {join.moments?.moment_type === 'event' ? '◈ Event' : '⚡ Moment'}
+                                </span>
+                              </div>
+                            </div>
+
+                            <ArrowLeft className="w-4 h-4 text-marble/10 group-hover:text-marble/30 
+                              group-hover:translate-x-1 transition-all rotate-180" />
+                          </div>
                         </div>
-
-                        {/* Text */}
-                        <div className="flex-1 min-w-0">
-                          <p className="text-marble text-sm font-medium
-                            group-hover:text-gold-pale transition-colors">
-                            Someone joined <span className="text-gold">
-                              {join.moments?.title ?? 'your signal'}
-                            </span>
-                          </p>
-                          <p className="micro-caps text-xs text-marble/30 mt-0.5">
-                            {new Date(join.joined_at).toLocaleTimeString([], {
-                              hour: '2-digit', minute: '2-digit',
-                              month: 'short', day: 'numeric'
-                            })}
-                          </p>
-                        </div>
-
-                        {/* Arrow */}
-                        <span className="text-marble/15 group-hover:text-marble/40
-                          transition-colors text-lg">→</span>
-                      </div>
-                    </Link>
-                  </motion.div>
+                      </Link>
+                    </motion.div>
                 ))}
               </div>
             )}

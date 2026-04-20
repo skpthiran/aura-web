@@ -378,7 +378,7 @@ export default function TodayPage() {
     <div className="flex-1 overflow-y-auto bg-void">
       {/* 100SVH MAGAZINE HERO */}
       {heroMoment ? (
-        <section className="relative h-[100svh] w-full overflow-hidden">
+        <section className="relative h-[60dvh] md:h-[100svh] w-full overflow-hidden">
           <motion.img
             initial={{ scale: 1.1 }}
             animate={{ scale: 1 }}
@@ -433,8 +433,8 @@ export default function TodayPage() {
             </div>
             
             <div className="mt-2 md:mt-0 flex flex-col items-start md:items-end gap-4 md:gap-6 pointer-events-auto">
-              {/* Filter bar */}
-              <div className="flex items-center gap-2 mt-4 flex-wrap pointer-events-auto">
+              {/* Filter bar - Swipeable on mobile */}
+              <div className="flex items-center gap-2 mt-4 overflow-x-auto scrollbar-hide snap-x touch-pan-x pb-4 -mb-4 px-1 pointer-events-auto w-screen md:w-auto -mx-6 md:mx-0 px-6 md:px-0">
                 {[
                   { key: 'all', label: 'All' },
                   { key: 'moments', label: 'Moments' },
@@ -444,7 +444,7 @@ export default function TodayPage() {
                     key={tab.key}
                     onClick={() => setActiveTab(tab.key as typeof activeTab)}
                     className={cn(
-                      'micro-caps text-xs px-5 py-2 rounded-full transition-all duration-200',
+                      'micro-caps text-xs px-5 py-3 rounded-full transition-all duration-200 min-h-[44px] shrink-0 snap-start',
                       activeTab === tab.key
                         ? 'bg-white text-void font-medium'
                         : 'bg-black/30 backdrop-blur-md border border-white/15 text-white/60 hover:text-white hover:border-white/30'
@@ -455,11 +455,11 @@ export default function TodayPage() {
                 ))}
 
                 {/* Radius dropdown */}
-                <div className="relative" data-radius-dropdown>
+                <div className="relative shrink-0 snap-start" data-radius-dropdown>
                   <button
                     onClick={() => setRadiusOpen(p => !p)}
                     className={cn(
-                      "flex items-center gap-1.5 micro-caps text-xs px-4 py-2 rounded-full transition-all",
+                      "flex items-center gap-1.5 micro-caps text-xs px-5 py-3 rounded-full transition-all min-h-[44px]",
                       "bg-black/30 backdrop-blur-md border text-white/60 hover:text-white hover:border-white/30",
                       radiusOpen ? "border-gold/40 text-gold" : "border-white/15"
                     )}
@@ -482,7 +482,7 @@ export default function TodayPage() {
                             setRadiusOpen(false)
                           }}
                           className={cn(
-                            'w-full text-left px-4 py-3 micro-caps text-xs',
+                            'w-full text-left px-4 py-3 micro-caps text-xs min-h-[44px]',
                             'transition-colors duration-200',
                             radius === opt.value
                               ? 'text-gold bg-gold/10'
@@ -500,11 +500,11 @@ export default function TodayPage() {
                 </div>
 
                 {/* Search icon */}
-                <Link to="/app/search" className="shrink-0">
-                  <div className="flex items-center justify-center w-8 h-8 rounded-full
+                <Link to="/app/search" className="shrink-0 snap-start">
+                  <div className="flex items-center justify-center w-11 h-11 rounded-full
                     bg-black/30 backdrop-blur-md border border-white/15
-                    text-white/50 hover:text-white hover:border-white/30 transition-all">
-                    <Search className="w-3.5 h-3.5" />
+                    text-marble/50 hover:text-marble hover:border-white/30 transition-all">
+                    <Search className="w-4 h-4" />
                   </div>
                 </Link>
               </div>
@@ -663,7 +663,7 @@ export default function TodayPage() {
             </div>
 
             {/* Magazine grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 auto-rows-auto">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 auto-rows-auto">
               <AnimatePresence mode="popLayout">
                 {filteredMoments
                   .filter(moment => cardActions[moment.id] !== 'rejected')

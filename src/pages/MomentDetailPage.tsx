@@ -196,7 +196,7 @@ export default function MomentDetailPage() {
     <div className="flex-1 overflow-y-auto bg-void">
 
       {/* HERO */}
-      <div className="relative" style={{ height: '55vh', minHeight: '320px', maxHeight: '500px' }}>
+      <div className="relative" style={{ height: '60dvh', minHeight: '320px', maxHeight: '600px' }}>
         <img
           src={getSignalImage(moment.id, moment.tags, moment.moment_type)}
           className="absolute inset-0 w-full h-full object-cover"
@@ -442,88 +442,11 @@ export default function MomentDetailPage() {
                       bg-white/5 border border-white/10 text-marble/50">
                     #{tag}
                   </span>
-                ))}
-              </motion.div>
-            )}
-
-            {/* Mobile actions — only on mobile */}
-            <div className="lg:hidden">
-              {/* Mobile capacity + join — keep as before */}
-              {!isExpired && (
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.3 }}
-                  className="flex flex-col gap-3"
-                >
-                  {waitlistPosition ? (
-                    <div className="w-full py-4 rounded-2xl text-center
-                      bg-gold/8 border border-gold/25">
-                      <p className="micro-caps text-sm text-gold font-medium">
-                        ◈ On Waitlist — Position #{waitlistPosition}
-                      </p>
-                    </div>
-                  ) : (
-                    <button
-                      onClick={handleJoin}
-                      disabled={joined || joining || !user}
-                      className={cn(
-                        'w-full py-4 rounded-2xl micro-caps text-sm font-medium transition-all',
-                        joined
-                          ? 'bg-green-500/15 text-green-400 border border-green-500/30 cursor-default'
-                          : isFull
-                            ? 'bg-white/6 text-marble/60 border border-white/12 hover:bg-white/10'
-                            : 'bg-marble text-void hover:bg-green-400 hover:shadow-xl hover:shadow-green-400/20'
-                      )}
-                    >
-                      {joining ? (
-                        <span className="flex items-center justify-center gap-2">
-                          <Loader className="w-4 h-4 animate-spin" />
-                          {isFull ? 'Joining waitlist...' : 'Joining...'}
-                        </span>
-                      ) : joined ? (
-                        <span className="flex items-center justify-center gap-2">
-                          <Check className="w-4 h-4" /> Joined
-                        </span>
-                      ) : isFull ? 'Join Waitlist' : 'Join Signal'}
-                    </button>
-                  )}
-                  {joined && (
-                    <Link to="/app/chat" className="w-full">
-                      <button className="w-full py-3.5 rounded-2xl micro-caps text-sm
-                        bg-white/5 border border-white/10 text-marble/60
-                        hover:text-marble transition-all flex items-center justify-center gap-2">
-                        <MessageSquare className="w-4 h-4" />
-                        Open Signal Chat
-                      </button>
-                    </Link>
-                  )}
-                  <Link to="/app/map">
-                    <button className="w-full py-3 micro-caps text-xs text-marble/25
-                      hover:text-marble/50 transition-colors
-                      flex items-center justify-center gap-2">
-                      <MapPin className="w-3.5 h-3.5" />
-                      View on Map
-                    </button>
-                  </Link>
                 </motion.div>
               )}
-              {isExpired && (
-                <div className="flex gap-3 mt-2">
-                  <button onClick={() => navigate(-1)}
-                    className="flex-1 py-3.5 rounded-2xl micro-caps text-sm
-                      bg-white/5 border border-white/10 text-marble/50
-                      hover:text-marble transition-all">
-                    Go Back
-                  </button>
-                  <Link to="/app/today" className="flex-1">
-                    <button className="w-full py-3.5 rounded-2xl micro-caps text-sm
-                      bg-marble text-void hover:bg-gold transition-all">
-                      Discover Signals
-                    </button>
-                  </Link>
-                </div>
-              )}
+
+              {/* Mobile actions — handled by sticky bottom bar */}
+              <div className="lg:hidden h-4" />
             </div>
           </div>
 
@@ -657,6 +580,75 @@ export default function MomentDetailPage() {
           </div>
 
         </div>
+      </div>
+
+      {/* STICKY BOTTOM BAR — Mobile only */}
+      <div className="lg:hidden fixed bottom-20 left-4 right-4 z-40">
+        {!isExpired ? (
+          <motion.div
+            initial={{ opacity: 0, y: 40 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="flex flex-col gap-2"
+          >
+            {joined && (
+              <Link to="/app/chat" className="w-full">
+                <button className="w-full py-4 rounded-2xl micro-caps text-xs
+                  bg-deep/80 backdrop-blur-xl border border-white/10 text-marble/80
+                  shadow-2xl flex items-center justify-center gap-2">
+                  <MessageSquare className="w-4 h-4 text-gold" />
+                  Open Signal Chat
+                </button>
+              </Link>
+            )}
+            
+            {waitlistPosition ? (
+              <div className="w-full py-4 rounded-2xl text-center
+                bg-gold/90 backdrop-blur-md border border-gold/50 shadow-2xl">
+                <p className="micro-caps text-sm text-void font-bold">
+                  ◈ Waitlist: #{waitlistPosition}
+                </p>
+              </div>
+            ) : (
+              <button
+                onClick={handleJoin}
+                disabled={joined || joining || !user}
+                className={cn(
+                  'w-full py-4 rounded-2xl micro-caps text-sm font-bold transition-all shadow-2xl',
+                  joined
+                    ? 'bg-green-500 text-void border border-green-400'
+                    : isFull
+                      ? 'bg-gold text-void border border-gold/50'
+                      : 'bg-marble text-void active:scale-95'
+                )}
+              >
+                {joining ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <Loader className="w-4 h-4 animate-spin" />
+                    {isFull ? 'Waitlist...' : 'Joining...'}
+                  </span>
+                ) : joined ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <Check className="w-4 h-4" /> You're In
+                  </span>
+                ) : isFull ? 'Join Waitlist' : 'Join Signal'}
+              </button>
+            )}
+          </motion.div>
+        ) : (
+          <div className="flex gap-2">
+             <button onClick={() => navigate(-1)}
+              className="flex-1 py-4 rounded-2xl micro-caps text-xs
+                bg-white/10 backdrop-blur-md border border-white/10 text-marble">
+              Go Back
+            </button>
+            <Link to="/app/today" className="flex-1">
+              <button className="w-full py-4 rounded-2xl micro-caps text-xs
+                bg-marble text-void font-bold">
+                Discover
+              </button>
+            </Link>
+          </div>
+        )}
       </div>
 
       {showReport && moment && (

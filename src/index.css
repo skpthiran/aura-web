@@ -48,6 +48,10 @@
     -webkit-font-smoothing: antialiased;
     letter-spacing: -0.02em;
     overflow-x: hidden;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-text-size-adjust: 100%;
+    scroll-behavior: smooth;
+    min-height: 100dvh;
   }
   
   h1, h2, h3, h4, h5, h6 {

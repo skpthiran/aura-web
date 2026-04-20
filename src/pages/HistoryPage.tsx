@@ -198,98 +198,71 @@ export default function HistoryPage() {
                 </Link>
               </motion.div>
             ) : (
-              <div className="flex flex-col gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-4">
                 {filtered.map((item, i) => {
                   const isEvent = item.moment_type === 'event'
                   return (
                     <motion.div
                       key={item.id}
-                      initial={{ opacity: 0, y: 16 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: i * 0.04 }}
-                      className="group relative overflow-hidden rounded-2xl
-                        border border-white/7 hover:border-white/15
-                        bg-white/3 hover:bg-white/5
-                        transition-all duration-300 cursor-pointer"
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ delay: i * 0.03 }}
+                      className="group relative flex flex-col glass-panel hairline-all rounded-3xl
+                        overflow-hidden hover:border-gold/30 hover:bg-white/5
+                        transition-all duration-500 cursor-pointer h-full"
                     >
-                      {/* Color strip top */}
-                      <div className={cn(
-                        'h-0.5 w-full',
-                        isEvent ? 'bg-gold/30' : 'bg-red-500/25'
-                      )} />
-
-                      <div className="p-5 lg:p-6">
-                        <div className="flex items-start justify-between gap-4">
-                          <div className="flex-1 min-w-0">
-
-                            {/* Badges row */}
-                            <div className="flex items-center gap-2 flex-wrap mb-3">
-                              <span className={cn(
-                                'micro-caps text-xs px-3 py-1 rounded-full border',
-                                isEvent
-                                  ? 'bg-gold/8 border-gold/20 text-gold/70'
-                                  : 'bg-red-900/15 border-red-500/20 text-red-400/70'
-                              )}>
-                                {isEvent ? '◈ Event' : '⚡ Moment'}
-                              </span>
-                              {item.creator_id === user?.id && (
-                                <span className="micro-caps text-xs px-3 py-1 rounded-full
-                                  bg-white/5 border border-white/10 text-marble/35">
-                                  Hosted by you
-                                </span>
-                              )}
-                            </div>
-
-                            {/* Title */}
-                            <h3 className="font-serif text-xl lg:text-2xl text-marble/70
-                              group-hover:text-marble transition-colors mb-2">
-                              {item.title}
-                            </h3>
-
-                            {/* Description */}
-                            {item.description && (
-                              <p className="text-sm text-marble/30 line-clamp-2
-                                leading-relaxed mb-3">
-                                {item.description}
-                              </p>
-                            )}
-
-                            {/* Meta */}
-                            <div className="flex items-center flex-wrap gap-4
-                              text-xs text-marble/25 micro-caps">
-                              <span className="flex items-center gap-1.5">
-                                <Calendar className="w-3 h-3" />
-                                {formatDate(item.expires_at)}
-                              </span>
-                              <span className="flex items-center gap-1.5">
-                                <Users className="w-3 h-3" />
-                                {item.capacity_limit} capacity
-                              </span>
-                            </div>
-                          </div>
-
-                          {/* Right — expiry badge */}
-                          <div className="shrink-0 text-right">
-                            <span className="micro-caps text-xs text-marble/25
-                              bg-white/4 border border-white/8 rounded-full
-                              px-3 py-1.5 whitespace-nowrap">
-                              {formatExpired(item.expires_at)}
-                            </span>
-                          </div>
+                      {/* Image Preview */}
+                      <div className="relative h-32 overflow-hidden">
+                        <img 
+                          src={getSignalImage(item.id, item.tags, item.moment_type)}
+                          className="w-full h-full object-cover grayscale opacity-40 
+                            group-hover:grayscale-0 group-hover:opacity-60 transition-all duration-700"
+                          alt=""
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-void via-void/50 to-transparent" />
+                        
+                        <div className="absolute top-3 left-3 flex gap-2">
+                           <span className={cn(
+                            'micro-caps text-[10px] px-2 py-1 rounded-full border backdrop-blur-md',
+                            isEvent
+                              ? 'bg-gold/20 border-gold/40 text-gold'
+                              : 'bg-red-500/20 border-red-500/40 text-red-100'
+                          )}>
+                            {isEvent ? '◈ Event' : '⚡ Moment'}
+                          </span>
                         </div>
 
-                        {/* Tags */}
-                        {item.tags && item.tags.length > 0 && (
-                          <div className="flex flex-wrap gap-1.5 mt-4">
-                            {item.tags.slice(0, 5).map(tag => (
-                              <span key={tag}
-                                className="micro-caps text-xs px-2.5 py-1 rounded-full
-                                  bg-white/4 border border-white/8 text-marble/30">
-                                #{tag}
-                              </span>
-                            ))}
-                          </div>
+                        <div className="absolute bottom-2 left-3 right-3 flex items-center justify-between">
+                           <span className="micro-caps text-[10px] text-marble/40">
+                             {formatExpired(item.expires_at)}
+                           </span>
+                        </div>
+                      </div>
+
+                      <div className="p-5 flex-1 flex flex-col">
+                        <h3 className="font-serif text-lg text-marble/80 
+                          group-hover:text-gold-pale transition-colors line-clamp-1 mb-2">
+                          {item.title}
+                        </h3>
+
+                        {item.description && (
+                          <p className="text-xs text-marble/30 line-clamp-2 leading-relaxed mb-4 flex-1">
+                            {item.description}
+                          </p>
                         )}
+
+                        <div className="mt-auto pt-4 border-t border-white/5 flex items-center justify-between">
+                          <div className="flex items-center gap-3 text-[10px] text-marble/25 micro-caps">
+                            <span className="flex items-center gap-1">
+                              <Calendar className="w-3 h-3" />
+                              {new Date(item.expires_at).toLocaleDateString()}
+                            </span>
+                             {item.creator_id === user?.id && (
+                              <span className="text-gold/40">Host</span>
+                            )}
+                          </div>
+                          <Users className="w-3 h-3 text-marble/20" />
+                        </div>
                       </div>
                     </motion.div>
                   )

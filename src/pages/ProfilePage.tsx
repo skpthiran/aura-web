@@ -295,7 +295,7 @@ export default function ProfilePage() {
                   placeholder="Full name" maxLength={60}
                   className="w-full bg-white/5 border border-white/12 rounded-xl
                     px-4 py-2.5 text-marble outline-none focus:border-gold/50
-                    transition-all placeholder:text-marble/20 text-sm" />
+                    transition-all placeholder:text-marble/20 text-base" />
                 <div className="relative">
                   <span className="absolute left-4 top-1/2 -translate-y-1/2 text-marble/30 text-sm">@</span>
                   <input type="text" value={username}
@@ -303,13 +303,13 @@ export default function ProfilePage() {
                     placeholder="username" maxLength={30}
                     className="w-full bg-white/5 border border-white/12 rounded-xl
                       pl-8 pr-4 py-2.5 text-marble outline-none focus:border-gold/50
-                      transition-all placeholder:text-marble/20 text-sm" />
+                      transition-all placeholder:text-marble/20 text-base" />
                 </div>
                 <textarea value={bio} onChange={e => setBio(e.target.value)}
                   placeholder="Bio..." maxLength={160} rows={3}
                   className="w-full bg-white/5 border border-white/12 rounded-xl
                     px-4 py-2.5 text-marble outline-none focus:border-gold/50
-                    transition-all placeholder:text-marble/20 text-sm resize-none" />
+                    transition-all placeholder:text-marble/20 text-base resize-none" />
               </motion.div>
             ) : (
               <div className="mb-6">

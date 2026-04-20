@@ -252,7 +252,7 @@ export default function AppLayout() {
       </aside>
 
       {/* Main Content Area */}
-      <main className="flex-1 flex flex-col overflow-y-auto pt-16 lg:pt-0 pb-28 lg:pb-0 relative z-10 scroll-smooth h-[100dvh]">
+      <main className="flex-1 overflow-y-auto relative z-10 scroll-smooth pt-16 lg:pt-0 pb-32 lg:pb-8 flex flex-col h-[100dvh] lg:h-screen">
         <AnimatePresence mode="wait" initial={false}>
           <PageTransition key={location.pathname}>
             <Outlet />
@@ -261,41 +261,40 @@ export default function AppLayout() {
       </main>
 
       {/* Redesigned Mobile Bottom Nav */}
-      <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50"
-        style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
-        <div style={{ background: 'rgba(0,0,0,0.82)', borderTop: '1px solid rgba(255,255,255,0.07)' }}
-          className="backdrop-blur-3xl px-2 pt-1.5 pb-2">
-          <div className="flex items-center justify-around">
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 safe-area-pb bg-black/80 backdrop-blur-3xl hairline-t">
+        <div className="px-2 pt-2 pb-1">
+          <div className="flex items-center justify-around max-w-md mx-auto">
             {[
               { to: '/app/today', icon: Compass, label: 'Pulse' },
               { to: '/app/map', icon: MapIcon, label: 'Forum' },
               { to: '/app/create', icon: Plus, label: '' },
-              { to: '/app/events', icon: Building2, label: 'Events' },
-              { to: '/app/chat', icon: MessageSquare, label: 'Chat' },
+              { to: '/app/events', icon: Building2, label: 'Colosseum' },
+              { to: '/app/chat', icon: MessageSquare, label: 'Agora' },
             ].map(({ to, icon: Icon, label }) => (
-              <NavLink key={to} to={to}>
+              <NavLink key={to} to={to} className="flex-1">
                 {({ isActive }) => (
                   to === '/app/create' ? (
-                    <div className={cn(
-                      'w-12 h-12 rounded-full flex items-center justify-center -mt-4',
-                      'border-2 transition-all duration-300 shadow-lg',
-                      isActive
-                        ? 'bg-gold border-gold shadow-gold/30'
-                        : 'bg-void border-gold/70 shadow-gold/10'
-                    )}>
-                      <Icon className={cn(
-                        'w-5 h-5 transition-colors',
-                        isActive ? 'text-void' : 'text-gold'
-                      )} />
+                    <div className="flex justify-center -mt-6 mb-2">
+                      <div className={cn(
+                        'w-14 h-14 rounded-full flex items-center justify-center transition-all duration-300 shadow-2xl',
+                        isActive
+                          ? 'bg-gold border-gold shadow-gold/40'
+                          : 'bg-void border border-gold/50 shadow-gold/10'
+                      )}>
+                        <Icon className={cn(
+                          'w-6 h-6 transition-colors',
+                          isActive ? 'text-void' : 'text-gold'
+                        )} />
+                      </div>
                     </div>
                   ) : (
-                    <div className="flex flex-col items-center gap-1 px-3 py-1 min-w-[52px]">
+                    <div className="flex flex-col items-center gap-1 py-1 px-1">
                       <Icon className={cn(
-                        'w-[22px] h-[22px] transition-colors duration-200',
-                        isActive ? 'text-gold' : 'text-white/25'
+                        'w-6 h-6 transition-colors duration-200',
+                        isActive ? 'text-gold' : 'text-white/30'
                       )} />
                       <span className={cn(
-                        'text-[9px] tracking-wider uppercase font-medium leading-none',
+                        'text-[10px] tracking-wider uppercase font-medium leading-none whitespace-nowrap',
                         isActive ? 'text-gold' : 'text-white/20'
                       )}>
                         {label}

@@ -129,7 +129,7 @@ export default function AuthPage() {
                       value={fullName}
                       onChange={(e) => setFullName(e.target.value)}
                       autoComplete="off"
-                      className="w-full bg-void/50 border border-white/10 rounded-xl px-4 py-3 text-marble outline-none focus:border-gold/50 focus:bg-void transition-colors"
+                      className="w-full bg-void/50 border border-white/10 rounded-xl px-4 py-3 text-base text-marble outline-none focus:border-gold/50 focus:bg-void transition-colors"
                       placeholder="e.g. wanderer_01"
                     />
                   </motion.div>
@@ -142,7 +142,7 @@ export default function AuthPage() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     autoComplete="off"
-                    className="w-full bg-void/50 border border-white/10 rounded-xl px-4 py-3 text-marble outline-none focus:border-gold/50 focus:bg-void transition-colors"
+                    className="w-full bg-void/50 border border-white/10 rounded-xl px-4 py-3 text-base text-marble outline-none focus:border-gold/50 focus:bg-void transition-colors"
                     placeholder="wanderer@city.com"
                   />
                 </div>
@@ -153,7 +153,7 @@ export default function AuthPage() {
                     required
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="w-full bg-void/50 border border-white/10 rounded-xl px-4 py-3 text-marble outline-none focus:border-gold/50 focus:bg-void transition-colors"
+                    className="w-full bg-void/50 border border-white/10 rounded-xl px-4 py-3 text-base text-marble outline-none focus:border-gold/50 focus:bg-void transition-colors"
                     placeholder="••••••••"
                   />
                 </div>

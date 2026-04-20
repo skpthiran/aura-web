@@ -339,12 +339,11 @@ export default function MapPage() {
   }
 
   return (
-    <div className="relative flex-1 w-full h-full overflow-hidden bg-void" style={{ minHeight: '100dvh' }}>
+    <div className="relative flex-1 w-full h-full lg:overflow-hidden bg-void flex flex-col lg:block" style={{ minHeight: '100dvh' }}>
       {/* Map Engine */}
       <div 
         ref={mapContainer} 
-        className="absolute inset-0 w-full h-full" 
-        style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+        className="relative lg:absolute lg:inset-0 w-full h-[45dvh] lg:h-full shrink-0" 
       />
       
       {/* HUD Overlays */}
@@ -354,7 +353,7 @@ export default function MapPage() {
       </div>
 
       {/* Floating HUD Interface */}
-      <div className="absolute top-6 lg:top-8 left-6 lg:left-8 right-6 lg:right-8 z-20 flex justify-between gap-4 md:gap-6 pointer-events-none items-start safe-area-pt">
+      <div className="absolute lg:fixed top-6 lg:top-8 left-6 lg:left-8 right-6 lg:right-8 z-20 flex justify-between gap-4 md:gap-6 pointer-events-none items-start safe-area-pt">
         <div className="flex flex-col gap-3 pointer-events-auto w-full max-w-lg">
            <div className="flex items-center gap-3 md:gap-4 mb-1 md:mb-2">
              <h1 className="font-serif text-2xl md:text-4xl text-marble tracking-widest uppercase text-shadow-glow">FORUM</h1>
@@ -367,7 +366,7 @@ export default function MapPage() {
              <input 
                type="text" 
                placeholder="TARGET COORDINATES / EVENT SEARCH" 
-               className="bg-transparent border-none outline-none font-mono text-[9px] md:text-[11px] text-marble w-full uppercase tracking-[0.15em] md:tracking-widest placeholder:text-marble/30"
+               className="bg-transparent border-none outline-none font-mono text-base md:text-[11px] text-marble w-full uppercase tracking-[0.15em] md:tracking-widest placeholder:text-marble/30"
              />
            </div>
 
@@ -412,18 +411,18 @@ export default function MapPage() {
       </div>
 
       {/* Radius Selector */}
-      <div className="absolute bottom-40 lg:bottom-24 left-1/2 -translate-x-1/2 z-20
-        flex items-center gap-2 overflow-x-auto scrollbar-hide
-        max-w-[calc(100vw-40px)] pb-1">
+      <div className="absolute lg:fixed bottom-40 lg:bottom-24 left-1/2 -translate-x-1/2 z-20
+        flex items-center gap-3 overflow-x-auto scrollbar-hide
+        max-w-[calc(100vw-40px)] pb-4 snap-x touch-pan-x px-4">
         {radiusOptions.map(opt => (
           <button
             key={opt.value}
             onClick={() => setMapRadius(opt.value)}
             className={cn(
-              'micro-caps text-xs px-4 py-2 rounded-full whitespace-nowrap shrink-0 transition-all duration-300',
+              'micro-caps text-[10px] px-6 py-3 rounded-full whitespace-nowrap shrink-0 transition-all duration-300 snap-center min-h-[44px] flex items-center justify-center border',
               mapRadius === opt.value
-                ? 'bg-gold text-void font-bold shadow-lg shadow-gold/30'
-                : 'bg-black/70 backdrop-blur-md border border-white/30 text-white/70 hover:border-gold/50 hover:text-gold'
+                ? 'bg-gold border-gold text-void font-bold shadow-[0_0_20px_rgba(201,168,76,0.4)]'
+                : 'bg-black/60 backdrop-blur-md border-white/20 text-white/70 hover:border-gold/50 hover:text-gold'
             )}
           >
             {opt.label}
@@ -432,14 +431,14 @@ export default function MapPage() {
       </div>
 
       {/* Moment Density Indicator */}
-      <div className="absolute bottom-24 lg:bottom-8 left-1/2 -translate-x-1/2 z-20">
-        <div className="glass-panel border-white/5 px-4 md:px-6 py-2 flex items-center gap-3 md:gap-4 whitespace-nowrap">
-          <div className="flex items-center gap-2">
-            <div className="w-1.5 h-1.5 md:w-2 md:h-2 rounded-full bg-gold-pale animate-pulse" />
-            <span className="micro-caps text-[9px] md:text-[10px] text-marble/60 tracking-[0.2em]">{visibleMoments.length} ACTIVE SIGNALS</span>
+      <div className="absolute lg:fixed bottom-24 lg:bottom-8 left-1/2 -translate-x-1/2 z-20">
+        <div className="glass-panel border-white/10 bg-void/80 backdrop-blur-lg px-5 md:px-6 py-3 flex items-center gap-4 md:gap-6 whitespace-nowrap shadow-2xl hairline-all">
+          <div className="flex items-center gap-2.5">
+            <div className="w-2 h-2 rounded-full bg-gold-pale animate-pulse shadow-[0_0_8px_rgba(243,229,171,0.5)]" />
+            <span className="micro-caps text-[10px] text-marble/80 tracking-[0.2em] font-medium">{visibleMoments.length} ACTIVE SIGNALS</span>
           </div>
-          <div className="w-px h-3 bg-white/10" />
-          <span className="micro-caps text-[9px] md:text-[10px] text-gold-pale tracking-[0.2em]">
+          <div className="w-px h-4 bg-white/10" />
+          <span className="micro-caps text-[10px] text-gold-pale/80 tracking-[0.2em] font-medium">
             LIVE RADIUS: {mapRadius >= 99999999 ? 'GLOBAL' : `${mapRadius / 1000}KM`}
           </span>
         </div>

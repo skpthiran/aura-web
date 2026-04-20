@@ -66,7 +66,7 @@ const EventCard: React.FC<EventCardProps> = ({ event, index, isJoined, isJoining
         </div>
 
         {/* Content */}
-        <div className="relative z-10 p-6 md:p-8 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-6 md:gap-8"
+        <div className="relative z-10 p-5 md:p-8 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-6 md:gap-8"
           style={{ minHeight: '180px' }}>
           
           <div className="flex-1 md:max-w-lg">
@@ -311,15 +311,14 @@ export default function EventsPage() {
           </button>
         </div>
 
-        {/* Radius Selector */}
-        <div className="flex items-center gap-2 mb-8 overflow-x-auto scrollbar-hide pb-2">
-          <span className="micro-caps text-[9px] text-white/20 shrink-0">Radius:</span>
+        <div className="flex items-center gap-2 mb-8 overflow-x-auto scrollbar-hide pb-2 snap-x touch-pan-x -mx-6 px-6">
+          <span className="micro-caps text-[10px] text-white/20 shrink-0">Radius:</span>
           {radiusOptions.map(opt => (
             <button
               key={opt.value}
               onClick={() => setRadius(opt.value)}
               className={cn(
-                "micro-caps text-[9px] px-4 py-2 rounded-full border transition-all duration-300 whitespace-nowrap",
+                "micro-caps text-[10px] px-5 py-3 rounded-full border transition-all duration-300 whitespace-nowrap snap-start min-h-[44px]",
                 radius === opt.value
                   ? "bg-gold/10 border-gold/40 text-gold"
                   : "border-white/5 text-white/30 hover:border-white/20"

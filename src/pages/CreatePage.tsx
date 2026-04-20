@@ -385,7 +385,7 @@ export default function CreatePage() {
                       autoFocus
                       className="w-full bg-white/4 border border-white/10 rounded-xl px-4 py-3.5
                         text-marble outline-none focus:border-gold/40 transition-all
-                        placeholder:text-marble/20 text-sm"
+                        placeholder:text-marble/20 text-base"
                     />
                     <p className="text-right text-marble/20 text-xs mt-1">{title.length}/80</p>
                   </div>
@@ -401,7 +401,7 @@ export default function CreatePage() {
                       rows={3}
                       className="w-full bg-white/4 border border-white/10 rounded-xl px-4 py-3
                         text-marble outline-none focus:border-gold/40 transition-all
-                        placeholder:text-marble/20 text-sm resize-none"
+                        placeholder:text-marble/20 text-base resize-none"
                     />
                   </div>
 
@@ -492,14 +492,14 @@ export default function CreatePage() {
                           <input type="datetime-local" value={startTime}
                             onChange={e => setStartTime(e.target.value)}
                             className="w-full bg-white/4 border border-white/10 rounded-xl px-3 py-2.5
-                              text-marble outline-none focus:border-gold/40 transition-all text-xs [color-scheme:dark]" />
+                              text-marble outline-none focus:border-gold/40 transition-all text-base [color-scheme:dark]" />
                         </div>
                         <div>
                           <label className="micro-caps text-xs text-marble/40 mb-2 block">End Time</label>
                           <input type="datetime-local" value={endTime}
                             onChange={e => setEndTime(e.target.value)}
                             className="w-full bg-white/4 border border-white/10 rounded-xl px-3 py-2.5
-                              text-marble outline-none focus:border-gold/40 transition-all text-xs [color-scheme:dark]" />
+                              text-marble outline-none focus:border-gold/40 transition-all text-base [color-scheme:dark]" />
                         </div>
                       </div>
 
@@ -509,7 +509,7 @@ export default function CreatePage() {
                         <input type="text" value={venue} onChange={e => setVenue(e.target.value)}
                           placeholder="e.g. Rooftop Bar, Central Park"
                           className="w-full bg-white/4 border border-white/10 rounded-xl px-4 py-3
-                            text-marble outline-none focus:border-gold/40 transition-all placeholder:text-marble/20 text-sm" />
+                            text-marble outline-none focus:border-gold/40 transition-all placeholder:text-marble/20 text-base" />
                       </div>
 
                       {/* Dress code + Age */}
@@ -519,7 +519,7 @@ export default function CreatePage() {
                           <input type="text" value={dresscode} onChange={e => setDresscode(e.target.value)}
                             placeholder="e.g. Smart casual"
                             className="w-full bg-white/4 border border-white/10 rounded-xl px-3 py-2.5
-                              text-marble outline-none focus:border-gold/40 transition-all placeholder:text-marble/20 text-xs" />
+                              text-marble outline-none focus:border-gold/40 transition-all placeholder:text-marble/20 text-base" />
                         </div>
                         <div>
                           <label className="micro-caps text-xs text-marble/40 mb-2 block">Age Range</label>
@@ -527,12 +527,12 @@ export default function CreatePage() {
                             <input type="number" value={ageMin} onChange={e => setAgeMin(e.target.value)}
                               placeholder="18" min="0" max="99"
                               className="w-full bg-white/4 border border-white/10 rounded-xl px-3 py-2.5
-                                text-marble outline-none focus:border-gold/40 transition-all placeholder:text-marble/20 text-xs" />
+                                text-marble outline-none focus:border-gold/40 transition-all placeholder:text-marble/20 text-base" />
                             <span className="text-marble/20 text-xs shrink-0">–</span>
                             <input type="number" value={ageMax} onChange={e => setAgeMax(e.target.value)}
                               placeholder="35" min="0" max="99"
                               className="w-full bg-white/4 border border-white/10 rounded-xl px-3 py-2.5
-                                text-marble outline-none focus:border-gold/40 transition-all placeholder:text-marble/20 text-xs" />
+                                text-marble outline-none focus:border-gold/40 transition-all placeholder:text-marble/20 text-base" />
                           </div>
                         </div>
                       </div>
