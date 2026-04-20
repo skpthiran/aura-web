@@ -40,7 +40,6 @@ export interface Moment {
   age_min?: number
   age_max?: number
   image_url?: string
-  participant_count?: number
   attendee_count?: number
 }
 
