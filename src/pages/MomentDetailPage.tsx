@@ -12,6 +12,7 @@ import {
 } from 'lucide-react'
 import { cn } from '../lib/utils'
 import { Moment } from '../types'
+import { getSignalImage } from '../lib/signalImage'
 
 const ReportModal = lazy(() => import('../components/ReportModal'))
 
@@ -203,9 +204,11 @@ export default function MomentDetailPage() {
       {/* HERO */}
       <div className="relative" style={{ height: '55vh', minHeight: '320px', maxHeight: '500px' }}>
         <img
-          src={`https://picsum.photos/seed/${moment.id}/1200/600`}
+          src={getSignalImage(moment.id, moment.tags, moment.moment_type)}
           className="absolute inset-0 w-full h-full object-cover"
-          onError={(e) => { e.currentTarget.style.opacity = '0' }}
+          onError={(e) => { 
+            e.currentTarget.src = `https://picsum.photos/seed/${moment.id}/1200/600`
+          }}
         />
         <div className="absolute inset-0"
           style={{ background: 'linear-gradient(to bottom, rgba(0,0,0,0.4) 0%, rgba(10,10,15,1) 100%)' }}

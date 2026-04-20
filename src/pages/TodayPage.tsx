@@ -10,6 +10,7 @@ import { joinMoment } from '../lib/db/moments'
 import { Moment } from '../types'
 import { cn } from '../lib/utils'
 import { usePageTitle } from '../hooks/usePageTitle'
+import { getSignalImage } from '../lib/signalImage'
 import { useToast } from '../components/ToastProvider'
 import { useRealtimeMoments } from '../hooks/useRealtimeMoments'
 import { calculateDistance } from '../lib/utils'
@@ -356,11 +357,11 @@ export default function TodayPage() {
             initial={{ scale: 1.1 }}
             animate={{ scale: 1 }}
             transition={{ duration: 10, ease: "linear" }}
-            src={`https://picsum.photos/seed/${heroMoment.id}/1920/1200`}
+            src={getSignalImage(heroMoment.id, heroMoment.tags, heroMoment.moment_type)}
             className="absolute inset-0 h-full w-full object-cover"
             alt="Hero"
             onError={(e) => { 
-              e.currentTarget.style.opacity = '0'
+              e.currentTarget.src = `https://picsum.photos/seed/${heroMoment.id}/1920/1200`
             }}
           />
           <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-transparent to-black" />
@@ -685,10 +686,12 @@ export default function TodayPage() {
 
                       {/* Background image */}
                       <img
-                        src={`https://picsum.photos/seed/${moment.id}/600/500`}
+                        src={getSignalImage(moment.id, moment.tags, moment.moment_type)}
                         className="absolute inset-0 w-full h-full object-cover
                           group-hover:scale-105 transition-transform duration-700 ease-out"
-                        onError={e => { e.currentTarget.style.opacity = '0' }}
+                        onError={e => { 
+                          e.currentTarget.src = `https://picsum.photos/seed/${moment.id}/600/500`
+                        }}
                       />
 
                       {/* Gradient overlay */}
