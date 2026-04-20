@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react'
 import { motion } from 'motion/react'
 import { Link } from 'react-router-dom'
-import { Radio, Users, Loader, MapPin, Zap, Search, ArrowRight, Clock, Compass } from 'lucide-react'
+import { Radio, Users, Loader, MapPin, Zap, Search, ArrowRight, Clock, Compass, Check, X } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 import { useUserLocation } from '../hooks/useUserLocation'
@@ -253,6 +253,30 @@ export default function TodayPage() {
       sessionStorage.setItem('aura-rejected-ids', JSON.stringify([...next]))
       return next
     })
+  }
+
+  const [cardActions, setCardActions] = useState<Record<string, 'joined' | 'rejected' | null>>({})
+  const [cardJoining, setCardJoining] = useState<Record<string, boolean>>({})
+
+  const handleCardJoin = async (momentId: string, e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (!user || cardActions[momentId]) return
+    setCardJoining(prev => ({ ...prev, [momentId]: true }))
+    try {
+      await joinMoment(momentId)
+      setCardActions(prev => ({ ...prev, [momentId]: 'joined' }))
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setCardJoining(prev => ({ ...prev, [momentId]: false }))
+    }
+  }
+
+  const handleCardReject = (momentId: string, e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setCardActions(prev => ({ ...prev, [momentId]: 'rejected' }))
   }
 
   const filteredMoments = useMemo(() => {
@@ -581,7 +605,9 @@ export default function TodayPage() {
 
             {/* Magazine grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 auto-rows-auto">
-              {filteredMoments.map((moment, i) => {
+              {filteredMoments
+                .filter(moment => cardActions[moment.id] !== 'rejected')
+                .map((moment, i) => {
                 const isEvent = moment.moment_type === 'event'
                 const hoursLeft = Math.max(0, Math.round(
                   (new Date(moment.expires_at).getTime() - Date.now()) / 3600000
@@ -666,37 +692,74 @@ export default function TodayPage() {
                         )}
 
                         {/* Title */}
-                        <h3 className="font-serif text-white leading-tight mb-2
+                        <h3 className="font-serif text-white leading-tight mb-3
                           group-hover:text-gold-pale transition-colors duration-300"
                           style={{ fontSize: isTall ? '1.5rem' : '1.1rem' }}>
                           {moment.title}
                         </h3>
 
-                        {/* Meta row */}
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
+                        {/* Capacity meta */}
+                        <div className="flex items-center gap-2 mb-3">
+                          <div className="flex items-center gap-1 text-white/40 text-xs">
+                            <Users className="w-3 h-3" />
+                            <span>{moment.capacity_limit}</span>
+                          </div>
+                          {!isUrgent && (
                             <div className="flex items-center gap-1 text-white/40 text-xs">
-                              <Users className="w-3 h-3" />
-                              <span>{moment.capacity_limit}</span>
+                              <Clock className="w-3 h-3" />
+                              <span>{hoursLeft}h</span>
                             </div>
-                            {!isUrgent && (
-                              <div className="flex items-center gap-1 text-white/40 text-xs">
-                                <Clock className="w-3 h-3" />
-                                <span>{hoursLeft}h</span>
-                              </div>
-                            )}
-                          </div>
-
-                          {/* Join arrow — appears on hover */}
-                          <div className="w-8 h-8 rounded-full bg-white/0
-                            group-hover:bg-white/15 border border-white/0
-                            group-hover:border-white/25
-                            flex items-center justify-center
-                            transition-all duration-300 -translate-x-2
-                            group-hover:translate-x-0 opacity-0 group-hover:opacity-100">
-                            <ArrowRight className="w-3.5 h-3.5 text-white" />
-                          </div>
+                          )}
                         </div>
+
+                        {/* Action buttons */}
+                        {user && (
+                          cardActions[moment.id] === 'joined' ? (
+                            <div className="flex items-center gap-2 micro-caps text-xs
+                              text-green-400 font-medium">
+                              <Check className="w-3.5 h-3.5" />
+                              Joined
+                            </div>
+                          ) : cardActions[moment.id] === 'rejected' ? (
+                            <div className="flex items-center gap-2 micro-caps text-xs
+                              text-white/25">
+                              <X className="w-3.5 h-3.5" />
+                              Skipped
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-2">
+                              {/* Reject */}
+                              <button
+                                onClick={e => handleCardReject(moment.id, e)}
+                                className="flex items-center gap-1.5 micro-caps text-xs
+                                  px-3 py-2 rounded-full transition-all duration-200
+                                  bg-red-500/15 border border-red-500/30 text-red-400
+                                  hover:bg-red-500/25 hover:border-red-500/50"
+                              >
+                                <X className="w-3 h-3" />
+                                Reject
+                              </button>
+
+                              {/* Join */}
+                              <button
+                                onClick={e => handleCardJoin(moment.id, e)}
+                                disabled={cardJoining[moment.id]}
+                                className="flex items-center gap-1.5 micro-caps text-xs
+                                  px-4 py-2 rounded-full transition-all duration-200
+                                  bg-green-500/20 border border-green-500/40 text-green-400
+                                  hover:bg-green-500/30 hover:border-green-500/60
+                                  disabled:opacity-50"
+                              >
+                                {cardJoining[moment.id] ? (
+                                  <Loader className="w-3 h-3 animate-spin" />
+                                ) : (
+                                  <Check className="w-3 h-3" />
+                                )}
+                                {cardJoining[moment.id] ? '...' : 'Join'}
+                              </button>
+                            </div>
+                          )
+                        )}
                       </div>
 
                     </Link>
