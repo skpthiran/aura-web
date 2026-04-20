@@ -8,7 +8,7 @@ import { cn } from '../lib/utils'
 import { Link } from 'react-router-dom'
 import { usePageTitle } from '../hooks/usePageTitle'
 
-interface Signal {
+interface Notification {
   id: string
   type: 'join' | 'message' | 'new_moment' | 'event'
   title: string
@@ -17,12 +17,16 @@ interface Signal {
   read: boolean
   moment_id?: string
   moment_type?: string
+  moment_title?: string
+  full_name?: string | null
+  avatar_url?: string | null
+  joined_at: string
 }
 
 export default function SignalsPage() {
   usePageTitle('Signals')
   const { user } = useAuth()
-  const [signals, setSignals] = useState<Signal[]>([])
+  const [notifications, setNotifications] = useState<Notification[]>([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<'all' | 'joins' | 'messages'>('all')
 
@@ -35,7 +39,7 @@ export default function SignalsPage() {
     if (!user) return
     setLoading(true)
     try {
-      const results: Signal[] = []
+      const results: Notification[] = []
 
       // 1. Get joins on user's moments
       // Get user's created moments first to avoid complex RLS joins
@@ -50,7 +54,10 @@ export default function SignalsPage() {
         
         const { data: joins } = await supabase
           .from('participants')
-          .select('id, created_at, moment_id, user_id')
+          .select(`
+            id, created_at, moment_id, user_id,
+            profiles:user_id(full_name, avatar_url)
+          `)
           .in('moment_id', myMomentIds)
           .neq('user_id', user.id)
           .eq('status', 'joined')
@@ -63,6 +70,7 @@ export default function SignalsPage() {
             created_at: string;
             moment_id: string;
             user_id: string;
+            profiles: { full_name: string | null; avatar_url: string | null } | null;
           }
 
           (joins as unknown as JoinRow[]).forEach((j) => {
@@ -74,9 +82,13 @@ export default function SignalsPage() {
                 title: `Someone joined "${moment.title}"`,
                 subtitle: 'A new participant entered your signal',
                 timestamp: j.created_at,
+                joined_at: j.created_at,
                 read: false,
                 moment_id: moment.id,
-                moment_type: moment.moment_type
+                moment_type: moment.moment_type,
+                moment_title: moment.title,
+                full_name: j.profiles?.full_name,
+                avatar_url: j.profiles?.avatar_url
               })
             }
           })
@@ -126,9 +138,11 @@ export default function SignalsPage() {
                 ? msg.content.slice(0, 60) + '...' 
                 : msg.content,
               timestamp: msg.created_at,
+              joined_at: msg.created_at,
               read: false,
               moment_id: msg.moment_id,
-              moment_type: m?.moment_type
+              moment_type: m?.moment_type,
+              moment_title: m?.title
             })
           })
         }
@@ -138,7 +152,7 @@ export default function SignalsPage() {
       results.sort((a, b) => 
         new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
       )
-      setSignals(results)
+      setNotifications(results)
     } catch (err) {
       console.error(err)
     } finally {
@@ -146,7 +160,7 @@ export default function SignalsPage() {
     }
   }
 
-  const filteredSignals = signals.filter(s => {
+  const filteredSignals = notifications.filter(s => {
     if (filter === 'joins') return s.type === 'join'
     if (filter === 'messages') return s.type === 'message'
     return true
@@ -163,156 +177,154 @@ export default function SignalsPage() {
   }
 
   return (
-    <div className="flex-1 overflow-y-auto">
-      <div className="max-w-2xl mx-auto p-6 py-10">
-        
-        {/* Header */}
-        <div className="flex items-end justify-between mb-8">
-          <div>
-            <p className="micro-caps text-gold mb-2">Activity</p>
-            <h1 className="font-serif text-4xl text-marble">Signals</h1>
+    <div className="flex-1 overflow-y-auto bg-void">
+      <div className="max-w-6xl mx-auto">
+
+        {/* Desktop two-column / Mobile single column */}
+        <div className="lg:grid lg:grid-cols-[280px_1fr] lg:min-h-screen">
+
+          {/* LEFT — sticky sidebar on desktop */}
+          <div className="lg:border-r lg:border-white/8 lg:sticky lg:top-0
+            lg:h-screen lg:overflow-y-auto px-6 lg:px-8 pt-10 pb-6">
+
+            {/* Header */}
+            <div className="mb-8">
+              <p className="micro-caps text-gold mb-2">Activity</p>
+              <h1 className="font-serif text-3xl lg:text-4xl text-marble">Signals</h1>
+              <p className="text-marble/30 text-sm mt-2 leading-relaxed">
+                People who joined your signals in the last 24 hours.
+              </p>
+            </div>
+
+            {/* Stats cards — desktop only */}
+            <div className="hidden lg:flex flex-col gap-3 mb-8">
+              <div className="bg-white/4 border border-white/8 rounded-2xl p-5">
+                <p className="micro-caps text-xs text-marble/35 mb-2">New joins today</p>
+                <p className="font-serif text-4xl text-gold">{notifications.length}</p>
+              </div>
+              <div className="bg-white/4 border border-white/8 rounded-2xl p-5">
+                <p className="micro-caps text-xs text-marble/35 mb-2">Your active signals</p>
+                <p className="font-serif text-4xl text-marble">
+                  {[...new Set(notifications.map(n => n.moment_id))].length}
+                </p>
+              </div>
+            </div>
+
+            {/* Info text — desktop */}
+            <div className="hidden lg:block mt-auto">
+              <div className="bg-gold/5 border border-gold/15 rounded-2xl p-4">
+                <p className="micro-caps text-xs text-gold/70 mb-1">Live updates</p>
+                <p className="text-marble/40 text-xs leading-relaxed">
+                  This feed refreshes automatically every 60 seconds.
+                </p>
+              </div>
+            </div>
           </div>
-          <div className="flex items-center gap-3">
-            {signals.filter(s => !s.read).length > 0 && (
-              <span className="micro-caps text-xs text-crimson-bright
-                bg-crimson/10 border border-crimson/20 rounded-full px-3 py-1">
-                {signals.filter(s => !s.read).length} new
-              </span>
+
+          {/* RIGHT — notifications feed */}
+          <div className="px-6 lg:px-10 pt-6 lg:pt-10 pb-24">
+
+            {/* Mobile header */}
+            <div className="lg:hidden mb-8">
+              <p className="micro-caps text-gold mb-2">Activity</p>
+              <h1 className="font-serif text-4xl text-marble">Signals</h1>
+            </div>
+
+            {loading ? (
+              <div className="flex items-center justify-center py-24">
+                <div className="flex flex-col items-center gap-3">
+                  <div className="w-8 h-8 rounded-full border border-gold/30
+                    flex items-center justify-center animate-pulse">
+                    <Zap className="w-4 h-4 text-gold" />
+                  </div>
+                  <p className="micro-caps text-marble/30">Loading activity...</p>
+                </div>
+              </div>
+            ) : notifications.length === 0 ? (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="flex flex-col items-center justify-center py-24 gap-6 text-center"
+              >
+                <div className="w-20 h-20 rounded-full bg-white/4
+                  border border-white/8 flex items-center justify-center">
+                  <Zap className="w-8 h-8 text-marble/15" />
+                </div>
+                <div>
+                  <p className="font-serif text-2xl text-marble/30 mb-2">
+                    No activity yet
+                  </p>
+                  <p className="text-sm text-marble/20 max-w-xs">
+                    When people join your signals, they'll appear here.
+                  </p>
+                </div>
+                <Link to="/app/create">
+                  <button className="micro-caps text-sm px-6 py-3 rounded-full
+                    bg-white/5 border border-white/10 text-marble/50
+                    hover:text-marble hover:border-white/20 transition-all">
+                    Create a Signal
+                  </button>
+                </Link>
+              </motion.div>
+            ) : (
+              <div className="flex flex-col gap-3">
+                {notifications.map((n, i) => (
+                  <motion.div
+                    key={n.id}
+                    initial={{ opacity: 0, y: 16 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: i * 0.04 }}
+                  >
+                    <Link to={`/app/moment/${n.moment_id}`}>
+                      <div className="group flex items-center gap-4
+                        bg-white/3 hover:bg-white/6 border border-white/7
+                        hover:border-white/15 rounded-2xl px-5 py-4
+                        transition-all duration-300 cursor-pointer">
+
+                        {/* Avatar */}
+                        <div className="w-11 h-11 rounded-full bg-marble/10
+                          border border-white/10 overflow-hidden
+                          flex items-center justify-center shrink-0">
+                          {n.avatar_url ? (
+                            <img src={n.avatar_url}
+                              className="w-full h-full object-cover"
+                              onError={e => { e.currentTarget.style.display = 'none' }} />
+                          ) : (
+                            <span className="font-serif text-sm text-marble/50">
+                              {(n.full_name ?? 'A')[0].toUpperCase()}
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Text */}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-marble text-sm font-medium
+                            group-hover:text-gold-pale transition-colors">
+                            <span className="text-marble">
+                              {n.full_name ?? 'Someone'}
+                            </span>
+                            <span className="text-marble/40"> joined </span>
+                            <span className="text-marble">{n.moment_title}</span>
+                          </p>
+                          <p className="micro-caps text-xs text-marble/30 mt-0.5">
+                            {new Date(n.joined_at).toLocaleDateString('en', {
+                              month: 'short', day: 'numeric',
+                              hour: '2-digit', minute: '2-digit'
+                            })}
+                          </p>
+                        </div>
+
+                        {/* Arrow */}
+                        <span className="text-marble/15 group-hover:text-marble/40
+                          transition-colors text-lg">→</span>
+                      </div>
+                    </Link>
+                  </motion.div>
+                ))}
+              </div>
             )}
-            <button
-              onClick={fetchSignals}
-              className="w-9 h-9 glass-panel hairline-all rounded-full
-                flex items-center justify-center text-marble/40
-                hover:text-gold transition-colors"
-            >
-              <RefreshCw className="w-3.5 h-3.5" />
-            </button>
           </div>
         </div>
-
-        {/* Filter tabs */}
-        <div className="flex gap-2 mb-8">
-          {[
-            { key: 'all', label: 'All' },
-            { key: 'joins', label: 'Joins' },
-            { key: 'messages', label: 'Messages' },
-          ].map(tab => (
-            <button
-              key={tab.key}
-              onClick={() => setFilter(tab.key as typeof filter)}
-              className={cn(
-                'micro-caps text-xs px-5 py-2 rounded-full transition-all duration-300',
-                filter === tab.key
-                  ? 'bg-marble text-void font-medium'
-                  : 'glass-panel hairline-all text-marble/40 hover:text-marble/70'
-              )}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
-
-        {/* Loading */}
-        {loading && (
-          <div className="flex items-center justify-center py-20">
-            <p className="micro-caps text-marble/30">Scanning signals...</p>
-          </div>
-        )}
-
-        {/* Empty state */}
-        {!loading && filteredSignals.length === 0 && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="flex flex-col items-center justify-center py-20 gap-6 text-center"
-          >
-            <div className="w-16 h-16 rounded-full glass-panel hairline-all
-              flex items-center justify-center">
-              <Bell className="w-6 h-6 text-marble/20" />
-            </div>
-            <div>
-              <p className="font-serif text-2xl text-marble/30 mb-2">
-                No signals yet
-              </p>
-              <p className="text-sm text-marble/20 max-w-xs">
-                Activity from your moments and joined signals will appear here.
-              </p>
-            </div>
-            <Link to="/app/create">
-              <button className="micro-caps text-sm px-6 py-3
-                glass-panel hairline-all rounded-full text-marble/50
-                hover:text-marble transition-all">
-                Create a Signal
-              </button>
-            </Link>
-          </motion.div>
-        )}
-
-        {/* Signal list */}
-        {!loading && filteredSignals.length > 0 && (
-          <div className="flex flex-col gap-3">
-            {filteredSignals.map((signal, i) => {
-              const isEvent = signal.moment_type === 'event'
-              const Icon = signal.type === 'join' ? Users 
-                : signal.type === 'message' ? MessageSquare 
-                : isEvent ? Calendar : Zap
-
-              return (
-                <motion.div
-                  key={signal.id}
-                  initial={{ opacity: 0, y: 12 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.04 }}
-                  className={cn(
-                    'glass-panel hairline-all rounded-2xl p-4',
-                    'flex items-start gap-4 transition-all duration-300',
-                    'hover:border-white/20'
-                  )}
-                >
-                  {/* Icon */}
-                  <div className={cn(
-                    'w-10 h-10 rounded-xl flex items-center justify-center shrink-0',
-                    signal.type === 'join'
-                      ? 'bg-green-500/10 border border-green-500/20'
-                      : signal.type === 'message'
-                        ? 'bg-gold/10 border border-gold/20'
-                        : isEvent
-                          ? 'bg-gold/10 border border-gold/20'
-                          : 'bg-crimson/10 border border-crimson/20'
-                  )}>
-                    <Icon className={cn(
-                      'w-4 h-4',
-                      signal.type === 'join' ? 'text-green-400'
-                        : signal.type === 'message' ? 'text-gold'
-                        : isEvent ? 'text-gold' : 'text-crimson-bright'
-                    )} />
-                  </div>
-
-                  {/* Content */}
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm text-marble font-medium mb-0.5">
-                      {signal.title}
-                    </p>
-                    <p className="text-xs text-marble/40 line-clamp-1">
-                      {signal.subtitle}
-                    </p>
-                  </div>
-
-                  {/* Time */}
-                  <div className="shrink-0 text-right">
-                    <span className="micro-caps text-xs text-marble/30">
-                      {timeAgo(signal.timestamp)}
-                    </span>
-                    {!signal.read && (
-                      <div className="w-1.5 h-1.5 rounded-full bg-crimson-bright ml-auto mt-1" />
-                    )}
-                  </div>
-                </motion.div>
-              )
-            })}
-          </div>
-        )}
-
       </div>
     </div>
   )
