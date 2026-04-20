@@ -9,6 +9,7 @@ import { Clock, Zap, Calendar, Users } from 'lucide-react'
 import { cn } from '../lib/utils'
 import { Link } from 'react-router-dom'
 import { HistoryCardSkeleton } from '../components/Skeleton'
+import { getSignalImage } from '../lib/signalImage'
 
 export default function HistoryPage() {
   usePageTitle('History')

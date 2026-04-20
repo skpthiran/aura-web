@@ -440,15 +440,14 @@ export default function MomentDetailPage() {
                   <span key={tag}
                     className="micro-caps text-xs px-3 py-1.5 rounded-full
                       bg-white/5 border border-white/10 text-marble/50">
-                    #{tag}
+                    {'#'}{tag}
                   </span>
-                </motion.div>
-              )}
+                ))}
+              </motion.div>
+            )}
 
               {/* Mobile actions — handled by sticky bottom bar */}
-              <div className="lg:hidden h-4" />
             </div>
-          </div>
 
           {/* RIGHT COLUMN — desktop sidebar panel */}
           <div className="hidden lg:block">
@@ -508,7 +507,7 @@ export default function MomentDetailPage() {
                     <div className="w-full py-4 rounded-2xl text-center
                       bg-gold/8 border border-gold/25">
                       <p className="micro-caps text-sm text-gold font-medium">
-                        ◈ On Waitlist — #{waitlistPosition}
+                        ◈ On Waitlist - {'#'}{waitlistPosition}
                       </p>
                     </div>
                   ) : (
@@ -582,7 +581,7 @@ export default function MomentDetailPage() {
         </div>
       </div>
 
-      {/* STICKY BOTTOM BAR — Mobile only */}
+      {/* STICKY BOTTOM BAR - Mobile only */}
       <div className="lg:hidden fixed bottom-20 left-4 right-4 z-40">
         {!isExpired ? (
           <motion.div
@@ -605,7 +604,7 @@ export default function MomentDetailPage() {
               <div className="w-full py-4 rounded-2xl text-center
                 bg-gold/90 backdrop-blur-md border border-gold/50 shadow-2xl">
                 <p className="micro-caps text-sm text-void font-bold">
-                  ◈ Waitlist: #{waitlistPosition}
+                  ◈ Waitlist: {'#'}{waitlistPosition}
                 </p>
               </div>
             ) : (

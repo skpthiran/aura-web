@@ -5,10 +5,11 @@ import { supabase } from '../lib/supabase'
 import { getActiveMomentsByCreator, getRecentJoins } from '../lib/db/moments'
 import { Moment, Participant } from '../types'
 import { Bell, Zap, Calendar, Users, MessageSquare, 
-  MapPin, RefreshCw } from 'lucide-react'
+  MapPin, RefreshCw, ArrowLeft } from 'lucide-react'
 import { cn } from '../lib/utils'
 import { Link } from 'react-router-dom'
 import { usePageTitle } from '../hooks/usePageTitle'
+import { getSignalImage } from '../lib/signalImage'
 
 interface SignalJoin extends Participant {
   moments: {
@@ -163,7 +164,7 @@ export default function SignalsPage() {
               </motion.div>
             ) : (
               <div className="flex flex-col gap-3">
-                {filteredJoins.map((join) => (
+                {filteredJoins.map((join, i) => (
                     <motion.div
                       key={join.id}
                       initial={{ opacity: 0, x: -20 }}
