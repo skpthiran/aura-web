@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useCallback } from 'react'
 import { motion } from 'motion/react'
 import { Link } from 'react-router-dom'
 import { Calendar, Users, Clock, Loader, Trophy, RefreshCw } from 'lucide-react'
@@ -163,34 +163,49 @@ export default function EventsPage() {
     { label: 'Global', value: 99999999 },
   ]
 
-  const { events, loading, refetch } = useNearbyEvents(location, radius)
+  const { events, loading, refetch, setEvents } = useNearbyEvents(location, radius)
   const { addToast } = useToast()
 
-  // Realtime Event Notifications
-  useRealtimeMoments({
-    onInsert: (newMoment) => {
-      if (newMoment.moment_type !== 'event') return
+  // Realtime Integration
+  const handleRealtimeInsert = useCallback((newMoment: Moment) => {
+    if (newMoment.moment_type !== 'event') return
+
+    // Sync state
+    setEvents?.(prev => {
+      const idx = prev.findIndex(m => m.id === newMoment.id)
+      if (idx >= 0) {
+        const next = [...prev]
+        next[idx] = newMoment
+        return next
+      }
+      return [newMoment, ...prev]
+    })
+
+    // Notify if nearby
+    if (location && newMoment.latitude !== undefined && newMoment.longitude !== undefined) {
+      const dist = calculateDistance(
+        location.latitude,
+        location.longitude,
+        newMoment.latitude,
+        newMoment.longitude
+      )
       
-      // Only toast if nearby
-      if (location && newMoment.latitude !== undefined && newMoment.longitude !== undefined) {
-        const dist = calculateDistance(
-          location.latitude,
-          location.longitude,
-          newMoment.latitude,
-          newMoment.longitude
-        )
-        
-        if (dist <= radius) {
-          addToast({
-            title: newMoment.title,
-            description: "A new structured gathering has been initialized nearby.",
-            link: `/app/moment/${newMoment.id}`,
-            type: 'signal'
-          })
-        }
+      if (dist <= radius) {
+        addToast({
+          title: newMoment.title,
+          description: "A new structured gathering has been initialized nearby.",
+          link: `/app/moment/${newMoment.id}`,
+          type: 'signal'
+        })
       }
     }
-  })
+  }, [location, radius, addToast, setEvents])
+
+  const handleRealtimeDelete = useCallback((id: string) => {
+    setEvents?.(prev => prev.filter(m => m.id !== id))
+  }, [setEvents])
+
+  useRealtimeMoments(handleRealtimeInsert, handleRealtimeDelete)
 
   const [joiningId, setJoiningId] = useState<string | null>(null)
   const [joinedIds, setJoinedIds] = useState<Set<string>>(new Set())

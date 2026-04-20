@@ -46,31 +46,48 @@ export default function MapPage() {
   ]
   const [mapFilter, setMapFilter] = useState<'All' | 'Moments' | 'Events'>('All')
 
-  const { moments, loading: momentsLoading, refetch: refetchMoments } = useNearbyMoments(location, mapRadius)
+  const { moments, loading: momentsLoading, refetch: refetchMoments, setMoments } = useNearbyMoments(location, mapRadius)
   const { addToast } = useToast()
 
-  // Realtime Integration for Map (Toasts)
-  useRealtimeMoments({
-    onInsert: (newMoment) => {
-        if (location && newMoment.latitude !== undefined && newMoment.longitude !== undefined) {
-          const dist = calculateDistance(
-            location.latitude,
-            location.longitude,
-            newMoment.latitude,
-            newMoment.longitude
-          )
-        // If within map radius, notify
-        if (dist <= mapRadius) {
-          addToast({
-            title: newMoment.title,
-            description: `Intercepted new ${newMoment.moment_type} at coordinates.`,
-            link: `/app/moment/${newMoment.id}`,
-            type: 'signal'
-          })
-        }
+  // Realtime Integration for Map
+  const handleRealtimeInsert = useCallback((newMoment: Moment) => {
+    // Sync state
+    setMoments(prev => {
+      const idx = prev.findIndex(m => m.id === newMoment.id)
+      if (idx >= 0) {
+        const next = [...prev]
+        next[idx] = newMoment
+        return next
+      }
+      return [newMoment, ...prev]
+    })
+
+    // Notify if nearby
+    if (location && newMoment.latitude !== undefined && newMoment.longitude !== undefined) {
+      const dist = calculateDistance(
+        location.latitude,
+        location.longitude,
+        newMoment.latitude,
+        newMoment.longitude
+      )
+      
+      if (dist <= mapRadius) {
+        addToast({
+          title: newMoment.title,
+          description: `Intercepted new ${newMoment.moment_type} at coordinates.`,
+          link: `/app/moment/${newMoment.id}`,
+          type: 'signal'
+        })
       }
     }
-  })
+  }, [location, mapRadius, addToast, setMoments])
+
+  const handleRealtimeDelete = useCallback((id: string) => {
+    setMoments(prev => prev.filter(m => m.id !== id))
+    setSelectedMoment(prev => prev?.id === id ? null : prev)
+  }, [setMoments])
+
+  useRealtimeMoments(handleRealtimeInsert, handleRealtimeDelete)
 
   // === SIGNAL FILTERING — NO .filter() TO AVOID TDZ ===
   const visibleMoments: Moment[] = []

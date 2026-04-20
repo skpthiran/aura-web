@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react'
+import React, { useState, useMemo, useEffect, useCallback } from 'react'
 import { motion } from 'motion/react'
 import { Link } from 'react-router-dom'
 import { Radio, Users, Loader, MapPin, Zap } from 'lucide-react'
@@ -150,33 +150,47 @@ export default function TodayPage() {
     { label: 'Global', value: 99999999 },
   ]
 
-  const { moments, loading } = useNearbyMoments(location, radius)
+  const { moments, loading, setMoments } = useNearbyMoments(location, radius)
   const { addToast } = useToast()
 
-  // Realtime Notification Listener
-  useRealtimeMoments({
-    onInsert: (newMoment) => {
-      // Only show toast if user is nearby
-      if (location && newMoment.latitude !== undefined && newMoment.longitude !== undefined) {
-        const dist = calculateDistance(
-          location.latitude,
-          location.longitude,
-          newMoment.latitude,
-          newMoment.longitude
-        )
-        
-        // If within current radius, show toast
-        if (dist <= radius) {
-          addToast({
-            title: newMoment.title,
-            description: `New ${newMoment.moment_type === 'event' ? 'event' : 'signal'} detected nearby.`,
-            link: `/app/moment/${newMoment.id}`,
-            type: 'signal'
-          })
-        }
+  // Realtime Integration
+  const handleRealtimeInsert = useCallback((newMoment: Moment) => {
+    // Sync state
+    setMoments(prev => {
+      const idx = prev.findIndex(m => m.id === newMoment.id)
+      if (idx >= 0) {
+        const next = [...prev]
+        next[idx] = newMoment
+        return next
+      }
+      return [newMoment, ...prev]
+    })
+
+    // Notify if nearby
+    if (location && newMoment.latitude !== undefined && newMoment.longitude !== undefined) {
+      const dist = calculateDistance(
+        location.latitude,
+        location.longitude,
+        newMoment.latitude,
+        newMoment.longitude
+      )
+      
+      if (dist <= radius) {
+        addToast({
+          title: newMoment.title,
+          description: `New ${newMoment.moment_type === 'event' ? 'event' : 'signal'} detected nearby.`,
+          link: `/app/moment/${newMoment.id}`,
+          type: 'signal'
+        })
       }
     }
-  })
+  }, [location, radius, addToast, setMoments])
+
+  const handleRealtimeDelete = useCallback((id: string) => {
+    setMoments(prev => prev.filter(m => m.id !== id))
+  }, [setMoments])
+
+  useRealtimeMoments(handleRealtimeInsert, handleRealtimeDelete)
   
   const [joiningId, setJoiningId] = useState<string | null>(null)
   const [joinedIds, setJoinedIds] = useState<Set<string>>(new Set())

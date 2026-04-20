@@ -55,25 +55,21 @@ export function useNearbyMoments(
   // Update moments in state via realtime
   const handleRealtimeInsert = useCallback((newMoment: Moment) => {
     setMoments(prev => {
-      // Avoid duplicates
-      if (prev.some(m => m.id === newMoment.id)) return prev
+      const idx = prev.findIndex(m => m.id === newMoment.id)
+      if (idx >= 0) {
+        const next = [...prev]
+        next[idx] = newMoment
+        return next
+      }
       return [newMoment, ...prev]
     })
-  }, [])
-
-  const handleRealtimeUpdate = useCallback((updatedMoment: Moment) => {
-    setMoments(prev => prev.map(m => m.id === updatedMoment.id ? updatedMoment : m))
   }, [])
 
   const handleRealtimeDelete = useCallback((id: string) => {
     setMoments(prev => prev.filter(m => m.id !== id))
   }, [])
 
-  useRealtimeMoments({
-    onInsert: handleRealtimeInsert,
-    onUpdate: handleRealtimeUpdate,
-    onDelete: handleRealtimeDelete
-  })
+  useRealtimeMoments(handleRealtimeInsert, handleRealtimeDelete)
 
   // Fetch when radius changes
   useEffect(() => {

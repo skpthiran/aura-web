@@ -2,38 +2,43 @@ import { useEffect, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 import { Moment } from '../types'
 
-interface RealtimeConfig {
-  onInsert?: (moment: Moment) => void
-  onUpdate?: (moment: Moment) => void
-  onDelete?: (id: string) => void
-  filter?: string
-}
-
-export function useRealtimeMoments({ onInsert, onUpdate, onDelete, filter }: RealtimeConfig) {
+/**
+ * useRealtimeMoments hook
+ * 
+ * Uses stable ref callbacks and unique channel names to prevent 
+ * subscription crashes and redundant re-renders.
+ */
+export function useRealtimeMoments(
+  onInsert: (moment: Moment) => void,
+  onDelete?: (id: string) => void,
+) {
   const onInsertRef = useRef(onInsert)
-  const onUpdateRef = useRef(onUpdate)
   const onDeleteRef = useRef(onDelete)
 
-  // Update refs when callbacks change to avoid re-subscription
+  // Keep references stable to avoid re-subscribing when handlers change
   useEffect(() => {
     onInsertRef.current = onInsert
-    onUpdateRef.current = onUpdate
-    onDeleteRef.current = onDelete
-  }, [onInsert, onUpdate, onDelete])
+  }, [onInsert])
 
   useEffect(() => {
+    onDeleteRef.current = onDelete
+  }, [onDelete])
+
+  useEffect(() => {
+    // Generate a unique channel name to avoid collisions
+    const channelName = `realtime:moments:${Math.random().toString(36).slice(2)}`
+    
     const channel = supabase
-      .channel('realtime:moments')
+      .channel(channelName)
       .on(
         'postgres_changes',
         {
           event: 'INSERT',
           schema: 'public',
           table: 'moments',
-          filter: filter || 'is_active=eq.true',
         },
         (payload) => {
-          if (payload.new && onInsertRef.current) {
+          if (payload.new) {
             onInsertRef.current(payload.new as Moment)
           }
         }
@@ -48,11 +53,12 @@ export function useRealtimeMoments({ onInsert, onUpdate, onDelete, filter }: Rea
         (payload) => {
           if (payload.new) {
             const moment = payload.new as Moment
-            // If the moment was updated to be inactive, treat it as a delete for the UI
-            if (moment.is_active === false && onDeleteRef.current) {
-               onDeleteRef.current(moment.id)
-            } else if (onUpdateRef.current) {
-               onUpdateRef.current(moment)
+            // If it became inactive, treat as delete
+            if (moment.is_active === false) {
+              onDeleteRef.current?.(moment.id)
+            } else {
+              // Otherwise treat as update/insert for state sync
+              onInsertRef.current(moment)
             }
           }
         }
@@ -65,8 +71,8 @@ export function useRealtimeMoments({ onInsert, onUpdate, onDelete, filter }: Rea
           table: 'moments',
         },
         (payload) => {
-          if (payload.old?.id && onDeleteRef.current) {
-            onDeleteRef.current(payload.old.id)
+          if (payload.old && payload.old.id) {
+            onDeleteRef.current?.(payload.old.id)
           }
         }
       )
@@ -75,5 +81,5 @@ export function useRealtimeMoments({ onInsert, onUpdate, onDelete, filter }: Rea
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [filter])
+  }, []) // Empty deps = subscribe once per component mount
 }
