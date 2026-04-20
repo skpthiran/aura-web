@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react'
-import { motion } from 'motion/react'
+import { motion, AnimatePresence } from 'motion/react'
 import { Link } from 'react-router-dom'
-import { Radio, Users, Loader, MapPin, Zap, Search, ArrowRight, Clock, Compass, Check, X, ChevronDown } from 'lucide-react'
+import { Radio, Users, Loader, MapPin, Zap, Search, ArrowRight, Clock, Compass, Check, X, ChevronDown, Lock } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 import { useUserLocation } from '../hooks/useUserLocation'
@@ -15,6 +15,8 @@ import { useToast } from '../components/ToastProvider'
 import { useRealtimeMoments } from '../hooks/useRealtimeMoments'
 import { calculateDistance } from '../lib/utils'
 import { SignalCardSkeleton, SkeletonBlock } from '../components/Skeleton'
+import JoinedOverlay from '../components/JoinedOverlay'
+import { getRejectedIds, addRejectedId } from '../lib/cardState'
 
 interface MomentGridCardProps {
   moment: Moment
@@ -72,6 +74,12 @@ const MomentGridCard: React.FC<MomentGridCardProps> = ({
             e.currentTarget.style.opacity = '0'
           }}
         />
+
+        {/* Joined Overlay */}
+        {isJoined && (
+          <JoinedOverlay />
+        )}
+
         <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent" />
         
         {/* Top badges */}
@@ -197,13 +205,11 @@ export default function TodayPage() {
   
   const [joiningId, setJoiningId] = useState<string | null>(null)
   const [joinedIds, setJoinedIds] = useState<Set<string>>(new Set())
-  const [rejectedIds, setRejectedIds] = useState<Set<string>>(() => {
-    try {
-      const saved = sessionStorage.getItem('aura-rejected-ids')
-      return saved ? new Set(JSON.parse(saved)) : new Set()
-    } catch {
-      return new Set()
-    }
+  const [rejectedIds] = useState<Set<string>>(() => {
+    // We now use cardActions for everything, but keeping this for legacy filter compatibility if needed
+    // Actually, we should probably just remove it and use cardActions directly everywhere.
+    // Let's remove it.
+    return new Set()
   })
 
 
@@ -220,11 +226,12 @@ export default function TodayPage() {
   }, [radiusOpen])
 
   const handleJoin = async (momentId: string) => {
-    if (!user || joinedIds.has(momentId)) return
+    if (!user || joinedIds.has(momentId) || cardActions[momentId] === 'joined') return
     setJoiningId(momentId)
     try {
       await joinMoment(momentId)
       setJoinedIds(prev => new Set([...prev, momentId]))
+      setCardActions(prev => ({ ...prev, [momentId]: 'joined' }))
     } catch (err) {
       console.error(err)
     } finally {
@@ -233,14 +240,16 @@ export default function TodayPage() {
   }
 
   const handleReject = (momentId: string) => {
-    setRejectedIds(prev => {
-      const next = new Set([...prev, momentId])
-      sessionStorage.setItem('aura-rejected-ids', JSON.stringify([...next]))
-      return next
-    })
+    addRejectedId(momentId)
+    setCardActions(prev => ({ ...prev, [momentId]: 'rejected' }))
   }
 
-  const [cardActions, setCardActions] = useState<Record<string, 'joined' | 'rejected' | null>>({})
+  const [cardActions, setCardActions] = useState<Record<string, 'joined' | 'rejected' | null>>(() => {
+    const rejected = getRejectedIds()
+    const initial: Record<string, 'joined' | 'rejected' | null> = {}
+    rejected.forEach(id => { initial[id] = 'rejected' })
+    return initial
+  })
   const [cardJoining, setCardJoining] = useState<Record<string, boolean>>({})
 
   const handleCardJoin = async (momentId: string, e: React.MouseEvent) => {
@@ -261,6 +270,7 @@ export default function TodayPage() {
   const handleCardReject = (momentId: string, e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
+    addRejectedId(momentId)
     setCardActions(prev => ({ ...prev, [momentId]: 'rejected' }))
   }
 
@@ -298,7 +308,7 @@ export default function TodayPage() {
 
   const filteredMoments = useMemo(() => {
     return moments.filter(m => {
-      if (rejectedIds.has(m.id)) return false
+      if (cardActions[m.id] === 'rejected') return false
       const expiresTime = new Date(m.expires_at).getTime()
       if (expiresTime < Date.now()) return false // hide expired
       
@@ -306,7 +316,30 @@ export default function TodayPage() {
       if (activeTab === 'events') return m.moment_type === 'event'
       return true // 'all'
     })
-  }, [moments, rejectedIds, activeTab])
+  }, [moments, cardActions, activeTab])
+
+  // After moments are fetched, mark already-joined ones from DB
+  useEffect(() => {
+    if (!user || moments.length === 0) return
+    const ids = moments.map(m => m.id)
+    supabase
+      .from('moment_participants')
+      .select('moment_id')
+      .eq('user_id', user.id)
+      .in('moment_id', ids)
+      .then(({ data }) => {
+        if (!data) return
+        setCardActions(prev => {
+          const next = { ...prev }
+          data.forEach(row => {
+            if (next[row.moment_id] !== 'rejected') {
+              next[row.moment_id] = 'joined'
+            }
+          })
+          return next
+        })
+      })
+  }, [user, moments])
 
   const heroMoment = filteredMoments[0]
   const gridMoments = filteredMoments.slice(1)
@@ -355,6 +388,12 @@ export default function TodayPage() {
               e.currentTarget.src = `https://picsum.photos/seed/${heroMoment.id}/1920/1200`
             }}
           />
+
+          {/* Joined Overlay */}
+          {cardActions[heroMoment.id] === 'joined' && (
+            <JoinedOverlay />
+          )}
+
           <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-transparent to-black" />
           <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-90" />
           
@@ -554,7 +593,7 @@ export default function TodayPage() {
                         : "bg-marble text-void hover:bg-green-400 hover:text-void hover:shadow-[0_0_30px_rgba(74,222,128,0.3)]"
                     )}
                   >
-                    {joiningId === heroMoment.id ? 'Processing...' : joinedIds.has(heroMoment.id) ? 'Joined' : 'Join Signal'}
+                    {joiningId === heroMoment.id ? 'Processing...' : (joinedIds.has(heroMoment.id) || cardActions[heroMoment.id] === 'joined') ? 'Joined' : 'Join Signal'}
                   </button>
                 </div>
               </motion.div>
@@ -623,9 +662,10 @@ export default function TodayPage() {
 
             {/* Magazine grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 auto-rows-auto">
-              {filteredMoments
-                .filter(moment => cardActions[moment.id] !== 'rejected')
-                .map((moment, i) => {
+              <AnimatePresence mode="popLayout">
+                {filteredMoments
+                  .filter(moment => cardActions[moment.id] !== 'rejected')
+                  .map((moment, i) => {
                 const isEvent = moment.moment_type === 'event'
                 const hoursLeft = Math.max(0, Math.round(
                   (new Date(moment.expires_at).getTime() - Date.now()) / 3600000
@@ -642,6 +682,11 @@ export default function TodayPage() {
                       opacity: 1,
                       y: 0,
                       x: swipeState[`${moment.id}_deltaX`] ?? 0,
+                    }}
+                    exit={{ 
+                      opacity: 0, 
+                      scale: 0.9,
+                      transition: { duration: 0.3 }
                     }}
                     transition={{
                       delay: i * 0.05,
@@ -670,6 +715,11 @@ export default function TodayPage() {
                           e.currentTarget.src = `https://picsum.photos/seed/${moment.id}/600/500`
                         }}
                       />
+
+                      {/* Joined Overlay */}
+                      {cardActions[moment.id] === 'joined' && (
+                        <JoinedOverlay />
+                      )}
 
                       {/* Gradient overlay */}
                       <div className="absolute inset-0 transition-opacity duration-500"
@@ -837,6 +887,7 @@ export default function TodayPage() {
                   </motion.div>
                 )
               })}
+              </AnimatePresence>
             </div>
           </div>
         )}

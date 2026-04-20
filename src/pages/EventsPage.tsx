@@ -1,7 +1,6 @@
-import React, { useState, useCallback } from 'react'
-import { motion } from 'motion/react'
+import { motion, AnimatePresence } from 'motion/react'
 import { Link } from 'react-router-dom'
-import { Calendar, Users, Clock, Loader, Trophy, RefreshCw } from 'lucide-react'
+import { Calendar, Users, Clock, Loader, Trophy, RefreshCw, X, Lock } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { useUserLocation } from '../hooks/useUserLocation'
 import { useNearbyEvents } from '../hooks/useNearbyEvents'
@@ -11,6 +10,9 @@ import { cn, calculateDistance } from '../lib/utils'
 import { usePageTitle } from '../hooks/usePageTitle'
 import { useToast } from '../components/ToastProvider'
 import { useRealtimeMoments } from '../hooks/useRealtimeMoments'
+import JoinedOverlay from '../components/JoinedOverlay'
+import { getRejectedIds, addRejectedId } from '../lib/cardState'
+import { supabase } from '../lib/supabase'
 
 interface EventCardProps {
   event: Moment
@@ -18,9 +20,10 @@ interface EventCardProps {
   isJoined: boolean
   isJoining: boolean
   onJoin: () => void | Promise<void>
+  onReject: () => void
 }
 
-const EventCard: React.FC<EventCardProps> = ({ event, index, isJoined, isJoining, onJoin }) => {
+const EventCard: React.FC<EventCardProps> = ({ event, index, isJoined, isJoining, onJoin, onReject }) => {
   const distanceDisplay = event.distance_meters
     ? event.distance_meters < 1000
       ? `${Math.round(event.distance_meters)}m away`
@@ -42,6 +45,7 @@ const EventCard: React.FC<EventCardProps> = ({ event, index, isJoined, isJoining
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, scale: 0.95, transition: { duration: 0.2 } }}
       transition={{ delay: index * 0.06 }}
       className="relative overflow-hidden rounded-2xl group cursor-pointer"
     >
@@ -59,6 +63,11 @@ const EventCard: React.FC<EventCardProps> = ({ event, index, isJoined, isJoining
           <div className="absolute inset-0 bg-gradient-to-r 
             from-void via-void/80 to-void/20" />
         </div>
+
+        {/* Joined Overlay */}
+        {isJoined && (
+          <JoinedOverlay />
+        )}
 
         {/* Content */}
         <div className="relative z-10 p-6 md:p-8 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-6 md:gap-8"
@@ -118,8 +127,23 @@ const EventCard: React.FC<EventCardProps> = ({ event, index, isJoined, isJoining
             </div>
           </div>
 
-          {/* Join button */}
-          <div className="shrink-0">
+          {/* Actions */}
+          <div className="shrink-0 flex items-center gap-3">
+            {!isJoined && (
+              <button
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onReject()
+                }}
+                className="p-3 rounded-full bg-white/5 border border-white/10 
+                  text-white/40 hover:text-red-400 hover:border-red-500/50 
+                  hover:bg-red-500/10 transition-all duration-300"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
+            
             <button
               onClick={(e) => {
                 e.preventDefault();
@@ -209,19 +233,58 @@ export default function EventsPage() {
 
   const [joiningId, setJoiningId] = useState<string | null>(null)
   const [joinedIds, setJoinedIds] = useState<Set<string>>(new Set())
+  const [cardActions, setCardActions] = useState<Record<string, 'joined' | 'rejected' | null>>(() => {
+    const rejected = getRejectedIds()
+    const initial: Record<string, 'joined' | 'rejected' | null> = {}
+    rejected.forEach(id => { initial[id] = 'rejected' })
+    return initial
+  })
+  const [cardJoining, setCardJoining] = useState<Record<string, boolean>>({})
 
   const handleJoin = async (momentId: string) => {
-    if (!user || joinedIds.has(momentId)) return
+    if (!user || joinedIds.has(momentId) || cardActions[momentId] === 'joined') return
     setJoiningId(momentId)
+    setCardJoining(prev => ({ ...prev, [momentId]: true }))
+    
     try {
       await joinMoment(momentId)
       setJoinedIds(prev => new Set([...prev, momentId]))
+      setCardActions(prev => ({ ...prev, [momentId]: 'joined' }))
     } catch (err) {
       console.error(err)
     } finally {
       setJoiningId(null)
+      setCardJoining(prev => ({ ...prev, [momentId]: false }))
     }
   }
+
+  const handleCardReject = (momentId: string) => {
+    addRejectedId(momentId)
+    setCardActions(prev => ({ ...prev, [momentId]: 'rejected' }))
+  }
+
+  // After events are fetched, mark already-joined ones from DB
+  useEffect(() => {
+    if (!user || events.length === 0) return
+    const ids = events.map(e => e.id)
+    supabase
+      .from('moment_participants')
+      .select('moment_id')
+      .eq('user_id', user.id)
+      .in('moment_id', ids)
+      .then(({ data }) => {
+        if (!data) return
+        setCardActions(prev => {
+          const next = { ...prev }
+          data.forEach(row => {
+            if (next[row.moment_id] !== 'rejected') {
+              next[row.moment_id] = 'joined'
+            }
+          })
+          return next
+        })
+      })
+  }, [user, events])
 
   return (
     <div className="flex-1 overflow-y-auto">
@@ -309,16 +372,21 @@ export default function EventsPage() {
         {/* Events grid */}
         {!loading && events.length > 0 && (
           <div className="flex flex-col gap-4">
-            {events.map((event, i) => (
-              <EventCard
-                key={event.id}
-                event={event}
-                index={i}
-                isJoined={joinedIds.has(event.id)}
-                isJoining={joiningId === event.id}
-                onJoin={() => handleJoin(event.id)}
-              />
-            ))}
+            <AnimatePresence mode="popLayout">
+              {events
+                .filter(event => cardActions[event.id] !== 'rejected')
+                .map((event, i) => (
+                <EventCard
+                  key={event.id}
+                  event={event}
+                  index={i}
+                  isJoined={joinedIds.has(event.id) || cardActions[event.id] === 'joined'}
+                  isJoining={joiningId === event.id || cardJoining[event.id]}
+                  onJoin={() => handleJoin(event.id)}
+                  onReject={() => handleCardReject(event.id)}
+                />
+              ))}
+            </AnimatePresence>
           </div>
         )}
 
