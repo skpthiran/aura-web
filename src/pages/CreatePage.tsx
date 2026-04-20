@@ -1,12 +1,9 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
 import { useNavigate } from 'react-router-dom'
-import { Map as MapLibreMap, Marker } from 'maplibre-gl'
-import 'maplibre-gl/dist/maplibre-gl.css'
 import { useAuth } from '../contexts/AuthContext'
-import { useUserLocation } from '../hooks/useUserLocation'
 import { createMoment } from '../lib/db/moments'
-import { MAX_MOMENT_CAPACITY, MAPTILER_STYLE } from '../lib/constants'
+import { MAX_MOMENT_CAPACITY } from '../lib/constants'
 import { 
   MapPin, 
   Zap, 
@@ -58,8 +55,11 @@ export default function CreatePage() {
   const [maxAge, setMaxAge] = useState<number | ''>('')
   
   // Step 3: Location
-  const [customLat, setCustomLat] = useState<number | null>(null)
-  const [customLng, setCustomLng] = useState<number | null>(null)
+  const [latitude, setLatitude] = useState<number | null>(null)
+  const [longitude, setLongitude] = useState<number | null>(null)
+  const [locating, setLocating] = useState(false)
+  const [locationLabel, setLocationLabel] = useState('')
+  const [direction, setDirection] = useState(0)
   
   // Step 4: Settings
   const [capacity, setCapacity] = useState(50)
@@ -69,103 +69,29 @@ export default function CreatePage() {
   const [error, setError] = useState<string | null>(null)
 
   const { user } = useAuth()
-  const { location } = useUserLocation()
   const navigate = useNavigate()
 
-  const mapPickerRef = useRef<HTMLDivElement>(null)
-  const mapPickerInstance = useRef<MapLibreMap | null>(null)
-  const pickerMarkerRef = useRef<Marker | null>(null)
-  const initialCoordsRef = useRef<{lat: number, lng: number} | null>(null)
-
-  const effectiveLat = customLat ?? location?.latitude ?? null
-  const effectiveLng = customLng ?? location?.longitude ?? null
+  const effectiveLat = latitude
+  const effectiveLng = longitude
 
   // Date constraints
   const now = new Date()
   const minDate = new Date(now.getTime() + 60 * 60 * 1000).toISOString().slice(0, 16)
 
   useEffect(() => {
-    if (step !== 3) return
-    
-    // Initialize Map for Step 3
-    if (!initialCoordsRef.current) {
-      initialCoordsRef.current = {
-        lat: location?.latitude ?? 6.9271,
-        lng: location?.longitude ?? 79.8612
-      }
-    }
-    
-    let map: MapLibreMap | null = null
-    let initialized = false
-    let attempts = 0
-    const coords = initialCoordsRef.current
-    
-    const tryInit = () => {
-      if (initialized) return
-      attempts++
-      const container = mapPickerRef.current
-      if (!container) {
-        if (attempts < 10) setTimeout(tryInit, 150)
-        return
-      }
-      
-      initialized = true
-      
-      try {
-        map = new MapLibreMap({
-          container,
-          style: MAPTILER_STYLE,
-          center: [coords.lng, coords.lat],
-          zoom: 13,
-          attributionControl: false,
-          fadeDuration: 0,
-          renderWorldCopies: false
-        })
-        
-        mapPickerInstance.current = map
-        
-        map.on('load', () => {
-          map!.resize()
-          
-          const el = document.createElement('div')
-          el.className = 'w-6 h-6 bg-gold border-[3px] border-white rounded-full shadow-[0_0_0_8px_rgba(212,175,55,0.2)] cursor-grab transform transition-transform hover:scale-110 active:scale-95'
-          
-          const marker = new Marker({ element: el, draggable: true })
-            .setLngLat([coords.lng, coords.lat])
-            .addTo(map!)
-          
-          pickerMarkerRef.current = marker
-          
-          marker.on('dragend', () => {
-            const ll = marker.getLngLat()
-            setCustomLat(ll.lat)
-            setCustomLng(ll.lng)
-          })
-          
-          map!.on('click', (e) => {
-            marker.setLngLat([e.lngLat.lng, e.lngLat.lat])
-            setCustomLat(e.lngLat.lat)
-            setCustomLng(e.lngLat.lng)
-          })
-        })
-      } catch(err) {
-        console.error('Map init error:', err)
-        initialized = false
-      }
-    }
-    
-    const timer = setTimeout(tryInit, 250)
-    
-    return () => {
-      clearTimeout(timer)
-      if (map) {
-        map.remove()
-        mapPickerInstance.current = null
-        pickerMarkerRef.current = null
-        // We don't reset initialCoordsRef here to keep position if user goes back/forth
-      }
-    }
-  }, [step, location])
+    if (!navigator.geolocation) return
+    setLocating(true)
+    navigator.geolocation.getCurrentPosition(
+      pos => {
+        setLatitude(pos.coords.latitude)
+        setLongitude(pos.coords.longitude)
+        setLocationLabel(`${pos.coords.latitude.toFixed(6)}, ${pos.coords.longitude.toFixed(6)}`)
+        setLocating(false)
+      },
+      () => setLocating(false),
+      { timeout: 8000, enableHighAccuracy: false, maximumAge: 30000 }
+    )
+  }, [])
 
   const handleSubmit = async () => {
     if (!effectiveLat || !effectiveLng || !user) return
@@ -221,16 +147,18 @@ export default function CreatePage() {
        return
     }
     setError(null)
+    setDirection(1)
     setStep(prev => prev + 1)
   }
 
   const prevStep = () => {
+    setDirection(-1)
     setStep(prev => prev - 1)
   }
 
   return (
-    <div className="flex-1 overflow-y-auto w-full bg-void">
-      <div className="max-w-4xl mx-auto p-6 py-8 md:py-16">
+    <div className="flex-1 overflow-y-auto bg-void min-h-0">
+      <div className="max-w-lg mx-auto px-5 pt-8 pb-28 min-h-0">
         
         {/* Progress System */}
         <div className="mb-12">
@@ -284,7 +212,8 @@ export default function CreatePage() {
         </AnimatePresence>
         
         {/* Step content */}
-        <AnimatePresence mode="wait">
+        <div className="min-h-0 flex-1">
+          <AnimatePresence mode="wait" custom={direction}>
           {/* STEP 1: TYPE */}
           {step === 1 && (
             <motion.div
@@ -512,50 +441,141 @@ export default function CreatePage() {
             </motion.div>
           )}
 
-          {/* STEP 3: LOCATION */}
+          {/* ── STEP 3: LOCATION ── */}
           {step === 3 && (
             <motion.div
               key="step3"
-              initial={{ opacity: 0, scale: 1.05 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="space-y-8"
+              custom={direction}
+              initial={{ opacity: 0, x: direction > 0 ? 50 : -50 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: direction > 0 ? -50 : 50 }}
+              className="flex flex-col gap-4"
             >
-              <div className="relative rounded-[3rem] overflow-hidden border border-white/10 h-[500px] md:h-[600px] shadow-2xl">
-                <div ref={mapPickerRef} className="absolute inset-0 bg-void" />
-                
-                {/* HUD Overlay */}
-                <div className="absolute top-8 left-8 right-8 flex justify-between items-start pointer-events-none">
-                  <div className="glass-panel p-6 rounded-3xl border-white/10 pointer-events-auto backdrop-blur-xl">
-                    <p className="micro-caps text-gold text-[10px] mb-4 tracking-[0.2em]">VECTOR COORDINATES</p>
-                    <div className="space-y-3 font-mono text-xl md:text-2xl text-marble tracking-tight">
-                       <p className="flex items-center gap-4">
-                         <span className="text-marble/20 text-xs micro-caps w-8">LAT</span>
-                         {effectiveLat?.toFixed(6) ?? 'COORD_NULL'}
-                       </p>
-                       <p className="flex items-center gap-4">
-                         <span className="text-marble/20 text-xs micro-caps w-8">LNG</span>
-                         {effectiveLng?.toFixed(6) ?? 'COORD_NULL'}
-                       </p>
+              <p className="text-marble/40 text-sm">
+                Your signal will appear on the map at your current location.
+              </p>
+
+              {/* Location card */}
+              <div className={cn(
+                'rounded-2xl border transition-all duration-300 overflow-hidden',
+                latitude
+                  ? 'border-green-500/30 bg-green-500/5'
+                  : 'border-white/10 bg-white/3'
+              )}>
+                {/* Static map preview — using MapTiler for constant availability */}
+                {latitude && longitude && (
+                  <div className="relative w-full h-48 overflow-hidden">
+                    <img
+                      src={`https://api.maptiler.com/maps/dataviz-dark/static/${longitude},${latitude},14/600x200.png?key=${import.meta.env.VITE_MAPTILER_KEY}&markers=lonlat:${longitude},${latitude};color:%23C9A84C;size:medium`}
+                      onError={e => {
+                        e.currentTarget.style.display = 'none'
+                      }}
+                      className="w-full h-full object-cover"
+                    />
+                    {/* Overlay gradient */}
+                    <div className="absolute inset-0"
+                      style={{ background: 'linear-gradient(to top, rgba(8,8,15,0.8) 0%, transparent 60%)' }} />
+                    {/* Center pin */}
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="w-4 h-4 rounded-full bg-gold border-2 border-white shadow-lg
+                        shadow-gold/50" />
                     </div>
                   </div>
-                  
-                  <div className="hidden lg:block glass-panel p-6 rounded-3xl border-white/10 backdrop-blur-xl pointer-events-auto max-w-[240px]">
-                    <div className="flex items-center gap-2 text-gold mb-3">
-                      <Info className="w-4 h-4" />
-                      <span className="micro-caps text-[10px]">Precision Sync</span>
+                )}
+
+                <div className="p-5">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className={cn(
+                      'w-10 h-10 rounded-xl flex items-center justify-center shrink-0',
+                      latitude
+                        ? 'bg-green-500/15 border border-green-500/25'
+                        : 'bg-white/5 border border-white/10'
+                    )}>
+                      <MapPin className={cn(
+                        'w-5 h-5',
+                        latitude ? 'text-green-400' : 'text-marble/30'
+                      )} />
                     </div>
-                    <p className="text-[10px] text-marble/50 leading-relaxed font-light">
-                      Drag the marker to calibrate the signal's origin. The map will synchronize with recipients in real-time.
+                    <div className="flex-1 min-w-0">
+                      <p className="text-marble text-sm font-medium">
+                        {locating ? 'Detecting location...'
+                          : latitude ? 'Location locked'
+                          : 'Location required'}
+                      </p>
+                      {latitude && longitude && (
+                        <p className="text-marble/35 text-xs mt-0.5 font-mono">
+                          {latitude.toFixed(6)}, {longitude.toFixed(6)}
+                        </p>
+                      )}
+                    </div>
+                    {locating && <Loader2 className="w-4 h-4 text-gold animate-spin shrink-0" />}
+                    {latitude && !locating && <Check className="w-4 h-4 text-green-400 shrink-0" />}
+                  </div>
+
+                  {!latitude && !locating && (
+                    <button
+                      onClick={() => {
+                        setLocating(true)
+                        navigator.geolocation.getCurrentPosition(
+                          pos => {
+                            setLatitude(pos.coords.latitude)
+                            setLongitude(pos.coords.longitude)
+                            setLocationLabel(`${pos.coords.latitude.toFixed(6)}, ${pos.coords.longitude.toFixed(6)}`)
+                            setLocating(false)
+                          },
+                          () => setLocating(false),
+                          { timeout: 10000, enableHighAccuracy: true }
+                        )
+                      }}
+                      className="w-full py-3 rounded-xl micro-caps text-sm
+                        bg-gold/10 border border-gold/30 text-gold
+                        hover:bg-gold/15 transition-all"
+                    >
+                      <MapPin className="w-4 h-4 inline mr-2" />
+                      Detect My Location
+                    </button>
+                  )}
+
+                  {latitude && (
+                    <button
+                      onClick={() => {
+                        setLatitude(null)
+                        setLongitude(null)
+                        setLocationLabel('')
+                      }}
+                      className="w-full py-2.5 rounded-xl micro-caps text-xs
+                        text-marble/30 hover:text-marble/50 transition-colors"
+                    >
+                      Clear & re-detect
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Privacy toggle */}
+              <div className="flex items-center justify-between
+                bg-white/4 border border-white/10 rounded-2xl px-5 py-4">
+                <div className="flex items-center gap-3">
+                  <Lock className="w-4 h-4 text-marble/30" />
+                  <div>
+                    <p className="text-marble text-sm">Private Signal</p>
+                    <p className="text-marble/30 text-xs mt-0.5">
+                      Only visible via direct link
                     </p>
                   </div>
                 </div>
-
-                <div className="absolute bottom-8 left-1/2 -translate-x-1/2 pointer-events-none">
-                  <div className="glass-panel px-8 py-4 rounded-full border-gold/30 text-gold micro-caps text-[10px] tracking-[0.3em] backdrop-blur-md animate-pulse">
-                    CALIBRATING GEOSPHERE_
-                  </div>
-                </div>
+                <button
+                  onClick={() => setIsPrivate(p => !p)}
+                  className={cn(
+                    'w-11 h-6 rounded-full transition-all duration-300 relative shrink-0',
+                    isPrivate ? 'bg-gold' : 'bg-white/10'
+                  )}
+                >
+                  <div className={cn(
+                    'absolute top-1 w-4 h-4 rounded-full bg-white shadow-sm transition-all duration-300',
+                    isPrivate ? 'left-6' : 'left-1'
+                  )} />
+                </button>
               </div>
 
               {/* Navigation */}
@@ -563,8 +583,12 @@ export default function CreatePage() {
                 <button onClick={prevStep} className="flex items-center gap-2 text-marble/40 hover:text-marble transition-colors micro-caps text-xs">
                   <ChevronLeft className="w-4 h-4" /> Details
                 </button>
-                <button onClick={nextStep} className="bg-marble text-void px-10 py-5 rounded-2xl micro-caps font-bold transition-all hover:bg-gold-pale flex items-center gap-3">
-                  Lock Vector <ChevronRight className="w-4 h-4" />
+                <button 
+                  onClick={nextStep} 
+                  disabled={!latitude}
+                  className="bg-marble text-void px-10 py-5 rounded-2xl micro-caps font-bold transition-all hover:bg-gold-pale disabled:opacity-20 flex items-center gap-3"
+                >
+                  Confirm Location <ChevronRight className="w-4 h-4" />
                 </button>
               </div>
             </motion.div>
@@ -705,5 +729,6 @@ export default function CreatePage() {
         </AnimatePresence>
       </div>
     </div>
-  )
+  </div>
+)
 }
