@@ -40,14 +40,24 @@ const TAG_SUGGESTIONS = [
   'outdoor', 'nightlife', 'culture', 'wellness', 'fashion', 'film'
 ]
 
-const DURATION_OPTIONS = [
-  { label: '1h', hours: 1 },
-  { label: '2h', hours: 2 },
-  { label: '4h', hours: 4 },
-  { label: '8h', hours: 8 },
+const MOMENT_DURATION_OPTIONS = [
+  { label: '1h',  hours: 1 },
+  { label: '2h',  hours: 2 },
+  { label: '4h',  hours: 4 },
+  { label: '8h',  hours: 8 },
+  { label: '12h', hours: 12 },
   { label: '24h', hours: 24 },
-  { label: '48h', hours: 48 },
 ]
+
+const EVENT_DURATION_OPTIONS = [
+  { label: '1 day',    hours: 24 },
+  { label: '3 days',   hours: 72 },
+  { label: '7 days',   hours: 168 },
+  { label: '14 days',  hours: 336 },
+  { label: '21 days',  hours: 504 },
+  { label: '30 days',  hours: 720 },
+]
+
 
 const CAPACITY_PRESETS = [5, 10, 20, 50, 100, 200]
 
@@ -69,7 +79,13 @@ export default function CreatePage() {
   const [tags, setTags] = useState<string[]>([])
   const [tagInput, setTagInput] = useState('')
   const [selectedMood, setSelectedMood] = useState<string | null>(null)
-  const [durationHours, setDurationHours] = useState(4)
+  const [durationHours, setDurationHours] = useState(24)
+
+  useEffect(() => {
+    if (momentType === 'moment') setDurationHours(24);
+    else setDurationHours(168); // 7 days default for events
+  }, [momentType]);
+
   const [startTime, setStartTime] = useState('')
   const [endTime, setEndTime] = useState('')
   const [venue, setVenue] = useState('')
@@ -459,26 +475,30 @@ export default function CreatePage() {
                     </div>
                   </div>
 
-                  {/* Duration */}
-                  <div>
-                    <label className="micro-caps text-xs text-marble/40 mb-2 block">
-                      <Clock className="w-3 h-3 inline mr-1" />
-                      Signal Duration
-                    </label>
-                    <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
-                      {DURATION_OPTIONS.map(opt => (
-                        <button key={opt.hours} onClick={() => setDurationHours(opt.hours)}
-                          className={cn(
-                            'py-2.5 rounded-xl text-sm transition-all',
-                            durationHours === opt.hours
-                              ? 'bg-gold/15 border border-gold/40 text-gold font-medium shadow-sm'
-                              : 'bg-white/4 border border-white/10 text-marble/50 hover:border-white/20'
-                          )}>
-                          {opt.label}
-                        </button>
-                      ))}
+                    {/* Duration */}
+                    <div>
+                      <label className="micro-caps text-xs text-marble/40 mb-2 block">
+                        <Clock className="w-3 h-3 inline mr-1" />
+                        {momentType === 'moment' ? 'Signal Duration (max 24h)' : 'Event Duration (max 30 days)'}
+                      </label>
+                      <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
+                        {(momentType === 'moment' ? MOMENT_DURATION_OPTIONS : EVENT_DURATION_OPTIONS).map(opt => (
+                          <button
+                            key={opt.hours}
+                            onClick={() => setDurationHours(opt.hours)}
+                            className={cn(
+                              'h-12 rounded-xl border-2 transition-all duration-300 text-sm font-medium',
+                              durationHours === opt.hours
+                                ? 'border-[#c9a84c] bg-[#c9a84c]/10 text-[#c9a84c]'
+                                : 'border-white/10 bg-white/[0.02] text-white/40 hover:border-white/20'
+                            )}
+                          >
+                            {opt.label}
+                          </button>
+                        ))}
+                      </div>
                     </div>
-                  </div>
+
 
                   {/* Event-specific fields */}
                   {momentType === 'event' && (
