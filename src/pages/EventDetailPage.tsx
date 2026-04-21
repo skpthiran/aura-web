@@ -1,14 +1,12 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ChevronLeft, Users, Clock, MapPin, MessageSquare, ExternalLink, Loader, Share2, Check, Calendar, Shield, Shirt } from 'lucide-react'
+import { ChevronLeft, Users, Clock, MapPin, Calendar, Target, ExternalLink, Shirt, Shield, Lock } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
 import { joinMoment, leaveMoment } from '../lib/db/moments'
 import { usePageTitle } from '../hooks/usePageTitle'
 import { MomentDetailSkeleton } from '../components/Skeleton'
-import { format } from 'date-fns'
 import { getSignalImage } from '../lib/signalImage'
-import { cn } from '../lib/utils'
 
 export default function EventDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -18,10 +16,8 @@ export default function EventDetailPage() {
   const [event, setEvent] = useState<any | null>(null)
   const [loading, setLoading] = useState(true)
   const [joining, setJoining] = useState(false)
-  const [joined, setJoined] = useState(false)
-  const [copied, setCopied] = useState(false)
+  const [isJoined, setIsJoined] = useState(false)
   const [imgError, setImgError] = useState(false)
-  const [creator, setCreator] = useState<any | null>(null)
 
   usePageTitle(event?.title ?? 'Gathering')
 
@@ -44,7 +40,6 @@ export default function EventDetailPage() {
       if (!data) return
       
       setEvent(data)
-      if (data.creator) setCreator(data.creator)
     } catch (err) {
       console.error('Fetch error:', err)
     } finally {
@@ -60,42 +55,29 @@ export default function EventDetailPage() {
       .eq('moment_id', id)
       .eq('user_id', user.id)
       .maybeSingle()
-    if (data?.status === 'joined') setJoined(true)
+    if (data?.status === 'joined') setIsJoined(true)
   }
 
   const handleJoin = async () => {
-    if (!id || joined) return
+    if (!id || isJoined) return
     try {
       setJoining(true)
       await joinMoment(id)
-      setJoined(true)
+      setIsJoined(true)
     } finally {
       setJoining(false)
     }
   }
 
   const handleLeave = async () => {
-    if (!id || !joined) return
+    if (!id || !isJoined) return
     try {
       setJoining(true)
       await leaveMoment(id)
-      setJoined(false)
+      setIsJoined(false)
     } finally {
       setJoining(false)
     }
-  }
-
-  const handleShare = async () => {
-    const url = window.location.href
-    try {
-      if (navigator.share) {
-        await navigator.share({ title: event?.title, url })
-      } else {
-        await navigator.clipboard.writeText(url)
-        setCopied(true)
-        setTimeout(() => setCopied(false), 2000)
-      }
-    } catch {}
   }
 
   if (loading) return <MomentDetailSkeleton />
@@ -106,210 +88,200 @@ export default function EventDetailPage() {
     </div>
   )
 
-  const startDate = event.start_time ? new Date(event.start_time) : null
-  const formattedTime = startDate ? format(startDate, 'h:mm a') : 'TBA'
-  const formattedDate = startDate ? format(startDate, 'EEEE, MMM do') : 'TBA'
-  
-  const distanceLabel = event.distance_meters 
-    ? (event.distance_meters > 1000 ? `${(event.distance_meters / 1000).toFixed(1)}km` : `${Math.round(event.distance_meters)}m`)
-    : 'Local Sector'
-
   const hasValidImageUrl = event.image_url && event.image_url.startsWith('http');
   const displayImage = (!imgError && hasValidImageUrl) 
     ? event.image_url 
     : getSignalImage(event.id, event.tags, 'event');
 
-  const isFull = event.capacity_limit > 0 && (event.participant_count || 0) >= event.capacity_limit;
-
   return (
-    <div className="min-h-screen bg-[#08080f] lg:flex lg:flex-row overflow-x-hidden">
-      {/* ── HERO ── */}
-      <div className="relative w-full lg:w-[50%] lg:h-screen lg:sticky lg:top-0 flex-shrink-0 overflow-hidden bg-obsidian">
-        {displayImage ? (
-          <img 
-            src={displayImage} 
-            className="absolute inset-0 w-full h-full object-cover grayscale-[0.2] contrast-[1.1]" 
-            alt={event.title}
-            onError={() => setImgError(true)}
-          />
-        ) : (
-          <div className="absolute inset-0 bg-gradient-to-br from-[#1e1628] via-[#130e1f] to-[#08080f]" />
-        )}
-        
-        <div className="absolute inset-0 bg-gradient-to-t from-[#08080f] via-[#08080f]/40 to-transparent" />
-        <div className="absolute inset-0 bg-black/20" />
+    <div className="min-h-screen bg-[#08080f] lg:flex">
 
-        {/* Top Controls */}
-        <div className="absolute top-6 left-6 right-6 z-30 flex justify-between items-center">
-          <button 
-            onClick={() => navigate(-1)}
-            className="w-10 h-10 rounded-full bg-black/40 backdrop-blur-xl border border-white/10 flex items-center justify-center hover:bg-black/60 transition-all"
-          >
-            <ChevronLeft className="w-5 h-5 text-white" />
-          </button>
+      {/* HERO */}
+      <div
+        className="relative w-full lg:w-[50%] lg:h-screen lg:sticky lg:top-0 flex-shrink-0 overflow-hidden"
+        style={{ height: '55vw', maxHeight: '500px', minHeight: '280px' }}
+      >
+        <img
+          src={displayImage}
+          alt={event?.title}
+          className="absolute inset-0 w-full h-full object-cover object-center"
+          onError={() => setImgError(true)}
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-[#08080f] via-[#08080f]/30 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-b from-[#08080f]/60 via-transparent to-transparent" />
 
-          <div className="flex gap-2">
-            <button 
-              onClick={handleShare}
-              className="w-10 h-10 rounded-full bg-black/40 backdrop-blur-xl border border-white/10 flex items-center justify-center hover:border-gold/40 transition-all"
-            >
-              {copied ? <Check className="w-4 h-4 text-green-400" /> : <Share2 className="w-4 h-4 text-white" />}
-            </button>
-          </div>
+        {/* Back */}
+        <button onClick={() => navigate(-1)}
+          className="absolute top-5 left-5 z-20 w-10 h-10 rounded-full bg-black/60 backdrop-blur-xl border border-white/10 flex items-center justify-center hover:bg-white/10 transition-all">
+          <ChevronLeft className="w-5 h-5 text-white" />
+        </button>
+
+        {/* Badge */}
+        <div className="absolute top-5 right-5 z-20 flex items-center gap-2 px-3 py-1.5 rounded-full bg-black/60 backdrop-blur-xl border border-[#c9a84c]/30">
+          <span className="w-1.5 h-1.5 rounded-full bg-[#c9a84c] animate-pulse" />
+          <span className="text-[9px] font-black tracking-[0.2em] uppercase text-[#c9a84c]">Event</span>
         </div>
 
-        {/* Desktop Header */}
-        <div className="absolute bottom-12 left-12 right-12 z-20 hidden lg:block">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="px-3 py-1 bg-gold/90 text-void font-black text-[9px] tracking-[0.2em] uppercase rounded-sm">Structured</div>
-            <div className="px-3 py-1 border border-white/20 bg-white/5 backdrop-blur-md text-white text-[9px] tracking-[0.2em] uppercase rounded-sm">Priority Alpha</div>
+        {/* Desktop title */}
+        <div className="absolute bottom-0 left-0 right-0 p-8 hidden lg:block">
+          <div className="flex flex-wrap gap-2 mb-4">
+            {event?.tags?.map(tag => (
+              <span key={tag} className="px-3 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/10 text-white/60 text-[9px] tracking-[0.15em] uppercase">#{tag}</span>
+            ))}
           </div>
-          <h1 className="text-white font-black uppercase text-7xl leading-[0.85] tracking-tighter mb-8 max-w-2xl drop-shadow-2xl">
-            {event.title}
+          <h1 className="text-white font-black uppercase leading-[0.92] drop-shadow-2xl"
+            style={{ fontSize: 'clamp(32px, 4vw, 52px)', letterSpacing: '0.04em' }}>
+            {event?.title}
           </h1>
-          <div className="flex items-center gap-8">
-            <div className="flex flex-col">
-              <span className="text-gold/40 text-[9px] font-black tracking-[0.2em] uppercase mb-1">Schedule</span>
-              <span className="text-white font-bold tracking-widest">{formattedDate} @ {formattedTime}</span>
-            </div>
-            <div className="w-px h-8 bg-white/10" />
-            <div className="flex flex-col">
-              <span className="text-gold/40 text-[9px] font-black tracking-[0.2em] uppercase mb-1">Intelligence</span>
-              <span className="text-white font-bold tracking-widest">{event.participant_count || 0} / {event.capacity_limit || '∞'} CONFIRMED</span>
-            </div>
-          </div>
         </div>
       </div>
 
-      {/* ── CONTENT ── */}
-      <div className="relative flex-1 bg-[#08080f] px-6 lg:px-20 pt-12 lg:pt-32 pb-48 lg:border-l border-white/5">
-        
-        {/* Mobile Header */}
-        <div className="lg:hidden mb-12">
-          <p className="text-gold text-[10px] font-black tracking-[0.4em] uppercase mb-4">Structured Gathering</p>
-          <h1 className="text-white font-black uppercase text-4xl leading-tight tracking-tight mb-6">{event.title}</h1>
-          
-          <div className="grid grid-cols-2 gap-px bg-white/10 border border-white/10 rounded-2xl overflow-hidden mt-8">
-            <div className="bg-void/50 p-5">
-              <p className="text-white/30 text-[8px] tracking-widest uppercase mb-1">Time</p>
-              <p className="text-white font-black text-sm">{formattedTime}</p>
+      {/* CONTENT */}
+      <div className="flex-1 flex flex-col lg:h-screen lg:overflow-y-auto">
+        <div className="flex-1 px-6 lg:px-10 pt-7 lg:pt-14 pb-36 lg:pb-10">
+
+          {/* Mobile title */}
+          <div className="lg:hidden mb-6">
+            <div className="flex flex-wrap gap-2 mb-3">
+              {event?.tags?.map(tag => (
+                <span key={tag} className="px-3 py-1 rounded-full bg-white/5 border border-white/8 text-white/40 text-[9px] tracking-[0.15em] uppercase">#{tag}</span>
+              ))}
             </div>
-            <div className="bg-void/50 p-5">
-              <p className="text-white/30 text-[8px] tracking-widest uppercase mb-1">Date</p>
-              <p className="text-white font-black text-sm">{formattedDate}</p>
-            </div>
+            <h1 className="text-white font-black uppercase text-[28px] tracking-[0.03em] leading-tight">{event?.title}</h1>
           </div>
+
+          {/* STATS */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-7">
+            {[
+              { Icon: Users, value: event?.participant_count ?? 0, label: 'Attending' },
+              { Icon: Target, value: event?.capacity_limit ?? '∞', label: 'Capacity' },
+              { Icon: Calendar, value: event?.start_time ? new Date(event.start_time).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '—', label: 'Date' },
+              { Icon: Clock, value: event?.start_time ? new Date(event.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—', label: 'Time' },
+            ].map(({ Icon, value, label }) => (
+              <div key={label}
+                className="rounded-2xl bg-white/[0.03] border border-white/[0.06] p-4 flex flex-col items-center gap-2 hover:border-[#c9a84c]/20 transition-all duration-300">
+                <Icon className="w-4 h-4 text-[#c9a84c]/50" strokeWidth={1.5} />
+                <p className="text-white font-bold text-[17px] leading-none">{value}</p>
+                <p className="text-white/25 text-[8px] tracking-[0.2em] uppercase">{label}</p>
+              </div>
+            ))}
+          </div>
+
+          {/* DIVIDER */}
+          <div className="flex items-center gap-3 mb-6">
+            <div className="h-px flex-1 bg-gradient-to-r from-[#c9a84c]/25 to-transparent" />
+            <span className="text-[8px] tracking-[0.3em] uppercase text-white/15">Event Details</span>
+            <div className="h-px flex-1 bg-gradient-to-l from-[#c9a84c]/25 to-transparent" />
+          </div>
+
+          {/* ORGANIZER */}
+          {event?.creator && (
+            <div
+              onClick={() => navigate(`/app/profile/${event.creator_id}`)}
+              className="flex items-center gap-4 p-4 rounded-2xl bg-white/[0.025] border border-white/[0.06] mb-6 cursor-pointer hover:border-[#c9a84c]/20 hover:bg-white/[0.04] transition-all group"
+            >
+              <div className="w-11 h-11 rounded-full overflow-hidden flex-shrink-0 border border-white/10 bg-gradient-to-br from-[#c9a84c]/20 to-transparent flex items-center justify-center">
+                {event.creator.avatar_url
+                  ? <img src={event.creator.avatar_url} className="w-full h-full object-cover" />
+                  : <span className="text-[15px] font-black text-[#c9a84c] uppercase">{event.creator.username?.[0].toUpperCase()}</span>
+                }
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-[8px] tracking-[0.25em] uppercase text-white/25 mb-0.5">Organized by</p>
+                <p className="text-white font-bold text-[13px] tracking-widest uppercase truncate">{event.creator.username}</p>
+              </div>
+              <ExternalLink className="w-4 h-4 text-white/20 group-hover:text-[#c9a84c]/50 transition-colors flex-shrink-0" />
+            </div>
+          )}
+
+          {/* VENUE + DRESSCODE ROW */}
+          <div className="grid grid-cols-2 gap-3 mb-6">
+            {event?.venue && (
+              <div className="flex items-center gap-3 p-4 rounded-2xl bg-white/[0.02] border border-white/5">
+                <MapPin className="w-4 h-4 text-[#c9a84c]/40 flex-shrink-0" strokeWidth={1.5} />
+                <div className="min-w-0">
+                  <p className="text-[8px] tracking-[0.2em] uppercase text-white/20 mb-0.5">Venue</p>
+                  <p className="text-white/60 text-[12px] font-medium truncate">{event.venue}</p>
+                </div>
+              </div>
+            )}
+            {event?.dresscode && (
+              <div className="flex items-center gap-3 p-4 rounded-2xl bg-white/[0.02] border border-white/5">
+                <Shirt className="w-4 h-4 text-[#c9a84c]/40 flex-shrink-0" strokeWidth={1.5} />
+                <div className="min-w-0">
+                  <p className="text-[8px] tracking-[0.2em] uppercase text-white/20 mb-0.5">Dress Code</p>
+                  <p className="text-white/60 text-[12px] font-medium truncate">{event.dresscode}</p>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* DESCRIPTION */}
+          <div className="mb-6">
+            <p className="text-[8px] tracking-[0.3em] uppercase text-[#c9a84c]/40 mb-3 flex items-center gap-2">
+              <span className="h-px w-5 bg-[#c9a84c]/30 inline-block" />
+              About This Event
+            </p>
+            <p className="text-white/55 text-[14px] leading-[1.8] font-light">{event?.description}</p>
+          </div>
+
+          {/* AGE RESTRICTION */}
+          {(event?.age_min || event?.age_max) && (
+            <div className="flex items-center gap-3 p-4 rounded-2xl bg-white/[0.02] border border-white/5 mb-6">
+              <Shield className="w-4 h-4 text-[#c9a84c]/40 flex-shrink-0" strokeWidth={1.5} />
+              <div>
+                <p className="text-[8px] tracking-[0.2em] uppercase text-white/20 mb-0.5">Age Requirement</p>
+                <p className="text-white/60 text-[12px] font-medium">
+                  {event.age_min && event.age_max
+                    ? `${event.age_min} – ${event.age_max} years`
+                    : event.age_min
+                    ? `${event.age_min}+ years`
+                    : `Under ${event.age_max}`}
+                </p>
+              </div>
+            </div>
+          )}
+
         </div>
 
-        {/* Briefing */}
-        <div className="max-w-2xl space-y-16">
-          <section>
-            <h3 className="text-gold/60 text-[10px] font-black tracking-[0.3em] uppercase mb-6 flex items-center gap-4">
-              <span className="w-8 h-px bg-gold/20" />
-              Primary Objective
-            </h3>
-            <p className="text-white/80 text-xl font-serif italic leading-relaxed">
-              "{event.description || "Intelligence encrypted or missing. Proceed with intuition."}"
-            </p>
-          </section>
-
-          <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-6">
-              <h3 className="text-gold/60 text-[10px] font-black tracking-[0.3em] uppercase flex items-center gap-4">
-                <span className="w-8 h-px bg-gold/20" />
-                Location
-              </h3>
-              <div className="p-6 rounded-2xl bg-white/[0.02] border border-white/5 group hover:bg-white/[0.04] transition-all cursor-pointer">
-                <div className="flex items-center gap-4 mb-4">
-                  <div className="w-10 h-10 rounded-full bg-gold/10 flex items-center justify-center border border-gold/20">
-                    <MapPin className="w-4 h-4 text-gold" />
-                  </div>
-                  <div>
-                    <p className="text-white font-bold tracking-widest uppercase text-xs">{event.venue || 'SECURE LOCATION'}</p>
-                    <p className="text-white/30 text-[9px] uppercase tracking-widest mt-0.5">{distanceLabel}</p>
-                  </div>
-                </div>
-                <button className="w-full py-3 rounded-lg border border-white/5 bg-white/5 text-white/40 text-[9px] font-black tracking-widest uppercase group-hover:text-gold group-hover:border-gold/30 transition-all flex items-center justify-center gap-2">
-                  Open Coordinates <ExternalLink className="w-3 h-3" />
-                </button>
-              </div>
-            </div>
-
-            <div className="space-y-6">
-              <h3 className="text-gold/60 text-[10px] font-black tracking-[0.3em] uppercase flex items-center gap-4">
-                <span className="w-8 h-px bg-gold/20" />
-                Requirements
-              </h3>
-              <div className="p-6 rounded-2xl bg-white/[0.02] border border-white/5 space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <Shirt className="w-3.5 h-3.5 text-gold/40" />
-                    <span className="text-[10px] text-white/40 uppercase tracking-widest font-bold">Dress Code</span>
-                  </div>
-                  <span className="text-[10px] text-white font-black uppercase tracking-widest">{event.dresscode || 'Casual'}</span>
-                </div>
-                <div className="h-px bg-white/5" />
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <Shield className="w-3.5 h-3.5 text-gold/40" />
-                    <span className="text-[10px] text-white/40 uppercase tracking-widest font-bold">Security</span>
-                  </div>
-                  <span className="text-[10px] text-white font-black uppercase tracking-widest">Verified Identity</span>
-                </div>
-              </div>
-            </div>
-          </section>
-
-          {creator && (
-            <section className="pt-8 border-t border-white/5">
-              <div className="flex items-center justify-between p-6 rounded-2xl bg-white/[0.02] border border-white/5 hover:bg-white/[0.04] transition-all cursor-pointer"
-                   onClick={() => navigate(`/app/user/${creator.id}`)}>
-                <div className="flex items-center gap-5">
-                   <div className="w-14 h-14 rounded-full overflow-hidden border-2 border-gold/20 p-1">
-                      <div className="w-full h-full rounded-full overflow-hidden bg-white/5">
-                        {creator.avatar_url 
-                          ? <img src={creator.avatar_url} className="w-full h-full object-cover" alt="" />
-                          : <div className="w-full h-full flex items-center justify-center text-lg font-black text-gold/40">{(creator.username || '?')[0].toUpperCase()}</div>
-                        }
-                      </div>
-                   </div>
-                   <div>
-                      <p className="text-gold/60 text-[9px] font-black tracking-[0.3em] uppercase mb-1">Architect</p>
-                      <p className="text-white text-lg font-black tracking-widest uppercase">{creator.username}</p>
-                   </div>
-                </div>
-              </div>
-            </section>
+        {/* MOBILE FIXED BOTTOM */}
+        <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 px-4"
+          style={{
+            paddingBottom: 'max(24px, env(safe-area-inset-bottom))',
+            paddingTop: '12px',
+            background: 'linear-gradient(to top, #08080f 70%, rgba(8,8,15,0.95) 85%, transparent)',
+          }}>
+          {isJoined ? (
+            <button onClick={handleLeave}
+              className="w-full py-4 rounded-2xl border border-white/10 bg-white/[0.03] text-white/40 text-[12px] font-bold tracking-[0.22em] uppercase hover:border-red-500/25 hover:text-red-400/50 transition-all active:scale-[0.98]">
+              ✓ Attending · Tap to Leave
+            </button>
+          ) : (
+            <button onClick={handleJoin}
+              className="w-full py-4 rounded-2xl text-[#08080f] text-[13px] font-black tracking-[0.22em] uppercase transition-all active:scale-[0.97] shadow-2xl shadow-[#c9a84c]/25"
+              style={{ background: 'linear-gradient(135deg, #c9a84c 0%, #dfc070 50%, #c9a84c 100%)' }}>
+              Attend Event
+            </button>
           )}
         </div>
 
-        {/* ── STICKY FOOTER ── */}
-        <div className="fixed lg:absolute bottom-0 left-0 right-0 p-6 lg:p-12 z-50 bg-gradient-to-t from-[#08080f] via-[#08080f]/95 to-transparent">
-          <div className="max-w-md mx-auto lg:ml-0">
-            {joined ? (
-              <button
-                onClick={handleLeave}
-                disabled={joining}
-                className="w-full py-5 rounded-sm border border-white/10 bg-white/[0.02] text-white/40 text-[11px] font-black tracking-[0.4em] uppercase hover:bg-white/[0.05] hover:border-red-500/20 hover:text-red-400/60 transition-all duration-500 flex items-center justify-center gap-3"
-              >
-                {joining ? <Loader className="w-4 h-4 animate-spin" /> : <>✓ ACCESS GRANTED <span className="text-white/10">|</span> WITHDRAW</>}
-              </button>
-            ) : (
-              <button
-                onClick={handleJoin}
-                disabled={joining || isFull}
-                className="w-full py-5 rounded-sm text-void text-[12px] font-black tracking-[0.3em] uppercase transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] shadow-[0_0_40px_rgba(201,168,76,0.2)]"
-                style={{ background: 'linear-gradient(135deg, #c9a84c, #e2c06a, #c9a84c)' }}
-              >
-                {joining ? <Loader className="w-5 h-5 animate-spin mx-auto text-void" /> : 
-                  (isFull ? "CAPACITY REACHED" : "INITIALIZE JOIN")}
-              </button>
-            )}
-            <p className="text-center mt-4 text-[9px] text-white/20 tracking-[0.2em] uppercase font-bold">SECURE CHANNEL ENCRYPTED ALPHA-9</p>
-          </div>
+        {/* DESKTOP STICKY BOTTOM */}
+        <div className="hidden lg:block sticky bottom-0 px-10 pb-8 pt-5 bg-gradient-to-t from-[#08080f] via-[#08080f]/95 to-transparent">
+          {isJoined ? (
+            <button onClick={handleLeave}
+              className="w-full py-4 rounded-2xl border border-white/10 bg-white/[0.03] text-white/35 text-[11px] font-bold tracking-[0.22em] uppercase hover:border-red-500/20 hover:text-red-400/40 transition-all duration-300">
+              ✓ Attending · Tap to Leave
+            </button>
+          ) : (
+            <button onClick={handleJoin}
+              className="w-full py-4 rounded-2xl text-[#08080f] text-[12px] font-black tracking-[0.22em] uppercase transition-all hover:opacity-90 active:scale-[0.98] shadow-2xl shadow-[#c9a84c]/20"
+              style={{ background: 'linear-gradient(135deg, #c9a84c 0%, #dfc070 50%, #c9a84c 100%)' }}>
+              Attend Event
+            </button>
+          )}
         </div>
-
       </div>
     </div>
   );
 }
+
