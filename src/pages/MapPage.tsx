@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'motion/react'
 import { Map as MapLibreMap, Marker } from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
@@ -35,6 +35,7 @@ function haversineKm(
 }
 
 export default function MapPage() {
+  const navigate = useNavigate()
   usePageTitle('Forum')
   const { location, error: locationError } = useUserLocation()
   const [mapRadius, setMapRadius] = useState<number | string>(50000) // default 50km
@@ -49,6 +50,8 @@ export default function MapPage() {
   }
 
   const [mapFilter, setMapFilter] = useState<'ALL' | 'MOMENTS' | 'EVENTS'>('ALL')
+  const [activeSignal, setActiveSignal] = useState<any>(null);
+  const [popupPos, setPopupPos] = useState({ x: 0, y: 0 });
 
   const numericRadius = typeof mapRadius === 'number' ? radiusMap[mapRadius] || mapRadius : radiusMap[mapRadius] || 50000
   const [moments, setMoments] = useState<Moment[]>([])
@@ -226,19 +229,66 @@ export default function MapPage() {
 
     mapRef.current = map
 
+    const createMomentIcon = () => {
+      const el = document.createElement('div');
+      el.innerHTML = `
+        <div style="
+          position: relative;
+          width: 36px; height: 36px;
+          cursor: pointer;
+          filter: drop-shadow(0 0 8px rgba(201,168,76,0.7));
+        ">
+          <svg width="36" height="36" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="18" cy="18" r="16" fill="#08080f" stroke="#c9a84c" stroke-width="1.5"/>
+            <circle cx="18" cy="18" r="6" fill="#c9a84c"/>
+            <circle cx="18" cy="18" r="10" fill="#c9a84c" fill-opacity="0.15"/>
+          </svg>
+        </div>
+      `;
+      el.style.cssText = 'width:36px;height:36px;cursor:pointer;';
+      return el;
+    };
+
+    const createEventIcon = () => {
+      const el = document.createElement('div');
+      el.innerHTML = `
+        <div style="
+          position: relative;
+          width: 36px; height: 42px;
+          cursor: pointer;
+          filter: drop-shadow(0 0 8px rgba(255,255,255,0.3));
+        ">
+          <svg width="36" height="42" viewBox="0 0 36 42" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M18 2C10.268 2 4 8.268 4 16c0 10 14 24 14 24S32 26 32 16C32 8.268 25.732 2 18 2z" 
+              fill="#08080f" stroke="rgba(255,255,255,0.5)" stroke-width="1.5"/>
+            <path d="M18 2C10.268 2 4 8.268 4 16c0 10 14 24 14 24S32 26 32 16C32 8.268 25.732 2 18 2z" 
+              fill="rgba(255,255,255,0.05)"/>
+            <rect x="13" y="10" width="10" height="2" rx="1" fill="white" fill-opacity="0.8"/>
+            <rect x="13" y="14" width="7" height="2" rx="1" fill="white" fill-opacity="0.5"/>
+            <circle cx="18" cy="20" r="2" fill="rgba(201,168,76,0.8)"/>
+          </svg>
+        </div>
+      `;
+      el.style.cssText = 'width:36px;height:42px;cursor:pointer;';
+      return el;
+    };
+
     const addMomentsToMap = (mMap: MapLibreMap, momentsData: any[]) => {
       momentsData.forEach((m) => {
         if (!m.lat || !m.lng) return;
-        const el = document.createElement('div');
-        el.style.cssText = `
-          width: 12px; height: 12px; border-radius: 50%;
-          background: #c9a84c; border: 2px solid white;
-          box-shadow: 0 0 8px rgba(201,168,76,0.8);
-          cursor: pointer;
-        `;
-        el.addEventListener('click', () => {
-          window.location.href = `/app/moment/${m.id}`;
+        const el = m.moment_type === 'event' ? createEventIcon() : createMomentIcon();
+        
+        el.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const rect = el.getBoundingClientRect();
+          const mapContainerRect = mMap.getContainer().getBoundingClientRect();
+          setPopupPos({
+            x: rect.left - mapContainerRect.left + rect.width / 2,
+            y: rect.top - mapContainerRect.top,
+          });
+          setActiveSignal(m);
         });
+
         new Marker({ element: el })
           .setLngLat([m.lng, m.lat])
           .addTo(mMap);
@@ -250,6 +300,8 @@ export default function MapPage() {
       const { data } = await supabase.rpc('get_moments_map');
       if (data) addMomentsToMap(map, data);
     })
+
+    map.on('click', () => setActiveSignal(null));
 
     return () => {
       map.remove()
@@ -544,6 +596,113 @@ export default function MapPage() {
             >
               Scanning Sectors
             </motion.div>
+          </div>
+        </div>
+      )}
+
+      {activeSignal && (
+        <div
+          className="absolute z-50 pointer-events-auto"
+          style={{
+            left: Math.min(popupPos.x, window.innerWidth - 320) + 'px',
+            top: (popupPos.y - 20) + 'px',
+            transform: 'translate(-50%, -100%)',
+          }}
+        >
+          <div className="relative w-[300px] rounded-2xl overflow-hidden border border-white/10 shadow-2xl shadow-black/80"
+            style={{ background: 'linear-gradient(145deg, #0f0f1a, #08080f)' }}>
+            
+            {/* Image or gradient header */}
+            <div className="relative h-[140px] overflow-hidden">
+              {activeSignal.image_url ? (
+                <img src={activeSignal.image_url} className="w-full h-full object-cover" />
+              ) : (
+                <div className="w-full h-full bg-gradient-to-br from-[#1e1628] via-[#130e1f] to-[#08080f]">
+                  <div className="absolute inset-0 opacity-30"
+                    style={{ backgroundImage: 'radial-gradient(circle at 30% 50%, #c9a84c, transparent 70%)' }} />
+                </div>
+              )}
+              <div className="absolute inset-0 bg-gradient-to-t from-[#08080f] via-transparent to-transparent" />
+              
+              {/* Close button */}
+              <button
+                onClick={() => setActiveSignal(null)}
+                className="absolute top-3 right-3 w-7 h-7 rounded-full bg-black/60 backdrop-blur-xl border border-white/10 flex items-center justify-center hover:bg-white/10 transition-all"
+              >
+                <span className="text-white/60 text-[12px] leading-none">✕</span>
+              </button>
+
+              {/* Type badge */}
+              <div className="absolute top-3 left-3 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-black/60 backdrop-blur-xl border border-[#c9a84c]/30">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#c9a84c] animate-pulse" />
+                <span className="text-[8px] font-black tracking-[0.18em] uppercase text-[#c9a84c]">
+                  {activeSignal.moment_type || 'Moment'}
+                </span>
+              </div>
+
+              {/* Title over bottom of image */}
+              <div className="absolute bottom-0 left-0 right-0 px-4 pb-3">
+                <h3 className="text-white font-black uppercase text-[16px] tracking-[0.05em] leading-tight drop-shadow-lg line-clamp-2">
+                  {activeSignal.title}
+                </h3>
+              </div>
+            </div>
+
+            {/* Content */}
+            <div className="px-4 pt-3 pb-4">
+              {/* Tags */}
+              {activeSignal.tags?.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 mb-3">
+                  {activeSignal.tags.slice(0, 3).map((tag: string) => (
+                    <span key={tag} className="px-2 py-0.5 rounded-full bg-white/5 border border-white/8 text-white/40 text-[8px] tracking-widest uppercase">
+                      #{tag}
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              {/* Stats row */}
+              <div className="flex items-center gap-4 mb-4">
+                <div className="flex items-center gap-1.5 text-white/40 text-[10px]">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                  <span>{activeSignal.participant_count ?? activeSignal.attendee_count ?? 0} attending</span>
+                </div>
+                <div className="flex items-center gap-1.5 text-white/40 text-[10px]">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                  <span>{activeSignal.creator?.username || 'Anonymous'}</span>
+                </div>
+              </div>
+
+              {/* Action buttons */}
+              <div className="grid grid-cols-3 gap-2">
+                <button
+                  onClick={() => setActiveSignal(null)}
+                  className="py-2.5 rounded-xl border border-white/8 bg-white/[0.03] text-white/35 text-[9px] font-bold tracking-[0.15em] uppercase hover:border-red-500/20 hover:text-red-400/50 transition-all">
+                  Reject
+                </button>
+                <button
+                  onClick={() => {
+                    // handle join logic if needed, or just close
+                    setActiveSignal(null);
+                  }}
+                  className="py-2.5 rounded-xl border border-[#c9a84c]/30 bg-[#c9a84c]/10 text-[#c9a84c] text-[9px] font-bold tracking-[0.15em] uppercase hover:bg-[#c9a84c]/20 transition-all">
+                  Join
+                </button>
+                <button
+                  onClick={() => {
+                    navigate(`/app/${activeSignal.moment_type === 'event' ? 'event' : 'moment'}/${activeSignal.id}`);
+                    setActiveSignal(null);
+                  }}
+                  className="py-2.5 rounded-xl bg-white/[0.06] border border-white/10 text-white/60 text-[9px] font-bold tracking-[0.15em] uppercase hover:bg-white/[0.1] transition-all">
+                  Details
+                </button>
+              </div>
+            </div>
+
+            {/* Pointer arrow */}
+            <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-2 overflow-hidden">
+              <div className="w-4 h-4 bg-[#0f0f1a] border-r border-b border-white/10 rotate-45 -translate-y-2" />
+            </div>
           </div>
         </div>
       )}
