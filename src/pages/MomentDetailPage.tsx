@@ -254,16 +254,41 @@ export default function MomentDetailPage() {
 
         </div>
 
-        {/* BOTTOM ACTION */}
-        <div className="fixed lg:sticky bottom-0 left-0 right-0 px-6 lg:px-10 pb-8 pt-5 bg-gradient-to-t from-[#08080f] via-[#08080f]/95 to-transparent">
+        {/* MOBILE FIXED BOTTOM BAR */}
+        <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 px-4 pb-safe"
+          style={{
+            paddingBottom: 'max(24px, env(safe-area-inset-bottom))',
+            paddingTop: '12px',
+            background: 'linear-gradient(to top, #08080f 70%, rgba(8,8,15,0.95) 85%, transparent)',
+          }}>
           {isJoined ? (
-            <button onClick={handleLeave}
+            <button
+              onClick={handleLeave}
+              className="w-full py-4 rounded-2xl border border-white/10 bg-white/[0.04] text-white/40 text-[12px] font-bold tracking-[0.22em] uppercase hover:border-red-500/25 hover:text-red-400/50 transition-all active:scale-[0.98]">
+              ✓ Joined · Tap to Leave
+            </button>
+          ) : (
+            <button
+              onClick={handleJoin}
+              className="w-full py-4 rounded-2xl text-[#08080f] text-[13px] font-black tracking-[0.22em] uppercase transition-all active:scale-[0.97] shadow-2xl shadow-[#c9a84c]/25"
+              style={{ background: 'linear-gradient(135deg, #c9a84c 0%, #dfc070 50%, #c9a84c 100%)' }}>
+              Join Signal
+            </button>
+          )}
+        </div>
+
+        {/* DESKTOP STICKY BOTTOM */}
+        <div className="hidden lg:block sticky bottom-0 px-10 pb-8 pt-5 bg-gradient-to-t from-[#08080f] via-[#08080f]/95 to-transparent">
+          {isJoined ? (
+            <button
+              onClick={handleLeave}
               className="w-full py-4 rounded-2xl border border-white/10 bg-white/[0.03] text-white/35 text-[11px] font-bold tracking-[0.22em] uppercase hover:border-red-500/20 hover:text-red-400/40 transition-all duration-300">
               ✓ Joined · Tap to Leave
             </button>
           ) : (
-            <button onClick={handleJoin}
-              className="w-full py-4 rounded-2xl text-[#08080f] text-[12px] font-black tracking-[0.22em] uppercase transition-all duration-300 hover:opacity-90 active:scale-[0.98] shadow-2xl shadow-[#c9a84c]/20"
+            <button
+              onClick={handleJoin}
+              className="w-full py-4 rounded-2xl text-[#08080f] text-[12px] font-black tracking-[0.22em] uppercase transition-all hover:opacity-90 active:scale-[0.98] shadow-2xl shadow-[#c9a84c]/20"
               style={{ background: 'linear-gradient(135deg, #c9a84c 0%, #dfc070 50%, #c9a84c 100%)' }}>
               Join Moment
             </button>
