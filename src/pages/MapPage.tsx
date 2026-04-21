@@ -14,6 +14,7 @@ import { usePageTitle } from '../hooks/usePageTitle'
 import { useToast } from '../components/ToastProvider'
 import { useRealtimeMoments } from '../hooks/useRealtimeMoments'
 import { calculateDistance } from '../lib/utils'
+import { supabase } from '../lib/supabase'
 
 // Distance utility
 function haversineKm(
@@ -47,9 +48,26 @@ export default function MapPage() {
 
   const [mapFilter, setMapFilter] = useState<'ALL' | 'MOMENTS' | 'EVENTS'>('ALL')
 
-  // Convert mapRadius to numeric value for hook if it's a string from radiusMap
   const numericRadius = typeof mapRadius === 'number' ? radiusMap[mapRadius] || mapRadius : radiusMap[mapRadius] || 50000
-  const { moments, loading: momentsLoading, refetch: refetchMoments, setMoments } = useNearbyMoments(location, numericRadius)
+  const [moments, setMoments] = useState<Moment[]>([])
+  const [loading, setLoading] = useState(true)
+
+  const fetchMoments = useCallback(async () => {
+    setLoading(true)
+    const { data, error } = await supabase
+      .from('moments')
+      .select('*, creator:profiles(id, username, avatar_url)')
+      .gt('expires_at', new Date().toISOString())
+      .order('created_at', { ascending: false });
+    
+    if (data) setMoments(data)
+    setLoading(false)
+  }, [])
+
+  useEffect(() => {
+    fetchMoments()
+  }, [fetchMoments])
+
   const { addToast } = useToast()
 
   // Realtime Integration for Map
@@ -253,8 +271,13 @@ export default function MapPage() {
       })
 
       visibleMoments.forEach(sig => {
+        const lat = sig.latitude ?? sig.lat ?? null;
+        const lng = sig.longitude ?? sig.lng ?? null;
+        
+        if (lat === null || lng === null) return;
+
         if (markersRef.current[sig.id]) {
-          markersRef.current[sig.id].setLngLat([sig.longitude || 0, sig.latitude || 0])
+          markersRef.current[sig.id].setLngLat([lng, lat])
           return
         }
         
@@ -273,7 +296,7 @@ export default function MapPage() {
         })
 
         const marker = new Marker({ element: el })
-          .setLngLat([sig.longitude || 0, sig.latitude || 0])
+          .setLngLat([lng, lat])
           .addTo(map)
         markersRef.current[sig.id] = marker
       })
@@ -289,7 +312,7 @@ export default function MapPage() {
     try {
       await joinMoment(selectedMoment.id)
       setHasJoined(true)
-      refetchMoments()
+      fetchMoments()
     } catch (err: any) {
       console.error('Failed to join moment:', err)
     } finally {
