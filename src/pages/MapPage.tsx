@@ -15,6 +15,7 @@ import { useToast } from '../components/ToastProvider'
 import { useRealtimeMoments } from '../hooks/useRealtimeMoments'
 import { calculateDistance } from '../lib/utils'
 import { supabase } from '../lib/supabase'
+import { getSignalImage } from '../lib/signalImage'
 
 
 
@@ -434,14 +435,17 @@ export default function MapPage() {
             
             {/* Image or gradient header */}
             <div className="relative h-[140px] overflow-hidden">
-              {activeSignal.image_url ? (
-                <img src={activeSignal.image_url} className="w-full h-full object-cover" />
-              ) : (
-                <div className="w-full h-full bg-gradient-to-br from-[#1e1628] via-[#130e1f] to-[#08080f]">
-                  <div className="absolute inset-0 opacity-30"
-                    style={{ backgroundImage: 'radial-gradient(circle at 30% 50%, #c9a84c, transparent 70%)' }} />
-                </div>
-              )}
+              {(() => {
+                const cardImage = activeSignal?.image_url 
+                  || getSignalImage(activeSignal?.id, activeSignal?.tags, activeSignal?.moment_type);
+                return (
+                  <img 
+                    src={cardImage}
+                    className="w-full h-full object-cover"
+                    onError={(e) => { e.currentTarget.src = `https://picsum.photos/seed/${activeSignal?.id}/600/400`; }}
+                  />
+                );
+              })()}
               <div className="absolute inset-0 bg-gradient-to-t from-[#08080f] via-transparent to-transparent" />
               
               {/* Close button */}
