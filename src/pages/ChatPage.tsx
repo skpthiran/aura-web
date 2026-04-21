@@ -91,7 +91,7 @@ export default function ChatPage() {
   })
 
   return (
-    <div className="flex-1 flex overflow-hidden w-full h-[calc(100dvh-64px)] lg:h-full">
+    <div className="flex flex-col bg-[#08080f]" style={{ height: '100dvh' }}>
       
       {/* Left panel — moment list */}
       <div className={cn(
@@ -198,7 +198,7 @@ export default function ChatPage() {
 
       {/* Right panel — messages */}
       <div className={cn(
-        "flex-1 flex flex-col overflow-hidden bg-void",
+        "flex-1 flex flex-col overflow-hidden",
         !activeMomentId && "hidden lg:flex"
       )}>
         {!activeMomentId ? (
@@ -236,7 +236,7 @@ export default function ChatPage() {
             </div>
 
             {/* Messages area */}
-            <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-4 custom-scrollbar">
+            <div className="flex-1 overflow-y-auto px-4 pt-4 pb-4 space-y-3 custom-scrollbar">
               {loadingMessages && (
                 <div className="flex flex-col items-center gap-2 mt-4">
                    <div className="w-4 h-4 border-2 border-gold/20 border-t-gold rounded-full animate-spin" />
@@ -316,7 +316,7 @@ export default function ChatPage() {
             </div>
 
             {/* Input area */}
-            <div className="p-4 bg-void/50 backdrop-blur-sm lg:pb-6">
+            <div className="flex-shrink-0 px-4 pt-3 pb-6 border-t border-white/5 bg-[#08080f]">
               <div className="max-w-4xl mx-auto flex gap-3 items-center glass-panel 
                 hairline-all bg-void/90 rounded-2xl px-4 py-1.5 focus-within:border-gold/30 transition-all shadow-xl">
                 <input

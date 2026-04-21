@@ -368,10 +368,10 @@ export default function TodayPage() {
   }
 
   return (
-    <div className="flex-1 overflow-y-auto bg-void">
+    <div className="today-container flex-1 overflow-y-auto overflow-x-visible bg-void">
       {/* 100SVH MAGAZINE HERO */}
       {heroMoment ? (
-        <section className="relative h-[60dvh] md:h-[100svh] w-full overflow-hidden">
+        <section className="relative h-[60dvh] md:h-[100svh] w-full">
           <motion.img
             initial={{ scale: 1.1 }}
             animate={{ scale: 1 }}
@@ -451,7 +451,7 @@ export default function TodayPage() {
 
               <div className="flex items-center gap-2 mt-4 pointer-events-auto">
                 {/* Radius Filter Dropdown */}
-                <div className="relative" data-radius-dropdown>
+                <div className="relative z-[100]" data-radius-dropdown>
                   <button
                     onClick={(e) => {
                       e.stopPropagation();

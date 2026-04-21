@@ -119,7 +119,7 @@ export default function EventDetailPage() {
     ? event.image_url 
     : getSignalImage(event.id, event.tags, 'event');
 
-  const isFull = event.capacity_limit > 0 && (event.attendee_count || 0) >= event.capacity_limit;
+  const isFull = event.capacity_limit > 0 && (event.participant_count || 0) >= event.capacity_limit;
 
   return (
     <div className="min-h-screen bg-[#08080f] lg:flex lg:flex-row overflow-x-hidden">
@@ -175,7 +175,7 @@ export default function EventDetailPage() {
             <div className="w-px h-8 bg-white/10" />
             <div className="flex flex-col">
               <span className="text-gold/40 text-[9px] font-black tracking-[0.2em] uppercase mb-1">Intelligence</span>
-              <span className="text-white font-bold tracking-widest">{event.attendee_count || 0} / {event.capacity_limit || '∞'} CONFIRMED</span>
+              <span className="text-white font-bold tracking-widest">{event.participant_count || 0} / {event.capacity_limit || '∞'} CONFIRMED</span>
             </div>
           </div>
         </div>
