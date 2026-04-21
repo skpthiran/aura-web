@@ -349,8 +349,8 @@ export default function MapPage() {
 
   return (
     <div
-      className="relative flex flex-col bg-[#08080f] overflow-hidden"
-      style={{ height: '100dvh' }}
+      className="relative flex flex-col bg-[#08080f] overflow-hidden lg:h-screen"
+      style={{ height: 'calc(100dvh - 9rem)' }}
     >
 
       {/* ── HEADER ── */}
@@ -525,7 +525,7 @@ export default function MapPage() {
                     exit={{ y: '100%' }}
                     transition={{ type: 'spring', damping: 25, stiffness: 220 }}
                     className="lg:hidden fixed left-0 right-0 z-[100] px-4 pointer-events-none"
-                    style={{ bottom: 'calc(64px + 12px + env(safe-area-inset-bottom))' }}
+                    style={{ bottom: 'calc(52px + env(safe-area-inset-bottom))' }}
                   >
                     <div className="w-full max-w-md mx-auto pointer-events-auto">
                       {renderCardContent(800, 400)}
@@ -557,7 +557,7 @@ export default function MapPage() {
       <div
         className="absolute bottom-0 left-0 right-0 z-[200] flex items-center justify-center gap-2 px-4"
         style={{
-          paddingBottom: 'calc(env(safe-area-inset-bottom) + 16px)',
+          paddingBottom: '12px',
           paddingTop: '12px',
           background: 'linear-gradient(to top, rgba(8,8,15,0.95) 0%, transparent 100%)',
           overflowX: 'auto',
@@ -581,7 +581,7 @@ export default function MapPage() {
       </div>
 
       {/* ── STATUS BAR ── */}
-      <div className="absolute bottom-24 lg:bottom-6 left-1/2 -translate-x-1/2 z-10 flex items-center gap-3 whitespace-nowrap opacity-40">
+      <div className="absolute bottom-14 lg:bottom-6 left-1/2 -translate-x-1/2 z-10 flex items-center gap-3 whitespace-nowrap opacity-40">
         <span className="w-1 h-1 rounded-full bg-[#c9a84c] animate-pulse" />
         <span className="text-white text-[8px] tracking-[0.25em] uppercase">
           {visibleMoments.length} Signals Captured · {radius} Range
