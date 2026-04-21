@@ -17,7 +17,6 @@ export default function EventDetailPage() {
   const [loading, setLoading] = useState(true)
   const [joining, setJoining] = useState(false)
   const [isJoined, setIsJoined] = useState(false)
-  const [imgError, setImgError] = useState(false)
 
   usePageTitle(event?.title ?? 'Gathering')
 
@@ -88,10 +87,7 @@ export default function EventDetailPage() {
     </div>
   )
 
-  const hasValidImageUrl = event.image_url && event.image_url.startsWith('http');
-  const displayImage = (!imgError && hasValidImageUrl) 
-    ? event.image_url 
-    : getSignalImage(event.id, event.tags, 'event');
+  const heroImage = getSignalImage(event.id || id, event.tags || [], event.moment_type || 'event');
 
   return (
     <div className="min-h-screen bg-[#08080f] lg:flex">
@@ -102,10 +98,13 @@ export default function EventDetailPage() {
         style={{ height: '55vw', maxHeight: '500px', minHeight: '280px' }}
       >
         <img
-          src={displayImage}
-          alt={event?.title}
+          src={heroImage}
+          alt={event?.title || 'Event'}
           className="absolute inset-0 w-full h-full object-cover object-center"
-          onError={() => setImgError(true)}
+          onError={(e) => {
+            e.currentTarget.onerror = null;
+            e.currentTarget.src = `https://picsum.photos/seed/${id}/1200/800`;
+          }}
         />
         <div className="absolute inset-0 bg-gradient-to-t from-[#08080f] via-[#08080f]/30 to-transparent" />
         <div className="absolute inset-0 bg-gradient-to-b from-[#08080f]/60 via-transparent to-transparent" />
@@ -258,7 +257,7 @@ export default function EventDetailPage() {
             </button>
           ) : (
             <button onClick={handleJoin}
-              className="w-full py-4 rounded-2xl text-[#08080f] text-[13px] font-black tracking-[0.22em] uppercase transition-all active:scale-[0.97] shadow-2xl shadow-[#c9a84c]/25"
+              className="w-full py-4 rounded-2xl text-[#08080f] text-[12px] font-black tracking-[0.22em] uppercase transition-all hover:opacity-90 active:scale-[0.98] shadow-2xl shadow-[#c9a84c]/20"
               style={{ background: 'linear-gradient(135deg, #c9a84c 0%, #dfc070 50%, #c9a84c 100%)' }}>
               Attend Event
             </button>
