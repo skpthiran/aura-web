@@ -112,13 +112,13 @@ export default function ChatPage() {
   }, [channels, selectedChannelId])
 
   return (
-    <div className="flex bg-[#08080f] overflow-hidden relative"
-      style={{ height: '100dvh' }}>
+    <div className="flex bg-[#08080f] overflow-hidden relative lg:h-screen"
+      style={{ height: 'calc(100dvh - 9rem)' }}>
 
       {/* ══════════════════════════════════
           LEFT PANEL — Channel List
       ══════════════════════════════════ */}
-      <div className={`lg:w-[280px] lg:flex-shrink-0 lg:flex flex-col border-r border-white/[0.04] ${selectedChannel ? 'hidden lg:flex' : 'flex w-full'}`}
+      <div className={`lg:w-[280px] lg:flex-shrink-0 lg:flex flex-col border-r border-white/[0.04] overflow-hidden ${selectedChannel ? 'hidden lg:flex' : 'flex w-full'}`}
         style={{ background: 'linear-gradient(180deg, #0a0a12 0%, #08080f 100%)' }}>
 
         {/* Header */}
@@ -345,7 +345,7 @@ export default function ChatPage() {
           <div className="flex-shrink-0 px-4 lg:px-5 border-t border-white/[0.04]"
             style={{
               background: 'rgba(8,8,15,0.98)',
-              paddingBottom: 'calc(env(safe-area-inset-bottom) + 8px)',
+              paddingBottom: '8px',
               paddingTop: '12px',
             }}>
             <div className="flex items-center gap-3 px-4 py-3 rounded-2xl border border-white/8 bg-white/[0.03] focus-within:border-[#c9a84c]/25 focus-within:bg-white/[0.05] transition-all duration-300">
