@@ -46,6 +46,9 @@ export default function MapPage() {
   const { user: currentUser } = useAuth()
   const { addToast } = useToast()
 
+  const [isRadiusOpen, setIsRadiusOpen] = useState(false)
+  const radiusDropdownRef = useRef<HTMLDivElement>(null)
+
   const [moments, setMoments] = useState<Moment[]>([])
   const [loading, setLoading] = useState(true)
   const fetchMoments = useCallback(async () => {
@@ -186,6 +189,16 @@ export default function MapPage() {
       map.remove()
       mapRef.current = null
     }
+  }, [])
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (radiusDropdownRef.current && !radiusDropdownRef.current.contains(e.target as Node)) {
+        setIsRadiusOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
   }, [])
 
   // Manage Markers (GeoJSON Symbol Layer)
@@ -394,6 +407,38 @@ export default function MapPage() {
                 {f}
               </button>
             ))}
+
+            {/* Radius Dropdown */}
+            <div ref={radiusDropdownRef} className="relative flex flex-col items-start">
+              <button
+                onClick={() => setIsRadiusOpen(prev => !prev)}
+                className="px-4 py-2 rounded-full bg-black/60 backdrop-blur-xl border border-white/10 text-[9px] font-bold tracking-[0.15em] uppercase text-white/60 hover:border-white/20 hover:text-white/80 transition-all whitespace-nowrap"
+              >
+                {radius}
+              </button>
+              <AnimatePresence>
+                {isRadiusOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -4 }}
+                    transition={{ duration: 0.15 }}
+                    className="absolute top-full mt-2 left-0 rounded-xl overflow-hidden border border-white/10 bg-black/80 backdrop-blur-xl max-h-64 overflow-y-auto"
+                  >
+                    {RADIUS_OPTIONS.map(opt => (
+                      <button
+                        key={opt.label}
+                        onClick={() => { setRadius(opt.label); setIsRadiusOpen(false); setSelectedMoment(null); }}
+                        className="w-full px-4 py-2.5 text-left text-[9px] font-bold tracking-[0.15em] uppercase transition-colors hover:bg-white/5 whitespace-nowrap"
+                        style={{ color: radius === opt.label ? '#c9a84c' : 'rgba(255,255,255,0.5)' }}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
           </div>
         </div>
       </div>
@@ -553,38 +598,10 @@ export default function MapPage() {
         )}
       </AnimatePresence>
 
-      {/* ── BOTTOM RADIUS PILLS ── */}
-      <div
-        className="absolute left-0 right-0 z-[200] flex items-center justify-center gap-2 px-4 lg:bottom-0"
-        style={{
-          bottom: typeof window !== 'undefined' && window.innerWidth >= 1024 ? '0px' : 'calc(80px + env(safe-area-inset-bottom))',
-          paddingBottom: '12px',
-          paddingTop: '12px',
-          background: 'linear-gradient(to top, rgba(8,8,15,0.95) 0%, transparent 100%)',
-          overflowX: 'auto',
-          scrollbarWidth: 'none'
-        }}
-      >
-        {RADIUS_OPTIONS.map(opt => (
-          <button
-            key={opt.label}
-            onClick={() => setRadius(opt.label)}
-            className="px-4 py-2 rounded-full text-[9px] font-bold tracking-[0.15em] uppercase transition-all duration-200 backdrop-blur-md whitespace-nowrap"
-            style={{
-              background: radius === opt.label ? '#c9a84c' : 'rgba(8,8,15,0.7)',
-              color: radius === opt.label ? '#08080f' : 'rgba(255,255,255,0.5)',
-              border: radius === opt.label ? 'none' : '1px solid rgba(255,255,255,0.1)',
-            }}
-          >
-            {opt.label}
-          </button>
-        ))}
-      </div>
-
       {/* ── STATUS BAR ── */}
       <div 
         className="absolute left-1/2 -translate-x-1/2 z-10 flex items-center gap-3 whitespace-nowrap opacity-40"
-        style={{ bottom: typeof window !== 'undefined' && window.innerWidth >= 1024 ? '3rem' : 'calc(130px + env(safe-area-inset-bottom))' }}
+        style={{ bottom: typeof window !== 'undefined' && window.innerWidth >= 1024 ? '3rem' : 'calc(88px + env(safe-area-inset-bottom))' }}
       >
         <span className="w-1 h-1 rounded-full bg-[#c9a84c] animate-pulse" />
         <span className="text-white text-[8px] tracking-[0.25em] uppercase">
@@ -592,8 +609,8 @@ export default function MapPage() {
         </span>
       </div>
 
-      {/* ── UTILITY BUTTONS ── */}
       <div className="absolute top-24 right-4 lg:top-8 lg:right-8 z-20 flex flex-col gap-3">
+        {/* Recenter Button */}
         <button
           onClick={recenterMap}
           className="w-10 h-10 rounded-full bg-black/60 backdrop-blur-xl border border-white/10 flex items-center justify-center hover:border-white/20 transition-all text-white/60"
