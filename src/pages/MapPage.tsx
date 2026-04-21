@@ -15,7 +15,7 @@ import { joinMoment, leaveMoment } from '../lib/db/moments'
 import { useRealtimeMoments } from '../hooks/useRealtimeMoments'
 import { supabase } from '../lib/supabase'
 import { getSignalImage } from '../lib/signalImage'
-import { RADIUS_OPTIONS, DEFAULT_RADIUS } from '../lib/radius'
+import { RADIUS_OPTIONS, DEFAULT_RADIUS, getRadiusValue } from '../lib/radius'
 
 // Distance utility
 function haversineKm(
@@ -37,7 +37,7 @@ export default function MapPage() {
   const navigate = useNavigate()
   usePageTitle('Forum')
   const { location, error: locationError } = useUserLocation()
-  const [radius, setRadius] = useState<number>(DEFAULT_RADIUS)
+  const [radius, setRadius] = useState<string>('50 KM')
   const [filter, setFilter] = useState<'ALL' | 'MOMENTS' | 'EVENTS'>('ALL')
   const [mapLoaded, setMapLoaded] = useState(false)
   const [selectedMoment, setSelectedMoment] = useState<Moment | null>(null)
@@ -51,10 +51,11 @@ export default function MapPage() {
   const fetchMoments = useCallback(async () => {
     if (!location) return;
     setLoading(true)
+    const radiusValue = getRadiusValue(radius)
     const { data, error } = await supabase.rpc('nearby_moments', {
       user_lat: location.latitude,
       user_lng: location.longitude,
-      radius_km: radius
+      radius_km: radiusValue
     });
     
     if (error) {
@@ -81,7 +82,8 @@ export default function MapPage() {
     );
     
     // Check if within current radius
-    if (radius === 0 || dist <= radius) {
+    const radiusValue = getRadiusValue(radius)
+    if (radiusValue === 0 || dist <= radiusValue) {
       setMoments(prev => {
         const idx = prev.findIndex(m => m.id === newMoment.id)
         if (idx >= 0) {
@@ -160,7 +162,7 @@ export default function MapPage() {
 
   const mapContainer = useRef<HTMLDivElement>(null)
   const mapRef = useRef<MapLibreMap | null>(null)
-  const markersRef = useRef<{ [id: string]: Marker }>({})
+  const markersRef = useRef<Marker[]>([])
   const userMarkerRef = useRef<Marker | null>(null)
   const hasFlownToUser = useRef(false)
 
@@ -182,6 +184,7 @@ export default function MapPage() {
     map.on('click', () => setSelectedMoment(null))
 
     return () => {
+      markersRef.current.forEach(m => m.remove());
       map.remove()
       mapRef.current = null
     }
@@ -192,59 +195,72 @@ export default function MapPage() {
     const map = mapRef.current
     if (!map || !mapLoaded) return
 
-    // Remove old markers that are no longer visible
-    Object.keys(markersRef.current).forEach(id => {
-      if (!visibleMoments.find(m => m.id === id)) {
-        markersRef.current[id].remove()
-        delete markersRef.current[id]
-      }
-    })
+    // Clear existing markers
+    markersRef.current.forEach(m => m.remove());
+    markersRef.current = [];
 
-    // Add/Update markers for visible moments
-    visibleMoments.forEach(m => {
-      if (!m.lat || !m.lng) return
+    visibleMoments.forEach((moment) => {
+      if (!moment.lat || !moment.lng) return
       
-      if (markersRef.current[m.id]) {
-        markersRef.current[m.id].setLngLat([m.lng, m.lat])
-      } else {
-        const el = document.createElement('div')
-        el.className = 'cursor-pointer group'
-        const isEvent = m.moment_type === 'event'
+      const isEvent = moment.moment_type === 'event';
+
+      // Create custom HTML marker element
+      const el = document.createElement('div');
+      el.style.cssText = `
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: transform 0.2s ease;
+        box-shadow: 0 4px 20px ${isEvent ? 'rgba(201,168,76,0.4)' : 'rgba(239,68,68,0.4)'};
+        background: ${isEvent 
+          ? 'linear-gradient(135deg, #c9a84c, #dfc070)' 
+          : 'linear-gradient(135deg, #ef4444, #f87171)'};
+        border: 2px solid ${isEvent ? 'rgba(201,168,76,0.6)' : 'rgba(239,68,68,0.6)'};
+      `;
+
+      // SVG icon inside
+      el.innerHTML = isEvent
+        ? `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#08080f" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+            <line x1="16" y1="2" x2="16" y2="6"/>
+            <line x1="8" y1="2" x2="8" y2="6"/>
+            <line x1="3" y1="10" x2="21" y2="10"/>
+          </svg>`
+        : `<svg width="16" height="16" viewBox="0 0 24 24" fill="#08080f" stroke="#08080f" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+          </svg>`;
+
+      // Hover effect
+      el.addEventListener('mouseenter', () => {
+        el.style.transform = 'scale(1.2)';
+      });
+      el.addEventListener('mouseleave', () => {
+        el.style.transform = 'scale(1)';
+      });
+
+      // Click handler
+      el.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const rect = el.getBoundingClientRect();
+        const mapRect = map.getContainer().getBoundingClientRect();
         
-        el.innerHTML = isEvent ? `
-          <div class="relative w-9 h-11 flex items-center justify-center filter drop-shadow-[0_0_10px_rgba(255,255,255,0.3)] transition-transform group-hover:scale-110">
-            <svg width="36" height="42" viewBox="0 0 36 42" fill="none">
-              <path d="M18 2C10.268 2 4 8.268 4 16c0 10 14 24 14 24S32 26 32 16C32 8.268 25.732 2 18 2z" fill="#08080f" stroke="rgba(255,255,255,0.5)" stroke-width="1.5"/>
-              <circle cx="18" cy="16" r="6" fill="#c9a84c" fill-opacity="0.8"/>
-            </svg>
-          </div>
-        ` : `
-          <div class="relative w-9 h-9 flex items-center justify-center filter drop-shadow-[0_0_10px_rgba(201,168,76,0.5)] transition-transform group-hover:scale-110">
-            <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
-              <circle cx="18" cy="18" r="16" fill="#08080f" stroke="#c9a84c" stroke-width="1.5"/>
-              <circle cx="18" cy="18" r="6" fill="#c9a84c"/>
-              <circle cx="18" cy="18" r="10" fill="#c9a84c" fill-opacity="0.15"/>
-            </svg>
-          </div>
-        `
+        setPopupPos({ 
+          x: rect.left - mapRect.left + rect.width / 2, 
+          y: rect.top - mapRect.top 
+        });
+        setSelectedMoment(moment);
+      });
 
-        el.addEventListener('click', (e) => {
-          e.stopPropagation()
-          const rect = el.getBoundingClientRect()
-          const mapRect = map.getContainer().getBoundingClientRect()
-          setPopupPos({
-            x: rect.left - mapRect.left + rect.width / 2,
-            y: rect.top - mapRect.top
-          })
-          setSelectedMoment(m)
-        })
+      const marker = new Marker({ element: el, anchor: 'center' })
+        .setLngLat([moment.lng, moment.lat])
+        .addTo(map);
 
-        const marker = new Marker({ element: el })
-          .setLngLat([m.lng, m.lat])
-          .addTo(map)
-        markersRef.current[m.id] = marker
-      }
-    })
+      markersRef.current.push(marker);
+    });
   }, [visibleMoments, mapLoaded])
 
   // User Position
