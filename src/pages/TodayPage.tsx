@@ -405,8 +405,8 @@ export default function TodayPage() {
           </div>
 
           {/* REFINED HEADER & FILTERS */}
-          <div className="absolute top-0 left-0 right-0 z-30 flex flex-col pointer-events-none safe-area-pt">
-            <div className="p-6 md:p-12 flex flex-col md:flex-row items-start md:items-end justify-between">
+          <div className="absolute top-0 left-0 right-0 z-30 flex flex-col pointer-events-none safe-area-pt overflow-visible">
+            <div className="p-6 md:p-12 flex flex-col md:flex-row items-start md:items-end justify-between overflow-visible">
             <div className="pointer-events-auto">
               <motion.p 
                 initial={{ opacity: 0, x: -20 }}
@@ -451,7 +451,7 @@ export default function TodayPage() {
 
               <div className="flex items-center gap-2 mt-4 pointer-events-auto">
                 {/* Radius Filter Dropdown */}
-                <div className="relative z-[100]" data-radius-dropdown>
+                <div className="relative z-[999]" data-radius-dropdown>
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
@@ -470,13 +470,12 @@ export default function TodayPage() {
 
                   <AnimatePresence>
                     {radiusOpen && (
-                      <motion.div
-                        initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                        className="absolute top-full mt-2 left-0 z-[100] bg-void/95 backdrop-blur-xl border
-                          border-white/15 rounded-2xl overflow-hidden shadow-2xl min-w-[140px]"
-                      >
+                        <motion.div
+                          initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                          animate={{ opacity: 1, y: 0, scale: 1 }}
+                          exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                          className="absolute top-full left-0 mt-2 w-36 rounded-xl border border-white/10 bg-[#0f0f1a] z-[999] shadow-2xl overflow-hidden"
+                        >
                         {RADIUS_OPTIONS.map(r => (
                           <button
                             key={r}
