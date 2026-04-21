@@ -112,8 +112,7 @@ export default function ChatPage() {
   }, [channels, selectedChannelId])
 
   return (
-    <div className="flex bg-[#08080f] overflow-hidden relative lg:h-screen"
-      style={{ height: 'calc(100dvh - 9rem)' }}>
+    <div className="flex bg-[#08080f] overflow-hidden relative h-[100dvh] lg:h-screen">
 
       {/* ══════════════════════════════════
           LEFT PANEL — Channel List

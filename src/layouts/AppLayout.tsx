@@ -209,7 +209,7 @@ export default function AppLayout() {
       </aside>
 
       {/* Main Content Area */}
-      <main className="flex-1 overflow-y-auto relative z-10 scroll-smooth pt-16 lg:pt-0 pb-20 lg:pb-8 flex flex-col h-[100dvh] lg:h-screen">
+      <main className="flex-1 overflow-y-auto relative z-10 scroll-smooth pt-16 lg:pt-0 lg:pb-8 flex flex-col h-[100dvh] lg:h-screen">
         <AnimatePresence mode="wait" initial={false}>
           <PageTransition key={location.pathname}>
             <Outlet />
