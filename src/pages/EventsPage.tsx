@@ -170,12 +170,12 @@ export default function EventsPage() {
       return [newMoment, ...prev]
     })
 
-    if (location && newMoment.latitude !== undefined && newMoment.longitude !== undefined) {
+    if (location && newMoment.lat !== undefined && newMoment.lng !== undefined) {
       const dist = calculateDistance(
         location.latitude,
         location.longitude,
-        newMoment.latitude,
-        newMoment.longitude
+        newMoment.lat,
+        newMoment.lng
       )
       if (dist <= radius * 1000) {
         addToast({

@@ -1,7 +1,7 @@
 -- ===========================================
--- Aura: Optimized Map Retrieval RPC
+-- Aura: Optimized Map Retrieval RPC (v2)
 -- Run this in the Supabase SQL Editor
--- This eliminates client-side EWKB parsing and improves performance.
+-- This uses 'lat' and 'lng' to match the frontend expectations.
 -- ===========================================
 
 CREATE OR REPLACE FUNCTION get_moments_map()
@@ -10,8 +10,8 @@ RETURNS TABLE (
   title text,
   description text,
   moment_type text,
-  latitude double precision,
-  longitude double precision,
+  lat double precision,
+  lng double precision,
   expires_at timestamptz,
   created_at timestamptz,
   participant_count bigint,
@@ -28,8 +28,8 @@ BEGIN
     m.title,
     m.description,
     m.moment_type,
-    ST_Y(m.location::geometry) as latitude,
-    ST_X(m.location::geometry) as longitude,
+    ST_Y(m.location::geometry) as lat,
+    ST_X(m.location::geometry) as lng,
     m.expires_at,
     m.created_at,
     (SELECT count(*) FROM public.participants p WHERE p.moment_id = m.id AND p.status = 'joined') as participant_count,

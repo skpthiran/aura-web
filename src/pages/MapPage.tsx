@@ -84,12 +84,12 @@ export default function MapPage() {
       return [newMoment, ...prev]
     })
 
-    if (location && newMoment.latitude !== undefined && newMoment.longitude !== undefined) {
+    if (location && newMoment.lat !== undefined && newMoment.lng !== undefined) {
       const dist = calculateDistance(
         location.latitude,
         location.longitude,
-        newMoment.latitude,
-        newMoment.longitude
+        newMoment.lat,
+        newMoment.lng
       )
       
       if (dist <= numericRadius) {
@@ -114,8 +114,8 @@ export default function MapPage() {
   const visibleMoments: Moment[] = []
   for (let idx = 0; idx < moments.length; idx++) {
     const sig = moments[idx]
-    const lat = sig.latitude
-    const lng = sig.longitude
+    const lat = sig.lat
+    const lng = sig.lng
     
     if ((lat == null || lng == null) && numericRadius < 99999999) continue
 
@@ -277,8 +277,8 @@ export default function MapPage() {
       })
 
       visibleMoments.forEach(sig => {
-        const lng = sig.longitude;
-        const lat = sig.latitude;
+        const lng = sig.lng;
+        const lat = sig.lat;
         
         if (lng == null || lat == null) {
           console.warn('NO COORDS for moment:', sig.id, sig);
@@ -499,8 +499,8 @@ export default function MapPage() {
                     <p className="text-[9px] text-white/30 tracking-widest uppercase font-bold mb-2">Range</p>
                     <p className="font-mono text-lg text-white">
                       {(() => {
-                        const lat = selectedMoment.latitude;
-                        const lng = selectedMoment.longitude;
+                        const lat = selectedMoment.lat;
+                        const lng = selectedMoment.lng;
                         if (location && lat != null && lng != null) {
                           return haversineKm(location.latitude, location.longitude, lat, lng).toFixed(2);
                         }
