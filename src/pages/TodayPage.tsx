@@ -7,7 +7,7 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 import { useUserLocation } from '../hooks/useUserLocation'
 import { useNearbyMoments } from '../hooks/useNearbyMoments'
-import { joinMoment } from '../lib/db/moments'
+import { joinMoment, leaveMoment } from '../lib/db/moments'
 import { Moment } from '../types'
 import { cn } from '../lib/utils'
 import { usePageTitle } from '../hooks/usePageTitle'
@@ -18,6 +18,7 @@ import { calculateDistance } from '../lib/utils'
 import { SignalCardSkeleton, SkeletonBlock } from '../components/Skeleton'
 import JoinedOverlay from '../components/JoinedOverlay'
 import { getRejectedIds, addRejectedId } from '../lib/cardState'
+import { useNavigate } from 'react-router-dom'
 
 interface MomentGridCardProps {
   moment: Moment
@@ -148,13 +149,13 @@ const MomentGridCard: React.FC<MomentGridCardProps> = ({
 
 export default function TodayPage() {
   usePageTitle('Pulse')
+  const navigate = useNavigate()
   const { user } = useAuth()
   const { location } = useUserLocation()
   const [activeTab, setActiveTab] = useState<'all' | 'moments' | 'events'>('all')
   
-  const RADIUS_OPTIONS = [5, 10, 25, 50, 100]
-  const [radius, setRadius] = useState(50)
-  const [radiusOpen, setRadiusOpen] = useState(false)
+  const [selectedRadius, setSelectedRadius] = useState('50 KM')
+  const [showRadiusDropdown, setShowRadiusDropdown] = useState(false)
   const radiusBtnRef = useRef<HTMLButtonElement>(null)
   const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0 })
 
@@ -164,15 +165,15 @@ export default function TodayPage() {
       const rect = radiusBtnRef.current.getBoundingClientRect()
       setDropdownPos({ top: rect.bottom + 8, left: rect.left })
     }
-    setRadiusOpen(o => !o)
+    setShowRadiusDropdown(o => !o)
   }
   
-  const { moments, loading, setMoments } = useNearbyMoments(location, radius * 1000)
+  const radiusValue = parseInt(selectedRadius) || 50
+  const { moments, loading, setMoments } = useNearbyMoments(location, radiusValue * 1000)
   const { addToast } = useToast()
 
   // Realtime Integration
   const handleRealtimeInsert = useCallback((newMoment: Moment) => {
-    // Sync state
     setMoments(prev => {
       const idx = prev.findIndex(m => m.id === newMoment.id)
       if (idx >= 0) {
@@ -183,7 +184,6 @@ export default function TodayPage() {
       return [newMoment, ...prev]
     })
 
-    // Notify if nearby
     if (location && newMoment.lat !== undefined && newMoment.lng !== undefined) {
       const dist = calculateDistance(
         location.latitude,
@@ -192,7 +192,7 @@ export default function TodayPage() {
         newMoment.lng
       )
       
-      if (dist <= radius * 1000) { 
+      if (dist <= radiusValue * 1000) { 
         addToast({
           title: newMoment.title,
           description: `New ${newMoment.moment_type === 'event' ? 'event' : 'signal'} detected nearby.`,
@@ -201,7 +201,7 @@ export default function TodayPage() {
         })
       }
     }
-  }, [location, radius, addToast, setMoments])
+  }, [location, radiusValue, addToast, setMoments])
 
   const handleRealtimeDelete = useCallback((id: string) => {
     setMoments(prev => prev.filter(m => m.id !== id))
@@ -209,73 +209,51 @@ export default function TodayPage() {
 
   useRealtimeMoments(handleRealtimeInsert, handleRealtimeDelete)
   
-  const [joiningId, setJoiningId] = useState<string | null>(null)
-  const [joinedIds, setJoinedIds] = useState<Set<string>>(new Set())
-  const [rejectedIds] = useState<Set<string>>(() => {
-    // We now use cardActions for everything, but keeping this for legacy filter compatibility if needed
-    // Actually, we should probably just remove it and use cardActions directly everywhere.
-    // Let's remove it.
-    return new Set()
-  })
-
-  useEffect(() => {
-    const handleClick = (e: MouseEvent) => {
-      if (radiusBtnRef.current && !radiusBtnRef.current.contains(e.target as Node)) {
-        setRadiusOpen(false)
-      }
-    }
-    document.addEventListener('mousedown', handleClick)
-    return () => document.removeEventListener('mousedown', handleClick)
-  }, [])
-
-
-  const handleJoin = async (momentId: string) => {
-    if (!user || joinedIds.has(momentId) || cardActions[momentId] === 'joined') return
-    setJoiningId(momentId)
-    try {
-      await joinMoment(momentId)
-      setJoinedIds(prev => new Set([...prev, momentId]))
-      setCardActions(prev => ({ ...prev, [momentId]: 'joined' }))
-    } catch (err: any) {
-      console.error('Join failed:', err)
-      alert(err.message ?? 'Failed to join signal')
-    } finally {
-      setJoiningId(null)
-    }
-  }
-
-  const handleReject = (momentId: string) => {
-    addRejectedId(momentId)
-    setCardActions(prev => ({ ...prev, [momentId]: 'rejected' }))
-  }
-
   const [cardActions, setCardActions] = useState<Record<string, 'joined' | 'rejected' | null>>(() => {
     const rejected = getRejectedIds()
     const initial: Record<string, 'joined' | 'rejected' | null> = {}
     rejected.forEach(id => { initial[id] = 'rejected' })
     return initial
   })
-  const [cardJoining, setCardJoining] = useState<Record<string, boolean>>({})
+  
+  const joinedIds = useMemo(() => 
+    Object.keys(cardActions).filter(id => cardActions[id] === 'joined'), [cardActions]
+  )
+  const rejectedIds = useMemo(() => 
+    Object.keys(cardActions).filter(id => cardActions[id] === 'rejected'), [cardActions]
+  )
 
-  const handleCardJoin = async (momentId: string, e: React.MouseEvent) => {
-    e.preventDefault()
-    e.stopPropagation()
-    if (!user || cardActions[momentId]) return
-    setCardJoining(prev => ({ ...prev, [momentId]: true }))
+  useEffect(() => {
+    const handleClick = (e: MouseEvent) => {
+      if (radiusBtnRef.current && !radiusBtnRef.current.contains(e.target as Node)) {
+        setShowRadiusDropdown(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [])
+
+  const handleJoin = async (momentId: string) => {
+    if (!user || cardActions[momentId] === 'joined') return
     try {
       await joinMoment(momentId)
       setCardActions(prev => ({ ...prev, [momentId]: 'joined' }))
     } catch (err: any) {
       console.error('Join failed:', err)
-      alert(err.message ?? 'Failed to join signal')
-    } finally {
-      setCardJoining(prev => ({ ...prev, [momentId]: false }))
     }
   }
 
-  const handleCardReject = (momentId: string, e: React.MouseEvent) => {
-    e.preventDefault()
-    e.stopPropagation()
+  const handleLeave = async (momentId: string) => {
+    if (!user) return
+    try {
+      await leaveMoment(momentId)
+      setCardActions(prev => ({ ...prev, [momentId]: null }))
+    } catch (err: any) {
+      console.error('Leave failed:', err)
+    }
+  }
+
+  const handleReject = (momentId: string) => {
     addRejectedId(momentId)
     setCardActions(prev => ({ ...prev, [momentId]: 'rejected' }))
   }
@@ -297,13 +275,9 @@ export default function TodayPage() {
   const handleTouchEnd = (momentId: string) => {
     const deltaX = swipeState[`${momentId}_deltaX`] ?? 0
     if (deltaX < -SWIPE_THRESHOLD) {
-      // Swipe left = Join
-      const fakeEvent = { preventDefault: () => {}, stopPropagation: () => {} } as unknown as React.MouseEvent
-      handleCardJoin(momentId, fakeEvent)
+      handleJoin(momentId)
     } else if (deltaX > SWIPE_THRESHOLD) {
-      // Swipe right = Reject
-      const fakeEvent = { preventDefault: () => {}, stopPropagation: () => {} } as unknown as React.MouseEvent
-      handleCardReject(momentId, fakeEvent)
+      handleReject(momentId)
     }
     setSwipeState(prev => ({
       ...prev,
@@ -316,11 +290,11 @@ export default function TodayPage() {
     return moments.filter(m => {
       if (cardActions[m.id] === 'rejected') return false
       const expiresTime = new Date(m.expires_at).getTime()
-      if (expiresTime < Date.now()) return false // hide expired
+      if (expiresTime < Date.now()) return false 
       
       if (activeTab === 'moments') return m.moment_type === 'moment'
       if (activeTab === 'events') return m.moment_type === 'event'
-      return true // 'all'
+      return true
     })
   }, [moments, cardActions, activeTab])
 
@@ -348,548 +322,283 @@ export default function TodayPage() {
   }, [user, moments])
 
   const heroMoment = filteredMoments[0]
-  const gridMoments = filteredMoments.slice(1)
+  const nearbyMoments = filteredMoments.slice(1)
 
   if (loading && moments.length === 0) {
     return (
-      <div className="flex-1 bg-void overflow-hidden">
-        {/* Skeleton Hero */}
-        <div className="h-[70vh] w-full relative bg-white/3 overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-r from-white/4 via-white/8 to-white/4 bg-[length:200%_100%] animate-pulse" 
-            style={{ animation: 'skeleton-shimmer 2s ease-in-out infinite' }}
-          />
-          <div className="absolute bottom-20 left-10 space-y-4">
-             <SkeletonBlock className="h-4 w-32" />
-             <SkeletonBlock className="h-16 w-96 max-w-[80vw]" />
-             <div className="flex gap-3">
-               <SkeletonBlock className="h-10 w-24 rounded-full" />
-               <SkeletonBlock className="h-10 w-32 rounded-full" />
-             </div>
-          </div>
-        </div>
-
-        {/* Skeleton Grid */}
-        <div className="p-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {[...Array(4)].map((_, i) => (
-            <SignalCardSkeleton key={i} tall={i % 2 === 0} />
-          ))}
-        </div>
+      <div className="min-h-screen bg-[#08080f] flex flex-col items-center justify-center">
+        <div className="w-12 h-12 border-2 border-[#c9a84c]/30 border-t-[#c9a84c] rounded-full animate-spin" />
+        <p className="mt-4 text-[#c9a84c]/50 text-[10px] tracking-[0.2em] uppercase">Scanning Frequencies...</p>
       </div>
     )
   }
 
   return (
-    <div className="today-container flex-1 overflow-y-auto overflow-x-visible bg-void">
-      {/* 100SVH MAGAZINE HERO */}
-      {heroMoment ? (
-        <section className="relative h-[60dvh] md:h-[100svh] w-full">
-          <motion.img
-            initial={{ scale: 1.1 }}
-            animate={{ scale: 1 }}
-            transition={{ duration: 10, ease: "linear" }}
-            src={getSignalImage(heroMoment.id, heroMoment.tags, heroMoment.moment_type)}
-            className="absolute inset-0 h-full w-full object-cover"
-            alt="Hero"
-            onError={(e) => { 
-              e.currentTarget.src = `https://picsum.photos/seed/${heroMoment.id}/1920/1200`
-            }}
+    <div className="min-h-screen bg-[#08080f] flex flex-col overflow-x-hidden">
+
+      {/* ══════════════════════════════════════
+          HERO — Featured Signal
+      ══════════════════════════════════════ */}
+      {heroMoment && (
+        <div className="relative w-full overflow-hidden flex-shrink-0"
+          style={{ height: 'clamp(420px, 60vh, 580px)' }}>
+
+          {/* Background image */}
+          <img
+            src={heroMoment.image_url || getSignalImage(heroMoment.id, heroMoment.tags, heroMoment.moment_type)}
+            className="absolute inset-0 w-full h-full object-cover object-center"
+            onError={(e) => { e.currentTarget.src = `https://picsum.photos/seed/${heroMoment.id}/1600/900`; }}
           />
 
-          {/* Joined Overlay */}
-          {cardActions[heroMoment.id] === 'joined' && (
-            <JoinedOverlay />
-          )}
+          {/* Gradient overlays */}
+          <div className="absolute inset-0 bg-gradient-to-t from-[#08080f] via-[#08080f]/40 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-b from-[#08080f]/70 via-transparent to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-r from-[#08080f]/30 via-transparent to-transparent" />
 
-          <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-transparent to-black" />
-          <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-90" />
-          
-          {/* FLOATING PULSE TITLE - Adjusted for mobile overlap */}
-          <div className="absolute inset-x-0 top-[15%] md:top-[20%] flex items-center justify-center pointer-events-none z-10">
-            <motion.h1 
-              initial={{ opacity: 0, y: 40 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1] }}
-              className="text-[35vw] md:text-[20vw] font-serif text-marble/5 tracking-tighter leading-none select-none"
-            >
-              Pulse
-            </motion.h1>
-          </div>
-
-          {/* REFINED HEADER & FILTERS */}
-          <div className="absolute top-0 left-0 right-0 z-30 flex flex-col pointer-events-none safe-area-pt overflow-visible">
-            <div className="p-6 md:p-12 flex flex-col md:flex-row items-start md:items-end justify-between overflow-visible">
-            <div className="pointer-events-auto">
-              <motion.p 
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                className="micro-caps text-gold text-[10px] md:text-xs tracking-[0.4em] mb-2 md:mb-4"
-              >
-                ◈ Live Discovery · Spontaneous
-              </motion.p>
-              <motion.h1 
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.8 }}
-                className="font-serif text-6xl md:text-[120px] leading-none text-marble tracking-tighter opacity-90"
-              >
-                Pulse
-              </motion.h1>
-            </div>
-            
-            <div className="mt-2 md:mt-0 flex flex-col items-start md:items-end gap-4 md:gap-6 pointer-events-auto">
-              {/* Filter bar - Swipeable on mobile */}
-              <div className="flex items-center gap-2 mt-4 overflow-x-auto scrollbar-hide snap-x touch-pan-x pb-4 -mb-4 px-1 pointer-events-auto w-screen md:w-auto -mx-6 md:mx-0 px-6 md:px-0">
-                {[
-                  { key: 'all', label: 'All' },
-                  { key: 'moments', label: 'Moments' },
-                  { key: 'events', label: 'Events' },
-                ].map(tab => (
-                  <button
-                    key={tab.key}
-                    onClick={() => setActiveTab(tab.key as typeof activeTab)}
-                    className={cn(
-                      'micro-caps text-xs px-5 py-3 rounded-full transition-all duration-200 min-h-[44px] shrink-0 snap-start',
-                      activeTab === tab.key
-                        ? 'bg-white text-void font-medium'
-                        : 'bg-black/30 backdrop-blur-md border border-white/15 text-white/60 hover:text-white hover:border-white/30'
-                    )}
-                  >
-                    {tab.label}
-                  </button>
-                ))}
-
+          {/* Top bar */}
+          <div className="absolute top-0 left-0 right-0 flex items-center justify-between px-6 pt-6 z-10">
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-black/50 backdrop-blur-xl border border-[#c9a84c]/20">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#c9a84c] animate-pulse" />
+                <span className="text-[9px] font-black tracking-[0.22em] uppercase text-[#c9a84c]">Featured Signal</span>
               </div>
-
-              <div className="flex items-center gap-2 mt-4 pointer-events-auto">
-                {/* Radius Filter Dropdown */}
-                <div className="relative" data-radius-dropdown>
-                  <button
-                    ref={radiusBtnRef}
-                    onClick={handleRadiusOpen}
-                    className="flex items-center gap-1.5 px-5 py-3 rounded-full
-                      bg-black/30 backdrop-blur-md border border-white/15 text-white/60
-                      micro-caps text-xs transition-all hover:border-white/30 active:scale-95"
-                  >
-                    {radius} KM
-                    {radiusOpen ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-                  </button>
-                </div>
-
-                {/* Live Count Badge */}
-                <div className="flex items-center gap-2
-                  bg-black/50 backdrop-blur-md border border-white/10
-                  rounded-full px-3 py-1.5">
-                  <div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
-                  <span className="micro-caps text-xs text-white/60">
-                    {filteredMoments.length} active signals
-                  </span>
-                </div>
+              <div className="px-3 py-1.5 rounded-full bg-black/40 backdrop-blur-xl border border-white/8">
+                <span className="text-[9px] font-bold tracking-[0.18em] uppercase text-white/40">Nearby</span>
               </div>
             </div>
+
+            {/* Radius selector */}
+            <div className="relative">
+              <button
+                ref={radiusBtnRef}
+                onClick={handleRadiusOpen}
+                className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-black/50 backdrop-blur-xl border border-white/10 text-white/50 text-[9px] tracking-[0.18em] uppercase hover:border-white/20 transition-all"
+              >
+                {selectedRadius}
+                {showRadiusDropdown
+                  ? <ChevronUp className="w-3 h-3" />
+                  : <ChevronDown className="w-3 h-3" />
+                }
+              </button>
+            </div>
           </div>
-        </div>
 
-          {/* HERO CONTENT FOOTER */}
-          <div className="absolute bottom-0 left-0 right-0 p-8 md:p-16 z-20">
-            <div className="max-w-4xl">
-              <motion.div
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.5 }}
-                className="flex gap-3 mb-6"
-              >
-                <span className="micro-caps text-xs px-4 py-1.5 bg-gold/10 border border-gold/30 text-gold rounded-full backdrop-blur-md">
-                  Featured Signal
+          {/* Hero content */}
+          <div className="absolute bottom-0 left-0 right-0 px-6 pb-8 z-10">
+
+            {/* Tags */}
+            <div className="flex flex-wrap gap-2 mb-4">
+              {heroMoment.tags?.slice(0, 3).map(tag => (
+                <span key={tag}
+                  className="px-3 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/10 text-white/60 text-[9px] tracking-[0.15em] uppercase">
+                  #{tag}
                 </span>
-                <span className="micro-caps text-xs px-4 py-1.5 bg-white/5 border border-white/10 text-white/50 rounded-full backdrop-blur-md">
-                  Nearby
-                </span>
-              </motion.div>
+              ))}
+            </div>
 
-              <Link to={`/app/${heroMoment.moment_type === 'event' ? 'event' : 'moment'}/${heroMoment.id}`}>
-                <motion.h2 
-                  initial={{ opacity: 0, y: 30 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.6 }}
-                  className="font-serif text-4xl md:text-8xl text-white mb-6 leading-[0.9] tracking-tight hover:text-gold-pale transition-colors cursor-pointer"
-                >
-                  {heroMoment.title}
-                </motion.h2>
-              </Link>
+            {/* Title */}
+            <h1 className="text-white font-black uppercase leading-[0.92] mb-5 drop-shadow-2xl"
+              style={{ fontSize: 'clamp(36px, 6vw, 72px)', letterSpacing: '0.03em' }}>
+              {heroMoment.title}
+            </h1>
 
-              <motion.div 
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.8 }}
-                className="flex flex-col md:flex-row items-start md:items-center gap-6 md:gap-8"
-              >
-                <div className="flex items-center gap-4">
-                  <div className="flex -space-x-2">
-                    {[...Array(Math.min(4, heroMoment.participant_count || 0))].map((_, i) => (
-                      <img 
-                        key={i} 
-                        src={`https://i.pravatar.cc/100?u=${heroMoment.id}-${i}`}
-                        className="w-8 h-8 md:w-10 md:h-10 rounded-full border-2 border-void" 
-                        alt="p"
-                        onError={(e) => { e.currentTarget.style.display = 'none' }}
-                      />
-                    ))}
-                  </div>
-                  <span className="micro-caps text-[10px] text-marble/40">
-                    {heroMoment.participant_count || 0} Attending
-                  </span>
+            {/* Bottom row */}
+            <div className="flex items-center gap-4 flex-wrap">
+
+              {/* Attendees stack */}
+              <div className="flex items-center gap-3">
+                <div className="flex -space-x-2">
+                  {[...Array(Math.min(heroMoment.participant_count ?? 1, 3))].map((_, i) => (
+                    <div key={i}
+                      className="w-8 h-8 rounded-full border-2 border-[#08080f] bg-gradient-to-br from-[#c9a84c]/40 to-[#c9a84c]/10 flex items-center justify-center text-[10px] font-bold text-[#c9a84c]">
+                      {i + 1}
+                    </div>
+                  ))}
                 </div>
+                <span className="text-white/40 text-[10px] tracking-[0.15em] uppercase">
+                  {heroMoment.participant_count ?? 0} inside
+                </span>
+              </div>
 
-                <div className="flex gap-3 w-full md:w-auto">
-                  {!joinedIds.has(heroMoment.id) && (
-                    <button
-                      onClick={() => handleReject(heroMoment.id)}
-                      className="flex-1 md:flex-none micro-caps text-[10px] md:text-sm px-6 py-3 md:py-4 rounded-full border border-white/20 text-white/60 
-                        backdrop-blur-md hover:border-red-500 hover:text-red-400 hover:bg-red-500/10 transition-all duration-300"
-                    >
-                      Reject
-                    </button>
-                  )}
+              {/* Spacer */}
+              <div className="flex-1" />
+
+              {/* Action buttons */}
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => handleReject(heroMoment.id)}
+                  className="px-5 py-2.5 rounded-full border border-white/10 bg-black/40 backdrop-blur-xl text-white/40 text-[10px] font-bold tracking-[0.18em] uppercase hover:border-red-500/30 hover:text-red-400/60 transition-all duration-300">
+                  Reject
+                </button>
+
+                {joinedIds.includes(heroMoment.id) ? (
+                  <button
+                    onClick={() => handleLeave(heroMoment.id)}
+                    className="flex items-center gap-2 px-5 py-2.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 text-emerald-400 text-[10px] font-black tracking-[0.18em] uppercase transition-all">
+                    <span>✓</span> Joined
+                  </button>
+                ) : (
                   <button
                     onClick={() => handleJoin(heroMoment.id)}
-                    disabled={joinedIds.has(heroMoment.id) || joiningId === heroMoment.id}
-                    className={cn(
-                      "flex-[2] md:flex-none micro-caps text-[10px] md:text-sm px-8 py-3 md:py-4 rounded-full font-bold transition-all duration-300",
-                      joinedIds.has(heroMoment.id)
-                        ? "bg-gold/20 text-gold border border-gold/40 cursor-default"
-                        : "bg-marble text-void hover:bg-green-400 hover:text-void hover:shadow-[0_0_30px_rgba(74,222,128,0.3)]"
-                    )}
-                  >
-                    {joiningId === heroMoment.id ? 'Processing...' : (joinedIds.has(heroMoment.id) || cardActions[heroMoment.id] === 'joined') ? 'Joined' : 'Join Signal'}
+                    className="px-6 py-2.5 rounded-full text-[#08080f] text-[10px] font-black tracking-[0.18em] uppercase transition-all hover:opacity-90 active:scale-[0.97] shadow-lg shadow-[#c9a84c]/20"
+                    style={{ background: 'linear-gradient(135deg, #c9a84c, #dfc070)' }}>
+                    Join Signal
                   </button>
-                </div>
-              </motion.div>
+                )}
+              </div>
             </div>
           </div>
-        </section>
-      ) : (
-        <div className="h-screen flex flex-col items-center justify-center p-8 text-center bg-void">
-           <Radio className="w-16 h-16 text-marble/5 mb-8" />
-           <h1 className="font-serif text-5xl text-marble/20 mb-4">Silence in the Void</h1>
-           <p className="text-marble/20 max-w-sm mb-8">No signals detected in your immediate vicinity. Be the one to break the quiet.</p>
-           <Link to="/app/create">
-             <button className="micro-caps text-sm px-10 py-4 glass-panel hairline-all rounded-full text-marble/50 hover:text-marble transition-all">
-               Initialize Signal
-             </button>
-           </Link>
         </div>
       )}
 
-      {/* ── SIGNALS GRID ── */}
-      <div className="px-4 lg:px-8 pb-32 pt-6">
+      {/* ══════════════════════════════════════
+          NEARBY SIGNALS SECTION
+      ══════════════════════════════════════ */}
+      <div className="flex-1 px-5 pt-6 pb-28">
 
-        {filteredMoments.length === 0 ? (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="flex flex-col items-center justify-center py-24 gap-4 text-center"
-          >
-            <div className="w-16 h-16 rounded-full bg-white/4
-              border border-white/8 flex items-center justify-center">
-              <Compass className="w-6 h-6 text-marble/20" />
-            </div>
-            <p className="font-serif text-2xl text-marble/30">No signals nearby</p>
-            <p className="text-sm text-marble/20 max-w-xs">
-              Try expanding your radius or check back soon.
-            </p>
-            <Link to="/app/create">
-              <button className="micro-caps text-sm px-6 py-3 rounded-full
-                bg-white/5 border border-white/10 text-marble/50
-                hover:text-marble hover:border-white/20 transition-all mt-2">
-                Drop a Signal
-              </button>
-            </Link>
-          </motion.div>
-        ) : (
-          <div className="max-w-7xl mx-auto">
+        {/* Section header */}
+        <div className="flex items-center justify-between mb-5">
+          <div className="flex items-center gap-3">
+            <div className="h-px w-5 bg-[#c9a84c]/40" />
+            <span className="text-[9px] font-black tracking-[0.28em] uppercase text-white/30">
+              {nearbyMoments.length} Signal{nearbyMoments.length !== 1 ? 's' : ''} Nearby
+            </span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#c9a84c] animate-pulse" />
+            <span className="text-[8px] tracking-[0.2em] uppercase text-[#c9a84c]/50">Live</span>
+          </div>
+        </div>
 
-            {/* Section label */}
-            <div className="flex items-center justify-between mb-5">
-              <p className="micro-caps text-xs text-marble/30">
-                {filteredMoments.length} signal{filteredMoments.length !== 1 ? 's' : ''} nearby
-              </p>
-              <div className="flex items-center gap-1.5">
-                <div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
-                <p className="micro-caps text-xs text-marble/30">live</p>
-              </div>
-            </div>
+        {/* Signal cards grid */}
+        {nearbyMoments.length > 0 ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {nearbyMoments.filter(m => !rejectedIds.includes(m.id)).map((moment) => {
+              const cardImage = moment.image_url || getSignalImage(moment.id, moment.tags, moment.moment_type);
+              const isJoined = joinedIds.includes(moment.id);
+              return (
+                <div
+                  key={moment.id}
+                  className="group relative rounded-2xl overflow-hidden cursor-pointer transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl hover:shadow-black/60"
+                  style={{ border: '1px solid rgba(255,255,255,0.06)' }}
+                  onClick={() => navigate(`/app/moment/${moment.id}`)}
+                >
+                  {/* Card image */}
+                  <div className="relative h-[200px] overflow-hidden">
+                    <img
+                      src={cardImage}
+                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                      onError={(e) => { e.currentTarget.src = `https://picsum.photos/seed/${moment.id}/600/400`; }}
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-[#08080f] via-[#08080f]/20 to-transparent" />
 
-            {/* Swipe hint — mobile only, shows once */}
-            <div className="flex sm:hidden items-center gap-2 mb-3 
-              text-marble/25 text-xs micro-caps">
-              <span>← swipe to join</span>
-              <span className="text-marble/15">·</span>
-              <span>swipe to skip →</span>
-            </div>
+                    {/* Type badge */}
+                    <div className="absolute top-3 left-3 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-black/60 backdrop-blur-xl border border-white/8">
+                      <span className="w-1 h-1 rounded-full bg-[#c9a84c]" />
+                      <span className="text-[7px] font-black tracking-[0.2em] uppercase text-[#c9a84c]/80">
+                        {moment.moment_type || 'Moment'}
+                      </span>
+                    </div>
 
-            {/* Magazine grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 auto-rows-auto">
-              <AnimatePresence mode="popLayout">
-                {filteredMoments
-                  .filter(moment => cardActions[moment.id] !== 'rejected')
-                  .map((moment, i) => {
-                const isEvent = moment.moment_type === 'event'
-                const hoursLeft = Math.max(0, Math.round(
-                  (new Date(moment.expires_at).getTime() - Date.now()) / 3600000
-                ))
-                const isUrgent = hoursLeft <= 3
-                // Vary card heights for masonry feel
-                const isTall = i % 5 === 0 || i % 5 === 3
-
-                return (
-                  <motion.div
-                    key={moment.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{
-                      opacity: 1,
-                      y: 0,
-                      x: swipeState[`${moment.id}_deltaX`] ?? 0,
-                    }}
-                    exit={{ 
-                      opacity: 0, 
-                      scale: 0.9,
-                      transition: { duration: 0.3 }
-                    }}
-                    transition={{
-                      delay: i * 0.05,
-                      duration: 0.4,
-                      x: { type: 'spring', stiffness: 300, damping: 30 }
-                    }}
-                    onTouchStart={e => handleTouchStart(moment.id, e)}
-                    onTouchMove={e => handleTouchMove(moment.id, e)}
-                    onTouchEnd={() => handleTouchEnd(moment.id)}
-                    className={cn(
-                      'group relative overflow-hidden rounded-2xl cursor-pointer',
-                      'border border-white/8 hover:border-white/20',
-                      'transition-all duration-500 select-none touch-pan-y',
-                      isTall ? 'row-span-1 sm:row-span-2' : 'row-span-1'
+                    {/* Joined badge */}
+                    {isJoined && (
+                      <div className="absolute top-3 right-3 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/20 backdrop-blur-xl border border-emerald-500/30">
+                        <span className="text-[7px] font-black tracking-[0.18em] uppercase text-emerald-400">✓ Joined</span>
+                      </div>
                     )}
-                    style={{ minHeight: isTall ? '380px' : '220px' }}
-                  >
-                    <Link to={`/app/moment/${moment.id}`} className="relative block h-full">
+                  </div>
 
-                      {/* Background image */}
-                      <img
-                        src={getSignalImage(moment.id, moment.tags, moment.moment_type)}
-                        className="absolute inset-0 w-full h-full object-cover
-                          group-hover:scale-105 transition-transform duration-700 ease-out"
-                        onError={e => { 
-                          e.currentTarget.src = `https://picsum.photos/seed/${moment.id}/600/500`
-                        }}
-                      />
+                  {/* Card content */}
+                  <div className="p-4" style={{ background: 'linear-gradient(180deg, #0d0d18 0%, #0a0a12 100%)' }}>
 
-                      {/* Gradient overlay */}
-                      <div className="absolute inset-0 transition-opacity duration-500"
-                        style={{
-                          background: 'linear-gradient(to top, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.4) 50%, rgba(0,0,0,0.1) 100%)'
-                        }}
-                      />
-
-                      {/* Swipe LEFT hint — Join (green) */}
-                      <div
-                        className="absolute inset-0 z-20 flex items-center justify-end pr-8
-                          pointer-events-none transition-opacity duration-150 rounded-2xl"
-                        style={{
-                          background: 'rgba(34,197,94,0.25)',
-                          opacity: Math.max(0, Math.min(1,
-                            -((swipeState[`${moment.id}_deltaX`] ?? 0) + 30) / 60
-                          )),
-                        }}
-                      >
-                        <div className="flex flex-col items-center gap-1">
-                          <div className="w-12 h-12 rounded-full bg-green-500/30
-                            border-2 border-green-400 flex items-center justify-center">
-                            <Check className="w-6 h-6 text-green-400" />
-                          </div>
-                          <span className="micro-caps text-xs text-green-400 font-bold">Join</span>
-                        </div>
-                      </div>
-
-                      {/* Swipe RIGHT hint — Reject (red) */}
-                      <div
-                        className="absolute inset-0 z-20 flex items-center justify-start pl-8
-                          pointer-events-none transition-opacity duration-150 rounded-2xl"
-                        style={{
-                          background: 'rgba(239,68,68,0.25)',
-                          opacity: Math.max(0, Math.min(1,
-                            ((swipeState[`${moment.id}_deltaX`] ?? 0) - 30) / 60
-                          )),
-                        }}
-                      >
-                        <div className="flex flex-col items-center gap-1">
-                          <div className="w-12 h-12 rounded-full bg-red-500/30
-                            border-2 border-red-400 flex items-center justify-center">
-                            <X className="w-6 h-6 text-red-400" />
-                          </div>
-                          <span className="micro-caps text-xs text-red-400 font-bold">Skip</span>
-                        </div>
-                      </div>
-
-                      {/* Hover overlay — subtle gold tint */}
-                      <div className="absolute inset-0 opacity-0 group-hover:opacity-100
-                        transition-opacity duration-500"
-                        style={{ background: 'rgba(201,168,76,0.06)' }}
-                      />
-
-                      {/* Top badges */}
-                      <div className="absolute top-3 left-3 right-3 flex items-start justify-between">
-                        <span className={cn(
-                          'micro-caps text-xs px-2.5 py-1 rounded-full border backdrop-blur-md',
-                          isEvent
-                            ? 'bg-gold/20 border-gold/40 text-gold'
-                            : 'bg-black/50 border-white/20 text-white/70'
-                        )}>
-                          {isEvent ? '◈ Event' : '⚡ Moment'}
-                        </span>
-
-                        {/* Urgency badge */}
-                        {isUrgent && (
-                          <span className="micro-caps text-xs px-2.5 py-1 rounded-full
-                            bg-red-500/20 border border-red-500/40 text-red-400
-                            backdrop-blur-md flex items-center gap-1">
-                            <span className="w-1 h-1 rounded-full bg-red-400 animate-pulse" />
-                            {hoursLeft}h left
+                    {/* Tags */}
+                    {moment.tags?.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5 mb-2.5">
+                        {moment.tags.slice(0, 2).map(tag => (
+                          <span key={tag}
+                            className="px-2 py-0.5 rounded-full bg-white/[0.04] border border-white/[0.06] text-white/30 text-[7px] tracking-[0.15em] uppercase">
+                            #{tag}
                           </span>
-                        )}
+                        ))}
                       </div>
-
-                      {/* Bottom content */}
-                      <div className="absolute bottom-0 left-0 right-0 p-4">
-
-                        {/* Tags */}
-                        {moment.tags && moment.tags.length > 0 && (
-                          <div className="flex flex-wrap gap-1 mb-2">
-                            {moment.tags.slice(0, 2).map(tag => (
-                              <span key={tag}
-                                className="micro-caps text-[10px] px-2 py-0.5 rounded-full
-                                  bg-white/10 text-white/50 border border-white/10">
-                                {tag}
-                              </span>
-                            ))}
-                          </div>
-                        )}
-
-                        {/* Title */}
-                        <h3 className="font-serif text-white leading-tight mb-3
-                          group-hover:text-gold-pale transition-colors duration-300"
-                          style={{ fontSize: isTall ? '1.5rem' : '1.1rem' }}>
-                          {moment.title}
-                        </h3>
-
-                        {/* Capacity meta */}
-                        <div className="flex items-center gap-2 mb-3">
-                          <div className="flex items-center gap-1 text-white/40 text-xs">
-                            <Users className="w-3 h-3" />
-                            <span>{moment.capacity_limit}</span>
-                          </div>
-                          {!isUrgent && (
-                            <div className="flex items-center gap-1 text-white/40 text-xs">
-                              <Clock className="w-3 h-3" />
-                              <span>{hoursLeft}h</span>
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Action buttons */}
-                        {user && (
-                          cardActions[moment.id] === 'joined' ? (
-                            <div className="flex items-center gap-2 micro-caps text-xs
-                              text-green-400 font-medium">
-                              <Check className="w-3.5 h-3.5" />
-                              Joined
-                            </div>
-                          ) : cardActions[moment.id] === 'rejected' ? null : (
-                            <div className="flex items-center gap-2">
-                              {/* Reject */}
-                              <button
-                                onClick={e => handleCardReject(moment.id, e)}
-                                className="flex items-center gap-1.5 micro-caps text-xs
-                                  px-3 py-2 rounded-full transition-all duration-200
-                                  bg-red-500/15 border border-red-500/30 text-red-400
-                                  hover:bg-red-500/25 hover:border-red-500/50"
-                              >
-                                <X className="w-3 h-3" />
-                                Reject
-                              </button>
-
-                              {/* Join */}
-                              <button
-                                onClick={e => handleCardJoin(moment.id, e)}
-                                disabled={cardJoining[moment.id]}
-                                className="flex items-center gap-1.5 micro-caps text-xs
-                                  px-4 py-2 rounded-full transition-all duration-200
-                                  bg-green-500/20 border border-green-500/40 text-green-400
-                                  hover:bg-green-500/30 hover:border-green-500/60
-                                  disabled:opacity-50"
-                              >
-                                {cardJoining[moment.id] ? (
-                                  <Loader className="w-3 h-3 animate-spin" />
-                                ) : (
-                                  <Check className="w-3 h-3" />
-                                )}
-                                {cardJoining[moment.id] ? '...' : 'Join'}
-                              </button>
-                            </div>
-                          )
-                        )}
-                      </div>
-
-                    </Link>
-
-                    {/* Joined Overlay — sibling of Link, inside relative motion.div */}
-                    {cardActions[moment.id] === 'joined' && (
-                      <JoinedOverlay title={moment.title} />
                     )}
-                  </motion.div>
-                )
-              })}
-              </AnimatePresence>
+
+                    {/* Title */}
+                    <h3 className="text-white font-black uppercase text-[14px] tracking-[0.04em] leading-tight mb-3 line-clamp-2">
+                      {moment.title}
+                    </h3>
+
+                    {/* Stats row */}
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center gap-3 text-white/25 text-[9px]">
+                        <div className="flex items-center gap-1.5">
+                          <Users className="w-3 h-3" strokeWidth={1.5} />
+                          <span>{moment.participant_count ?? 0}</span>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <Clock className="w-3 h-3" strokeWidth={1.5} />
+                          <span>{moment.distance_meters ? `${(moment.distance_meters / 1000).toFixed(1)} KM` : 'Nearby'}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Action buttons */}
+                    <div className="grid grid-cols-2 gap-2" onClick={e => e.stopPropagation()}>
+                      <button
+                        onClick={() => handleReject(moment.id)}
+                        className="py-2 rounded-xl border border-white/8 bg-white/[0.03] text-white/30 text-[8px] font-bold tracking-[0.15em] uppercase hover:border-red-500/20 hover:text-red-400/50 transition-all">
+                        Reject
+                      </button>
+                      {isJoined ? (
+                        <button
+                          onClick={() => handleLeave(moment.id)}
+                          className="py-2 rounded-xl border border-emerald-500/25 bg-emerald-500/8 text-emerald-400/70 text-[8px] font-bold tracking-[0.15em] uppercase transition-all">
+                          ✓ Joined
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => handleJoin(moment.id)}
+                          className="py-2 rounded-xl text-[#08080f] text-[8px] font-black tracking-[0.15em] uppercase transition-all hover:opacity-90"
+                          style={{ background: 'linear-gradient(135deg, #c9a84c, #dfc070)' }}>
+                          Join
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center py-24 text-center">
+            <div className="w-16 h-16 rounded-2xl bg-white/[0.025] border border-white/5 flex items-center justify-center mb-4">
+              <MapPin className="w-6 h-6 text-white/10" strokeWidth={1.5} />
             </div>
+            <p className="text-white/30 text-[11px] font-bold tracking-[0.2em] uppercase mb-2">No Signals Nearby</p>
+            <p className="text-white/10 text-[10px] leading-relaxed max-w-[200px]">Expand your radius or check back soon</p>
           </div>
         )}
       </div>
 
-      {/* Radius Dropdown Portal */}
-      <AnimatePresence>
-        {radiusOpen && createPortal(
-          <motion.div
-            initial={{ opacity: 0, y: 10, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 10, scale: 0.95 }}
-            style={{ 
-              position: 'fixed', 
-              top: dropdownPos.top, 
-              left: dropdownPos.left, 
-              zIndex: 9999 
-            }}
-            className="w-36 rounded-xl border border-white/10 bg-[#0f0f1a] shadow-2xl overflow-hidden"
-          >
-            {RADIUS_OPTIONS.map(r => (
-              <button
-                key={r}
-                onClick={() => { setRadius(r); setRadiusOpen(false) }}
-                className={cn(
-                  'w-full px-5 py-4 text-left text-[11px] micro-caps transition-colors border-b border-white/5 last:border-0',
-                  radius === r
-                    ? 'text-gold bg-gold/10'
-                    : 'text-marble/60 hover:text-marble hover:bg-white/5'
-                )}
-              >
-                {r} KM
-              </button>
-            ))}
-          </motion.div>,
-          document.body
-        )}
-      </AnimatePresence>
-
-      {/* Bottom Spacer */}
-      <div className="h-32" />
+      {/* Radius dropdown portal */}
+      {showRadiusDropdown && createPortal(
+        <div
+          style={{ position: 'fixed', top: dropdownPos.top, left: dropdownPos.left, zIndex: 9999 }}
+          className="w-36 rounded-xl border border-white/10 bg-[#0f0f1a] shadow-2xl overflow-hidden"
+        >
+          {['5 KM','10 KM','25 KM','50 KM','100 KM','Province','Country'].map(opt => (
+            <button
+              key={opt}
+              onClick={() => { setSelectedRadius(opt); setShowRadiusDropdown(false); }}
+              className="w-full px-4 py-2.5 text-left text-[10px] tracking-widest uppercase hover:bg-white/5 transition-all"
+              style={{ color: selectedRadius === opt ? '#c9a84c' : 'rgba(255,255,255,0.4)' }}
+            >
+              {opt}
+            </button>
+          ))}
+        </div>,
+        document.body
+      )}
     </div>
-  )
+  );
 }
