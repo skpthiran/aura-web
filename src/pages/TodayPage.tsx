@@ -258,33 +258,72 @@ export default function TodayPage() {
     setCardActions(prev => ({ ...prev, [momentId]: 'rejected' }))
   }
 
-  const [swipeState, setSwipeState] = useState<Record<string, number>>({})
-  const SWIPE_THRESHOLD = 80
+  // ── SWIPE LOGIC ──
+  const swipeState = useRef<{ startX: number; startY: number; el: HTMLDivElement | null }>({ startX: 0, startY: 0, el: null });
 
-  const handleTouchStart = (momentId: string, e: React.TouchEvent) => {
-    setSwipeState(prev => ({ ...prev, [`${momentId}_startX`]: e.touches[0].clientX }))
-  }
+  const handleTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
+    swipeState.current.startX = e.touches[0].clientX;
+    swipeState.current.startY = e.touches[0].clientY;
+    swipeState.current.el = e.currentTarget;
+  };
 
-  const handleTouchMove = (momentId: string, e: React.TouchEvent) => {
-    const startX = swipeState[`${momentId}_startX`]
-    if (startX == null) return
-    const deltaX = e.touches[0].clientX - startX
-    setSwipeState(prev => ({ ...prev, [`${momentId}_deltaX`]: deltaX }))
-  }
-
-  const handleTouchEnd = (momentId: string) => {
-    const deltaX = swipeState[`${momentId}_deltaX`] ?? 0
-    if (deltaX < -SWIPE_THRESHOLD) {
-      handleJoin(momentId)
-    } else if (deltaX > SWIPE_THRESHOLD) {
-      handleReject(momentId)
+  const handleTouchMove = (e: React.TouchEvent<HTMLDivElement>, momentId: string) => {
+    const el = e.currentTarget;
+    const dx = e.touches[0].clientX - swipeState.current.startX;
+    const dy = e.touches[0].clientY - swipeState.current.startY;
+    
+    // Only horizontal swipe
+    if (Math.abs(dy) > Math.abs(dx)) return;
+    
+    const capped = Math.max(-120, Math.min(120, dx));
+    const rotate = capped * 0.08;
+    el.style.transform = `translateX(${capped}px) rotate(${rotate}deg)`;
+    el.style.transition = 'none';
+    
+    // Show join indicator
+    const joinIndicator = el.querySelector('[data-join-indicator]') as HTMLElement;
+    const rejectIndicator = el.querySelector('[data-reject-indicator]') as HTMLElement;
+    
+    if (joinIndicator && rejectIndicator) {
+      if (dx > 20) {
+        joinIndicator.style.opacity = Math.min(1, (dx - 20) / 60).toString();
+        rejectIndicator.style.opacity = '0';
+      } else if (dx < -20) {
+        rejectIndicator.style.opacity = Math.min(1, (-dx - 20) / 60).toString();
+        joinIndicator.style.opacity = '0';
+      } else {
+        joinIndicator.style.opacity = '0';
+        rejectIndicator.style.opacity = '0';
+      }
     }
-    setSwipeState(prev => ({
-      ...prev,
-      [`${momentId}_startX`]: 0,
-      [`${momentId}_deltaX`]: 0,
-    }))
-  }
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent<HTMLDivElement>, momentId: string) => {
+    const el = e.currentTarget;
+    const dx = e.changedTouches[0].clientX - swipeState.current.startX;
+    
+    el.style.transition = 'transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
+    
+    const joinIndicator = el.querySelector('[data-join-indicator]') as HTMLElement;
+    const rejectIndicator = el.querySelector('[data-reject-indicator]') as HTMLElement;
+    
+    if (dx > 80) {
+      // SWIPE RIGHT — JOIN
+      el.style.transform = 'translateX(120%) rotate(15deg)';
+      el.style.opacity = '0';
+      setTimeout(() => handleJoin(momentId), 350);
+    } else if (dx < -80) {
+      // SWIPE LEFT — REJECT
+      el.style.transform = 'translateX(-120%) rotate(-15deg)';
+      el.style.opacity = '0';
+      setTimeout(() => handleReject(momentId), 350);
+    } else {
+      // SNAP BACK
+      el.style.transform = 'translateX(0) rotate(0deg)';
+      if (joinIndicator) joinIndicator.style.opacity = '0';
+      if (rejectIndicator) rejectIndicator.style.opacity = '0';
+    }
+  };
 
   const filteredMoments = useMemo(() => {
     return moments.filter(m => {
@@ -463,6 +502,19 @@ export default function TodayPage() {
           </div>
         </div>
 
+        {/* Swipe hint */}
+        <div className="lg:hidden flex items-center justify-center gap-4 mb-8 py-2 border-b border-white/[0.03]">
+          <div className="flex items-center gap-1.5 text-white/15 text-[9px] tracking-[0.15em] uppercase">
+            <span>←</span>
+            <span>Swipe to reject</span>
+          </div>
+          <div className="w-1 h-1 rounded-full bg-white/10" />
+          <div className="flex items-center gap-1.5 text-white/15 text-[9px] tracking-[0.15em] uppercase">
+            <span>Swipe to join</span>
+            <span>→</span>
+          </div>
+        </div>
+
         {/* Signal cards grid */}
         {nearbyMoments.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
@@ -472,10 +524,48 @@ export default function TodayPage() {
               return (
                 <div
                   key={moment.id}
-                  className="group relative rounded-3xl overflow-hidden cursor-pointer transition-all duration-500 hover:scale-[1.02] hover:shadow-2xl hover:shadow-black/60"
+                  className="group relative rounded-3xl overflow-hidden cursor-pointer transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl hover:shadow-black/60 select-none"
                   style={{ border: '1px solid rgba(255,255,255,0.06)' }}
+                  onTouchStart={handleTouchStart}
+                  onTouchMove={(e) => handleTouchMove(e, moment.id)}
+                  onTouchEnd={(e) => handleTouchEnd(e, moment.id)}
                   onClick={() => navigate(`/app/moment/${moment.id}`)}
                 >
+                  {/* JOIN INDICATOR — shows on swipe right */}
+                  <div
+                    data-join-indicator
+                    className="absolute inset-0 z-20 flex items-center justify-start pl-6 pointer-events-none rounded-3xl"
+                    style={{ 
+                      opacity: 0, 
+                      background: 'linear-gradient(to right, rgba(201,168,76,0.35), transparent)',
+                      transition: 'opacity 0.1s'
+                    }}
+                  >
+                    <div className="flex flex-col items-center gap-1">
+                      <div className="w-14 h-14 rounded-full border-2 border-[#c9a84c] bg-[#c9a84c]/20 flex items-center justify-center">
+                        <span className="text-[#c9a84c] text-2xl">✓</span>
+                      </div>
+                      <span className="text-[#c9a84c] text-[10px] font-black tracking-[0.2em] uppercase">Join</span>
+                    </div>
+                  </div>
+
+                  {/* REJECT INDICATOR — shows on swipe left */}
+                  <div
+                    data-reject-indicator
+                    className="absolute inset-0 z-20 flex items-center justify-end pr-6 pointer-events-none rounded-3xl"
+                    style={{ 
+                      opacity: 0, 
+                      background: 'linear-gradient(to left, rgba(239,68,68,0.25), transparent)',
+                      transition: 'opacity 0.1s'
+                    }}
+                  >
+                    <div className="flex flex-col items-center gap-1">
+                      <div className="w-14 h-14 rounded-full border-2 border-red-400/60 bg-red-500/15 flex items-center justify-center">
+                        <span className="text-red-400 text-2xl">✕</span>
+                      </div>
+                      <span className="text-red-400/80 text-[10px] font-black tracking-[0.2em] uppercase">Reject</span>
+                    </div>
+                  </div>
                   {/* Card image */}
                   <div className="relative h-[220px] overflow-hidden">
                     <img
