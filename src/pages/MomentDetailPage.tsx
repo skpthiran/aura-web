@@ -125,7 +125,7 @@ export default function MomentDetailPage() {
     : 'Nearby'
   const attendeeCount = moment?.participant_count ?? 0
   const isJoined = joined
-  const heroImage = moment?.image_url || (moment as any)?.photo_url || null
+  const heroImage = moment?.image_url || getSignalImage(moment.id, moment.tags, moment.moment_type)
 
   return (
     <div className="min-h-screen bg-[#08080f] lg:flex">
@@ -136,7 +136,13 @@ export default function MomentDetailPage() {
         style={{ height: '55vw', maxHeight: '500px', minHeight: '280px' }}
       >
         {heroImage ? (
-          <img src={heroImage} className="absolute inset-0 w-full h-full object-cover object-center" />
+          <img 
+            src={heroImage} 
+            className="absolute inset-0 w-full h-full object-cover object-center" 
+            onError={(e) => { 
+              e.currentTarget.src = `https://picsum.photos/seed/${moment.id}/1920/1200`
+            }}
+          />
         ) : (
           <div className="absolute inset-0 bg-gradient-to-br from-[#2a1f3d] via-[#1a1228] to-[#08080f]">
             <div className="absolute inset-0 opacity-20"
