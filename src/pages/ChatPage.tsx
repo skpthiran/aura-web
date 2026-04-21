@@ -344,7 +344,7 @@ export default function ChatPage() {
           <div className="flex-shrink-0 px-4 lg:px-5 border-t border-white/[0.04]"
             style={{
               background: 'rgba(8,8,15,0.98)',
-              paddingBottom: '8px',
+              paddingBottom: typeof window !== 'undefined' && window.innerWidth >= 1024 ? '8px' : 'calc(env(safe-area-inset-bottom) + 88px)',
               paddingTop: '12px',
             }}>
             <div className="flex items-center gap-3 px-4 py-3 rounded-2xl border border-white/8 bg-white/[0.03] focus-within:border-[#c9a84c]/25 focus-within:bg-white/[0.05] transition-all duration-300">
