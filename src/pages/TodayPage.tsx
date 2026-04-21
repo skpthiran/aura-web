@@ -716,11 +716,15 @@ export default function TodayPage() {
           style={{ position: 'fixed', top: dropdownPos.top, left: dropdownPos.left, zIndex: 9999 }}
           className="w-40 rounded-2xl border border-white/10 bg-[#0f0f1a]/95 backdrop-blur-2xl shadow-2xl overflow-hidden py-1"
         >
-          {RADIUS_OPTIONS.map(opt => (
+          {RADIUS_OPTIONS.map((opt) => (
             <button
               key={opt.label}
-              onClick={() => { setSelectedRadius(opt.label); setShowRadiusDropdown(false); }}
-              className="w-full px-5 py-3 text-left text-[10px] tracking-[0.15em] uppercase hover:bg-white/5 transition-all outline-none"
+              onClick={(e) => {
+                e.stopPropagation()
+                setSelectedRadius(opt.label)
+                setShowRadiusDropdown(false)
+              }}
+              className="w-full px-4 py-2.5 text-left text-[10px] tracking-widest uppercase transition-all hover:bg-white/5"
               style={{ color: selectedRadius === opt.label ? '#c9a84c' : 'rgba(255,255,255,0.4)' }}
             >
               {opt.label}

@@ -10,21 +10,19 @@ export function useNearbyEvents(radiusLabel: string = '50 KM') {
   const [error, setError] = useState<string | null>(null)
   const { location, loading: locationLoading } = useUserLocation()
 
+  const lat = location?.latitude ?? 6.9271
+  const lng = location?.longitude ?? 79.8612
+
   const fetchEvents = useCallback(async () => {
     setLoading(true)
     setError(null)
     try {
-      const user_lat = location?.latitude ?? 6.9271
-      const user_lng = location?.longitude ?? 79.8612
       const radiusKm = getRadiusValue(radiusLabel)
-      const effective_radius = radiusKm
-
-      console.log('[useNearbyEvents] fetching — radius:', radiusLabel, '→', effective_radius, 'km')
-
+      console.log('[useNearbyEvents] fetching — radius:', radiusLabel, '→', radiusKm, 'km', 'at:', lat, lng)
       const { data, error: rpcError } = await supabase.rpc('nearby_moments', {
-        user_lat,
-        user_lng,
-        radius_km: effective_radius
+        user_lat: lat,
+        user_lng: lng,
+        radius_km: radiusKm
       })
 
       if (rpcError) throw rpcError
@@ -36,7 +34,7 @@ export function useNearbyEvents(radiusLabel: string = '50 KM') {
     } finally {
       setLoading(false)
     }
-  }, [location, radiusLabel])
+  }, [lat, lng, radiusLabel])
 
   useEffect(() => {
     fetchEvents()
