@@ -1,68 +1,65 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import { motion } from 'motion/react'
 import { useAuth } from '../contexts/AuthContext'
 import { getJoinedMoments, getChatMessages, sendMessage } from '../lib/db/chat'
 import { ChatMessage } from '../types'
-import { supabase } from '../lib/supabase'
-import { Send, MessageSquare, Zap, Calendar, User, ArrowLeft } from 'lucide-react'
+import { MessageSquare, ExternalLink, Send, Calendar, Zap, MessageCircle } from 'lucide-react'
 import { cn } from '../lib/utils'
-import { Link } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { usePageTitle } from '../hooks/usePageTitle'
+import { getSignalImage } from '../lib/signalImage'
 
 export default function ChatPage() {
-  usePageTitle('Frequency')
-  const { user } = useAuth()
-  const [joinedMoments, setJoinedMoments] = useState<any[]>([])
-  const [activeMomentId, setActiveMomentId] = useState<string | null>(null)
-  const [messages, setMessages] = useState<ChatMessage[]>([])
-  const [input, setInput] = useState('')
+  usePageTitle('Agora')
+  const { user: currentUser, profile } = useAuth()
+  const navigate = useNavigate()
+  
+  const [channels, setChannels] = useState<any[]>([])
+  const [selectedChannelId, setSelectedChannelId] = useState<string | null>(null)
+  const [messages, setMessages] = useState<any[]>([])
+  const [inputValue, setInputValue] = useState('')
   const [sending, setSending] = useState(false)
-  const [loadingMoments, setLoadingMoments] = useState(true)
-  const [loadingMessages, setLoadingMessages] = useState(false)
-  const [chatFilter, setChatFilter] = useState<'all' | 'moments' | 'events'>('all')
+  const [loadingChannels, setLoadingChannels] = useState(true)
+  const [activeFilter, setActiveFilter] = useState<'ALL' | 'MOMENTS' | 'EVENTS'>('ALL')
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   // Load joined moments on mount
   useEffect(() => {
-    if (!user) return
-    getJoinedMoments(user.id)
+    if (!currentUser) return
+    getJoinedMoments(currentUser.id)
       .then(data => {
-        console.log('Joined moments data:', data)
-        setJoinedMoments(data ?? [])
+        setChannels(data ?? [])
         if (data && data.length > 0) {
-          setActiveMomentId(data[0].moment_id)
+          setSelectedChannelId(data[0].moment_id)
         }
       })
-      .catch(error => {
-        console.log('Joined moments error:', error)
-        console.error(error)
-      })
-      .finally(() => setLoadingMoments(false))
-  }, [user])
-
-  useEffect(() => {
-    if (!activeMomentId) return
-    setLoadingMessages(true)
-    
-    getChatMessages(activeMomentId)
-      .then(setMessages)
       .catch(console.error)
-      .finally(() => setLoadingMessages(false))
+      .finally(() => setLoadingChannels(false))
+  }, [currentUser])
 
-    // Poll every 3 seconds for new messages
-    const interval = setInterval(async () => {
+  // Poll for messages
+  useEffect(() => {
+    if (!selectedChannelId) return
+    
+    const fetchMessages = async () => {
       try {
-        const data = await getChatMessages(activeMomentId)
-        setMessages(data)
+        const data = await getChatMessages(selectedChannelId)
+        // Map profiles to sender for JSX consistency
+        const mapped = data.map((m: any) => ({
+          ...m,
+          sender: m.profiles
+        }))
+        setMessages(mapped)
       } catch (err) {
         console.error(err)
       }
-    }, 3000)
-
-    return () => {
-      clearInterval(interval)
     }
-  }, [activeMomentId])
+
+    fetchMessages()
+
+    const interval = setInterval(fetchMessages, 3000)
+    return () => clearInterval(interval)
+  }, [selectedChannelId])
 
   // Auto scroll to bottom
   useEffect(() => {
@@ -70,11 +67,19 @@ export default function ChatPage() {
   }, [messages])
 
   const handleSend = async () => {
-    if (!input.trim() || !activeMomentId || !user) return
+    if (!inputValue.trim() || !selectedChannelId || !currentUser) return
     setSending(true)
+    const content = inputValue.trim()
     try {
-      await sendMessage(activeMomentId, user.id, input.trim())
-      setInput('')
+      await sendMessage(selectedChannelId, currentUser.id, content)
+      setInputValue('')
+      // Refresh messages after sending
+      const data = await getChatMessages(selectedChannelId)
+      const mapped = data.map((m: any) => ({
+        ...m,
+        sender: m.profiles
+      }))
+      setMessages(mapped)
     } catch (err) {
       console.error(err)
     } finally {
@@ -82,305 +87,309 @@ export default function ChatPage() {
     }
   }
 
-  const filteredJoinedMoments = joinedMoments.filter(item => {
-    const moment = item.moments as any
-    if (!moment) return false
-    if (chatFilter === 'moments') return moment.moment_type === 'moment'
-    if (chatFilter === 'events') return moment.moment_type === 'event'
-    return true
-  })
+  const filteredChannels = useMemo(() => {
+    return channels
+      .map(item => ({
+        ...item.moments,
+        id: item.moment_id // normalize ID for JSX
+      }))
+      .filter(channel => {
+        if (!channel) return false
+        if (activeFilter === 'MOMENTS') return channel.moment_type === 'moment'
+        if (activeFilter === 'EVENTS') return channel.moment_type === 'event'
+        return true
+      })
+  }, [channels, activeFilter])
+
+  const selectedChannel = useMemo(() => {
+    const item = channels.find(m => m.moment_id === selectedChannelId)
+    if (!item?.moments) return null
+    return {
+      ...item.moments,
+      id: item.moment_id
+    }
+  }, [channels, selectedChannelId])
 
   return (
-    <div className="flex flex-col bg-[#08080f]" style={{ height: '100dvh' }}>
-      
-      {/* Left panel — moment list */}
-      <div className={cn(
-        "w-full lg:w-80 shrink-0 hairline-r flex flex-col glass-panel bg-void/50 border-r border-white/[0.04]",
-        activeMomentId && "hidden lg:flex"
-      )}>
-        <div className="p-5 lg:px-6 lg:py-7 hairline-b border-t border-[#c9a84c]/10 flex items-center justify-between">
-          <div>
-            <p className="micro-caps text-gold text-xs mb-1">Channels</p>
-            <h2 className="font-serif text-xl lg:text-[18px] lg:tracking-[0.12em] text-marble">Signal Chat</h2>
+    <div className="flex h-screen bg-[#08080f] overflow-hidden">
+
+      {/* ══════════════════════════════════
+          LEFT PANEL — Channel List
+      ══════════════════════════════════ */}
+      <div className="w-[280px] hidden lg:flex flex-shrink-0 flex-col border-r border-white/[0.04]"
+        style={{ background: 'linear-gradient(180deg, #0a0a12 0%, #08080f 100%)' }}>
+
+        {/* Header */}
+        <div className="px-5 pt-6 pb-4 border-b border-white/[0.04]">
+          <div className="flex items-center justify-between mb-1">
+            <h2 className="text-white text-[15px] font-bold tracking-[0.08em] uppercase">Agora</h2>
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#c9a84c]/10 border border-[#c9a84c]/20">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#c9a84c] animate-pulse" />
+              <span className="text-[8px] font-black tracking-[0.2em] uppercase text-[#c9a84c]">{channels.length} Live</span>
+            </div>
           </div>
-          <p className="micro-caps text-[10px] text-marble/30 font-mono">
-            {filteredJoinedMoments.length} ACTIVE
-          </p>
+          <p className="text-white/20 text-[9px] tracking-[0.2em] uppercase">Signal Channels</p>
         </div>
-        
+
         {/* Filter tabs */}
-        <div className="px-3 py-3 flex gap-1.5 hairline-b bg-void/20">
-          {[
-            { key: 'all', label: 'All' },
-            { key: 'moments', label: 'Moments' },
-            { key: 'events', label: 'Events' },
-          ].map(tab => (
+        <div className="flex gap-1 px-4 py-3 border-b border-white/[0.03]">
+          {(['ALL', 'MOMENTS', 'EVENTS'] as const).map(tab => (
             <button
-              key={tab.key}
-              onClick={() => setChatFilter(tab.key as any)}
-              className={cn(
-                'flex-1 micro-caps text-[9px] py-1.5 rounded-full transition-all border',
-                chatFilter === tab.key
-                  ? 'bg-marble text-void border-marble font-bold'
-                  : 'bg-white/5 border-white/5 text-marble/40 hover:text-marble/70'
-              )}
+              key={tab}
+              onClick={() => setActiveFilter(tab)}
+              className="flex-1 py-1.5 rounded-lg text-[8px] font-black tracking-[0.15em] uppercase transition-all duration-200"
+              style={{
+                background: activeFilter === tab ? 'rgba(201,168,76,0.15)' : 'transparent',
+                color: activeFilter === tab ? '#c9a84c' : 'rgba(255,255,255,0.25)',
+                border: activeFilter === tab ? '1px solid rgba(201,168,76,0.25)' : '1px solid transparent',
+              }}
             >
-              {tab.label}
+              {tab}
             </button>
           ))}
         </div>
-        
-        <div className="flex-1 overflow-y-auto p-3 custom-scrollbar">
-          {loadingMoments && (
-            <p className="micro-caps text-xs text-marble/30 p-3">
-              Loading channels...
-            </p>
-          )}
-          
-          {!loadingMoments && joinedMoments.length === 0 && (
-            <div className="p-4 text-center mt-10">
-              <MessageSquare className="w-8 h-8 text-marble/10 mx-auto mb-3" />
-              <p className="text-xs text-marble/30 micro-caps mb-3">
-                No channels joined
-              </p>
-              <Link to="/app/today">
-                <span className="text-xs text-gold micro-caps 
-                  hover:text-gold-pale transition-colors cursor-pointer">
-                  Join a Signal →
-                </span>
-              </Link>
-            </div>
-          )}
-          
-          {filteredJoinedMoments.map((item) => {
-            const moment = item.moments as any
-            if (!moment) return null
-            const isActive = activeMomentId === item.moment_id
-            const isEvent = moment.moment_type === 'event'
+
+        {/* Channel list */}
+        <div className="flex-1 overflow-y-auto py-2 px-2 space-y-1 custom-scrollbar">
+          {filteredChannels.map((channel) => {
+            const isActive = selectedChannelId === channel.id;
+            const channelImage = channel.image_url || getSignalImage(channel.id, channel.tags, channel.moment_type);
             return (
               <button
-                key={item.moment_id}
-                onClick={() => setActiveMomentId(item.moment_id)}
-                className={cn(
-                  'w-full text-left p-3 lg:px-5 lg:py-4 rounded-xl transition-all mb-1 cursor-pointer group',
-                  isActive 
-                    ? 'bg-white/5 hairline-all' 
-                    : 'hover:bg-white/3'
-                )}
+                key={channel.id}
+                onClick={() => setSelectedChannelId(channel.id)}
+                className="w-full text-left rounded-2xl overflow-hidden transition-all duration-200 group"
+                style={{
+                  background: isActive ? 'rgba(201,168,76,0.08)' : 'transparent',
+                  border: isActive ? '1px solid rgba(201,168,76,0.15)' : '1px solid transparent',
+                }}
               >
-                <div className="flex items-center gap-3">
-                  <div className={cn(
-                    'w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-transform group-hover:scale-105',
-                    isEvent ? 'bg-gold/10' : 'bg-crimson/10'
-                  )}>
-                    {isEvent 
-                      ? <Calendar className="w-4 h-4 text-gold" />
-                      : <Zap className="w-4 h-4 text-crimson-bright" />
-                    }
+                <div className="flex items-center gap-3 px-3 py-3">
+                  {/* Channel image avatar */}
+                  <div className="relative w-10 h-10 rounded-xl overflow-hidden flex-shrink-0">
+                    <img
+                      src={channelImage}
+                      className="w-full h-full object-cover"
+                      onError={(e) => { e.currentTarget.src = `https://picsum.photos/seed/${channel.id}/80/80`; }}
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-br from-black/20 to-transparent" />
+                    {/* Live dot */}
+                    <div className="absolute bottom-0.5 right-0.5 w-2 h-2 rounded-full bg-[#c9a84c] border border-[#08080f]" />
                   </div>
-                  <div className="min-w-0">
-                    <p className="text-sm text-marble truncate font-medium">
-                      {moment.title}
-                    </p>
-                    <p className={cn(
-                      "micro-caps text-xs",
-                      isEvent ? "text-gold/60" : "text-crimson-bright/60"
-                    )}>
-                      {isEvent ? 'Event' : 'Moment'}
+
+                  {/* Info */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between mb-0.5">
+                      <p className="text-white text-[11px] font-bold tracking-wide truncate"
+                        style={{ color: isActive ? '#fff' : 'rgba(255,255,255,0.75)' }}>
+                        {channel.title}
+                      </p>
+                      <span className="text-white/20 text-[8px] ml-2 flex-shrink-0">now</span>
+                    </div>
+                    <p className="text-white/30 text-[9px] tracking-wide truncate uppercase"
+                      style={{ letterSpacing: '0.1em' }}>
+                      {channel.moment_type || 'moment'} · {channel.participant_count ?? 0} inside
                     </p>
                   </div>
                 </div>
               </button>
-            )
+            );
           })}
+
+          {filteredChannels.length === 0 && (
+            <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
+              <div className="w-12 h-12 rounded-2xl bg-white/[0.03] border border-white/5 flex items-center justify-center mb-3">
+                <MessageSquare className="w-5 h-5 text-white/15" />
+              </div>
+              <p className="text-white/20 text-[10px] tracking-[0.2em] uppercase">No active channels</p>
+            </div>
+          )}
+        </div>
+
+        {/* User footer */}
+        <div className="px-4 py-4 border-t border-white/[0.04]">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#c9a84c]/30 to-[#c9a84c]/5 border border-[#c9a84c]/20 flex items-center justify-center flex-shrink-0">
+              <span className="text-[11px] font-black text-[#c9a84c] uppercase">
+                {profile?.username?.[0] || 'U'}
+              </span>
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-white/70 text-[10px] font-bold tracking-widest uppercase truncate">{profile?.username || 'You'}</p>
+              <p className="text-white/20 text-[8px] tracking-[0.15em]">Online</p>
+            </div>
+            <div className="w-2 h-2 rounded-full bg-emerald-400/70 flex-shrink-0" />
+          </div>
         </div>
       </div>
 
-      {/* Right panel — messages */}
-      <div className={cn(
-        "flex-1 flex flex-col overflow-hidden",
-        !activeMomentId && "hidden lg:flex"
-      )}>
-        {!activeMomentId ? (
-          /* DESKTOP EMPTY STATE */
-          <div className="hidden lg:flex flex-1 flex-col items-center justify-center h-full relative overflow-hidden">
-            
-            {/* Background ambient glow */}
-            <div className="absolute inset-0" style={{
-              background: 'radial-gradient(ellipse at 50% 40%, rgba(201,168,76,0.04) 0%, transparent 70%)'
-            }} />
-            
-            {/* Decorative grid lines */}
-            <div className="absolute inset-0 opacity-[0.02]" style={{
-              backgroundImage: 'linear-gradient(rgba(255,255,255,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.5) 1px, transparent 1px)',
-              backgroundSize: '60px 60px'
-            }} />
+      {/* ══════════════════════════════════
+          RIGHT PANEL — Chat
+      ══════════════════════════════════ */}
+      {selectedChannel ? (
+        <div className="flex-1 flex flex-col overflow-hidden">
 
-            {/* Center content */}
-            <div className="relative flex flex-col items-center gap-5 max-w-xs text-center">
-              
-              {/* Animated icon */}
-              <div className="relative w-20 h-20 flex items-center justify-center">
-                <div className="absolute inset-0 rounded-full border border-[#c9a84c]/15 animate-ping" style={{ animationDuration: '3s' }} />
-                <div className="absolute inset-2 rounded-full border border-[#c9a84c]/10" />
-                <div className="w-16 h-16 rounded-full bg-white/[0.025] border border-white/8 flex items-center justify-center">
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="rgba(201,168,76,0.5)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-                  </svg>
+          {/* Chat header */}
+          <div className="flex-shrink-0 flex items-center gap-4 px-6 py-4 border-b border-white/[0.04]"
+            style={{ background: 'rgba(8,8,15,0.95)', backdropFilter: 'blur(20px)' }}>
+
+            {/* Channel image */}
+            <div className="w-10 h-10 rounded-xl overflow-hidden flex-shrink-0 border border-white/8">
+              <img
+                src={selectedChannel.image_url || getSignalImage(selectedChannel.id, selectedChannel.tags, selectedChannel.moment_type)}
+                className="w-full h-full object-cover"
+                onError={(e) => { e.currentTarget.src = `https://picsum.photos/seed/${selectedChannel.id}/80/80`; }}
+              />
+            </div>
+
+            <div className="flex-1 min-w-0">
+              <h3 className="text-white font-black uppercase text-[14px] tracking-[0.06em] truncate">{selectedChannel.title}</h3>
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                  <span className="text-white/30 text-[9px] tracking-[0.18em] uppercase">{selectedChannel.participant_count ?? 0} inside</span>
                 </div>
+                <span className="text-white/10">·</span>
+                <span className="text-white/20 text-[9px] tracking-[0.15em] uppercase">{selectedChannel.moment_type || 'Moment'}</span>
               </div>
+            </div>
 
-              <div>
-                <p className="text-[9px] tracking-[0.3em] uppercase text-[#c9a84c]/50 mb-2">Frequency</p>
-                <h2 className="text-white/70 text-[20px] font-bold tracking-[0.06em] uppercase mb-2">Signal Chat</h2>
-                <p className="text-white/20 text-[11px] leading-relaxed tracking-wide">
-                  Select a channel from the left to enter the signal stream
+            <button
+              onClick={() => navigate(`/app/moment/${selectedChannel.id}`)}
+              className="flex items-center gap-2 px-3 py-2 rounded-xl border border-white/8 bg-white/[0.03] hover:border-[#c9a84c]/25 hover:bg-[#c9a84c]/5 transition-all group"
+            >
+              <ExternalLink className="w-3.5 h-3.5 text-white/30 group-hover:text-[#c9a84c]/60 transition-colors" />
+              <span className="text-white/30 text-[9px] tracking-[0.15em] uppercase group-hover:text-white/50 transition-colors">Details</span>
+            </button>
+          </div>
+
+          {/* Messages */}
+          <div className="flex-1 overflow-y-auto px-6 py-6 space-y-4 custom-scrollbar"
+            style={{ background: 'linear-gradient(180deg, #09090f 0%, #08080f 100%)' }}>
+
+            {messages.length === 0 && (
+              <div className="flex flex-col items-center justify-center h-full text-center">
+                <div className="relative mb-6">
+                  <div className="absolute inset-0 rounded-full border border-[#c9a84c]/10 animate-ping" style={{ animationDuration: '3s' }} />
+                  <div className="w-16 h-16 rounded-full bg-white/[0.025] border border-white/6 flex items-center justify-center">
+                    <MessageSquare className="w-6 h-6 text-[#c9a84c]/30" strokeWidth={1.5} />
+                  </div>
+                </div>
+                <p className="text-white/50 text-[13px] font-bold tracking-[0.06em] uppercase mb-2">Signal Open</p>
+                <p className="text-white/15 text-[11px] leading-relaxed max-w-[220px]">
+                  Be the first to transmit. This channel is live.
                 </p>
               </div>
+            )}
 
-              {/* Decorative line */}
-              <div className="flex items-center gap-3 w-full">
-                <div className="h-px flex-1 bg-gradient-to-r from-transparent to-[#c9a84c]/20" />
-                <span className="w-1.5 h-1.5 rounded-full bg-[#c9a84c]/30" />
-                <div className="h-px flex-1 bg-gradient-to-l from-transparent to-[#c9a84c]/20" />
-              </div>
-
-              <p className="text-white/10 text-[9px] tracking-[0.2em] uppercase">Secure Link Active</p>
-            </div>
-          </div>
-        ) : (
-          <>
-            {/* Header info for mobile/active context */}
-            <div className="px-5 lg:px-6 py-4 lg:py-5 hairline-b bg-void/80 backdrop-blur-md flex items-center gap-4">
-               <button 
-                onClick={() => setActiveMomentId(null)}
-                className="lg:hidden w-8 h-8 flex items-center justify-center rounded-full bg-white/5 border border-white/10"
-               >
-                 <ArrowLeft className="w-4 h-4 text-marble" />
-               </button>
-               
-               <div className="flex-1">
-                  <h3 className="font-serif text-lg text-marble leading-tight truncate">
-                    {joinedMoments.find(m => m.moment_id === activeMomentId)?.moments?.title}
-                  </h3>
-                  <div className="flex items-center gap-2">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                    <span className="micro-caps text-[9px] text-marble/40 tracking-widest uppercase">ENCRYPT_SIGNAL</span>
-                  </div>
-               </div>
-            </div>
-
-            {/* Messages area */}
-            <div className="flex-1 overflow-y-auto px-4 pt-4 pb-4 space-y-3 custom-scrollbar">
-              {loadingMessages && (
-                <div className="flex flex-col items-center gap-2 mt-4">
-                   <div className="w-4 h-4 border-2 border-gold/20 border-t-gold rounded-full animate-spin" />
-                   <p className="micro-caps text-[10px] text-marble/30 text-center">
-                    Syncing Signal history...
-                  </p>
-                </div>
-              )}
-              
-              {!loadingMessages && messages.length === 0 && (
-                <div className="flex-1 flex items-center justify-center opacity-20">
-                  <p className="text-marble/20 font-serif text-xl border-y border-white/5 py-8 px-12 text-center">
-                    Frequency silent. <br/>Transmit first thought.
-                  </p>
-                </div>
-              )}
-              
-              {messages.map((msg, idx) => {
-                const isOwn = msg.user_id === user?.id
-                const senderName = msg.profiles?.full_name 
-                  ?? msg.profiles?.username 
-                  ?? 'Anonymous'
-                const showSender = idx === 0 || messages[idx-1].user_id !== msg.user_id
-
-                return (
-                  <motion.div
-                    key={msg.id}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className={cn(
-                      'flex gap-3 max-w-[85%]',
-                      isOwn ? 'ml-auto flex-row-reverse' : ''
-                    )}
-                  >
-                    {/* Avatar */}
-                    {showSender ? (
-                      <div className="w-8 h-8 rounded-full bg-marble/10 
-                        border border-white/10 flex items-center justify-center 
-                        shrink-0 mt-1">
-                        {msg.profiles?.avatar_url ? (
-                          <img src={msg.profiles.avatar_url} 
-                            className="w-full h-full object-cover rounded-full" 
-                            onError={(e) => {
-                              e.currentTarget.style.display = 'none'
-                            }}
-                          />
-                        ) : (
-                          <User className="w-4 h-4 text-marble/30" />
-                        )}
-                      </div>
-                    ) : (
-                      <div className="w-8 shrink-0" />
-                    )}
-                    
-                    <div className={cn(
-                      'flex flex-col gap-1',
-                      isOwn ? 'items-end' : 'items-start'
-                    )}>
-                      {showSender && (
-                        <span className="micro-caps text-[10px] text-marble/30 px-1">
-                          {isOwn ? 'Relay — You' : `Identity — ${senderName}`}
-                        </span>
-                      )}
-                      <div className={cn(
-                        'px-4 py-2.5 rounded-2xl text-sm leading-relaxed',
-                        isOwn 
-                          ? 'bg-marble text-void rounded-tr-sm shadow-lg' 
-                          : 'glass-panel hairline-all text-marble rounded-tl-sm'
-                      )}>
-                        {msg.content}
-                      </div>
+            {messages.map((msg, i) => {
+              const isOwn = msg.user_id === currentUser?.id;
+              const showAvatar = !isOwn && (i === 0 || messages[i-1]?.user_id !== msg.user_id);
+              return (
+                <div key={msg.id} className={`flex items-end gap-3 ${isOwn ? 'flex-row-reverse' : 'flex-row'}`}>
+                  {/* Avatar — only for others, only on first message in group */}
+                  {!isOwn && (
+                    <div className="flex-shrink-0 w-7 h-7 rounded-full overflow-hidden border border-white/8 bg-[#c9a84c]/10 flex items-center justify-center"
+                      style={{ opacity: showAvatar ? 1 : 0 }}>
+                      {msg.sender?.avatar_url
+                        ? <img src={msg.sender.avatar_url} className="w-full h-full object-cover" />
+                        : <span className="text-[9px] font-black text-[#c9a84c] uppercase">{msg.sender?.username?.[0]}</span>
+                      }
                     </div>
-                  </motion.div>
-                )
-              })}
-              <div ref={messagesEndRef} />
-            </div>
-
-            {/* Input area */}
-            <div className="flex-shrink-0 px-4 pt-3 pb-6 border-t border-white/5 bg-[#08080f]">
-              <div className="max-w-4xl mx-auto flex gap-3 items-center glass-panel 
-                hairline-all bg-void/90 rounded-2xl px-4 py-1.5 focus-within:border-gold/30 transition-all shadow-xl">
-                <input
-                  value={input}
-                  onChange={e => setInput(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && !e.shiftKey 
-                    && handleSend()}
-                  placeholder="Transmit signal..."
-                  className="flex-1 bg-transparent text-marble text-sm 
-                    py-2 outline-none placeholder:text-marble/20 placeholder:micro-caps"
-                />
-                <button
-                  onClick={handleSend}
-                  disabled={!input.trim() || sending}
-                  className={cn(
-                    "w-9 h-9 rounded-full bg-marble text-void flex items-center justify-center shrink-0 transition-all",
-                    "hover:bg-gold-pale hover:scale-105 active:scale-95 disabled:opacity-20 flex items-center justify-center cursor-pointer"
                   )}
-                >
-                  <Send className="w-4 h-4 ml-0.5" />
-                </button>
-              </div>
-              <p className="text-[9px] micro-caps text-marble/10 text-center mt-3 tracking-widest">
-                END-TO-END ENCRYPTION ACTIVE — PROTOCOL AURA V1.0
-              </p>
+
+                  <div className={`flex flex-col gap-1 max-w-[68%] ${isOwn ? 'items-end' : 'items-start'}`}>
+                    {showAvatar && !isOwn && (
+                      <span className="text-white/25 text-[8px] tracking-[0.15em] uppercase px-1">{msg.sender?.username}</span>
+                    )}
+                    <div
+                      className="px-4 py-2.5 rounded-2xl text-[13px] leading-[1.5] font-light"
+                      style={isOwn ? {
+                        background: 'linear-gradient(135deg, #c9a84c 0%, #dfc070 100%)',
+                        color: '#08080f',
+                        borderRadius: '18px 18px 4px 18px',
+                        fontWeight: 500,
+                      } : {
+                        background: 'rgba(255,255,255,0.055)',
+                        color: 'rgba(255,255,255,0.75)',
+                        border: '1px solid rgba(255,255,255,0.06)',
+                        borderRadius: '18px 18px 18px 4px',
+                      }}
+                    >
+                      {msg.content}
+                    </div>
+                    <span className="text-white/15 text-[8px] tracking-wide px-1">
+                      {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+            <div ref={messagesEndRef} />
+          </div>
+
+          {/* Input bar */}
+          <div className="flex-shrink-0 px-5 py-4 border-t border-white/[0.04]"
+            style={{ background: 'rgba(8,8,15,0.98)' }}>
+            <div className="flex items-center gap-3 px-4 py-3 rounded-2xl border border-white/8 bg-white/[0.03] focus-within:border-[#c9a84c]/25 focus-within:bg-white/[0.05] transition-all duration-300">
+              <input
+                type="text"
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
+                placeholder="Transmit a message..."
+                className="flex-1 bg-transparent text-white/70 text-[13px] placeholder:text-white/20 outline-none leading-relaxed"
+              />
+              <button
+                onClick={handleSend}
+                disabled={!inputValue.trim()}
+                className="w-8 h-8 rounded-xl flex items-center justify-center transition-all duration-200 flex-shrink-0"
+                style={{
+                  background: inputValue.trim() ? 'linear-gradient(135deg, #c9a84c, #dfc070)' : 'rgba(255,255,255,0.04)',
+                  border: inputValue.trim() ? 'none' : '1px solid rgba(255,255,255,0.06)',
+                }}
+              >
+                <Send className="w-3.5 h-3.5" style={{ color: inputValue.trim() ? '#08080f' : 'rgba(255,255,255,0.2)' }} />
+              </button>
             </div>
-          </>
-        )}
-      </div>
+            <p className="text-center text-white/10 text-[8px] tracking-[0.2em] uppercase mt-2">
+              End-to-end encrypted · Aura Protocol
+            </p>
+          </div>
+        </div>
+
+      ) : (
+        /* ── DESKTOP EMPTY STATE ── */
+        <div className="flex-1 flex flex-col items-center justify-center relative overflow-hidden">
+          <div className="absolute inset-0" style={{
+            background: 'radial-gradient(ellipse at 50% 40%, rgba(201,168,76,0.04) 0%, transparent 65%)'
+          }} />
+          <div className="absolute inset-0 opacity-[0.015]" style={{
+            backgroundImage: 'linear-gradient(rgba(255,255,255,1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,1) 1px, transparent 1px)',
+            backgroundSize: '64px 64px'
+          }} />
+          <div className="relative flex flex-col items-center gap-5 max-w-xs text-center">
+            <div className="relative w-20 h-20 flex items-center justify-center">
+              <div className="absolute inset-0 rounded-full border border-[#c9a84c]/12 animate-ping" style={{ animationDuration: '3s' }} />
+              <div className="absolute inset-3 rounded-full border border-[#c9a84c]/8" />
+              <div className="w-16 h-16 rounded-full bg-white/[0.025] border border-white/6 flex items-center justify-center">
+                <MessageSquare className="w-6 h-6 text-[#c9a84c]/40" strokeWidth={1.5} />
+              </div>
+            </div>
+            <div>
+              <p className="text-[8px] tracking-[0.3em] uppercase text-[#c9a84c]/40 mb-2">Agora</p>
+              <h2 className="text-white/60 text-[18px] font-black tracking-[0.06em] uppercase mb-3">Pick a Channel</h2>
+              <p className="text-white/15 text-[11px] leading-relaxed">Select a signal from the left to enter the conversation</p>
+            </div>
+            <div className="flex items-center gap-3 w-full">
+              <div className="h-px flex-1 bg-gradient-to-r from-transparent to-[#c9a84c]/15" />
+              <span className="w-1.5 h-1.5 rounded-full bg-[#c9a84c]/25" />
+              <div className="h-px flex-1 bg-gradient-to-l from-transparent to-[#c9a84c]/15" />
+            </div>
+            <p className="text-white/8 text-[8px] tracking-[0.25em] uppercase">Signal Encrypted</p>
+          </div>
+        </div>
+      )}
     </div>
-  )
+  );
 }
