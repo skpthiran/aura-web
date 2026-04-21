@@ -123,7 +123,7 @@ export default function MomentDetailPage() {
   const distanceLabel = moment.distance_meters 
     ? (moment.distance_meters > 1000 ? `${(moment.distance_meters / 1000).toFixed(1)}km` : `${Math.round(moment.distance_meters)}m`)
     : 'Nearby'
-  const attendeeCount = moment?.participant_count ?? moment?.attendee_count ?? 0
+  const attendeeCount = moment?.participant_count ?? 0
   const isJoined = joined
   const heroImage = moment?.image_url || (moment as any)?.photo_url || null
 
