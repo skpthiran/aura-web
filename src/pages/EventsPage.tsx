@@ -14,7 +14,7 @@ import { useRealtimeMoments } from '../hooks/useRealtimeMoments'
 import JoinedOverlay from '../components/JoinedOverlay'
 import { getRejectedIds } from '../lib/cardState'
 import { supabase } from '../lib/supabase'
-import { RADIUS_OPTIONS, DEFAULT_RADIUS } from '../lib/radius'
+import { RADIUS_OPTIONS, DEFAULT_RADIUS, getRadiusValue } from '../lib/radius'
 
 interface PremiumEventCardProps {
   event: Moment
@@ -165,7 +165,7 @@ export default function EventsPage() {
   const { user } = useAuth()
   const navigate = useNavigate()
   const { location } = useUserLocation()
-  const [radius, setRadius] = useState<number>(DEFAULT_RADIUS)
+  const [radius, setRadius] = useState<string>('50 KM')
   const [radiusOpen, setRadiusOpen] = useState(false)
 
   const { events, loading, refetch, setEvents } = useNearbyEvents(radius)
@@ -190,7 +190,8 @@ export default function EventsPage() {
         newMoment.lat,
         newMoment.lng
       )
-      if (radius === 0 || dist <= radius * 1000) {
+      const radiusValue = getRadiusValue(radius)
+      if (radiusValue === 0 || dist <= radiusValue * 1000) {
         addToast({
           title: newMoment.title,
           description: "New structured gathering initialized nearby.",
@@ -266,7 +267,7 @@ export default function EventsPage() {
                   className="flex items-center gap-3 px-5 py-2.5 rounded-full bg-white/[0.03] border border-white/10 text-white/70 text-[10px] font-black tracking-widest uppercase hover:bg-white/[0.06] transition-all"
                 >
                   <Radar className="w-3.5 h-3.5 text-gold" />
-                  {RADIUS_OPTIONS.find(o => o.value === radius)?.label || `${radius} KM`}
+                  {radius}
                 </button>
                 
                 <AnimatePresence>
@@ -279,11 +280,11 @@ export default function EventsPage() {
                     >
                        {RADIUS_OPTIONS.map(opt => (
                         <button
-                          key={opt.value}
-                          onClick={() => { setRadius(opt.value); setRadiusOpen(false); }}
+                          key={opt.label}
+                          onClick={() => { setRadius(opt.label); setRadiusOpen(false); }}
                           className={cn(
                             "w-full px-6 py-4 text-left text-[10px] font-bold tracking-[0.2em] uppercase transition-colors border-b border-white/[0.03]",
-                            radius === opt.value ? "text-gold bg-gold/5" : "text-white/40 hover:bg-white/5 hover:text-white"
+                            radius === opt.label ? "text-gold bg-gold/5" : "text-white/40 hover:bg-white/5 hover:text-white"
                           )}
                         >
                           {opt.label}
