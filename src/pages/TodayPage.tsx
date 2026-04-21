@@ -153,7 +153,7 @@ export default function TodayPage() {
   const navigate = useNavigate()
   const { user } = useAuth()
   const { location } = useUserLocation()
-  const [activeTab, setActiveTab] = useState<'all' | 'moments' | 'events'>('all')
+  const [typeFilter, setTypeFilter] = useState<'ALL' | 'MOMENTS' | 'EVENTS'>('ALL');
   
   const [selectedRadius, setSelectedRadius] = useState<number>(DEFAULT_RADIUS)
   const [showRadiusDropdown, setShowRadiusDropdown] = useState(false)
@@ -331,11 +331,12 @@ export default function TodayPage() {
       const expiresTime = new Date(m.expires_at).getTime()
       if (expiresTime < Date.now()) return false 
       
-      if (activeTab === 'moments') return m.moment_type === 'moment'
-      if (activeTab === 'events') return m.moment_type === 'event'
-      return true
-    })
-  }, [moments, cardActions, activeTab])
+      if (typeFilter === 'MOMENTS') return m.moment_type === 'moment';
+      if (typeFilter === 'EVENTS') return m.moment_type === 'event';
+      return true;
+    });
+  }, [moments, cardActions, typeFilter])
+
 
   useEffect(() => {
     if (!user || moments.length === 0) return
@@ -360,8 +361,8 @@ export default function TodayPage() {
       })
   }, [user, moments])
 
-  const heroMoment = filteredMoments[0]
-  const nearbyMoments = filteredMoments.slice(1)
+  const heroMoment = filteredMoments[0] ?? null;
+  const nearbyFiltered = filteredMoments.slice(1);
 
   if (loading && moments.length === 0) {
     return (
@@ -488,14 +489,33 @@ export default function TodayPage() {
       ══════════════════════════════════════ */}
       <div className="flex-1 px-5 pt-10 pb-32 max-w-7xl mx-auto w-full">
 
+        {/* Type filter tabs */}
+        <div className="flex gap-2 mb-5">
+          {(['ALL', 'MOMENTS', 'EVENTS'] as const).map(tab => (
+            <button
+              key={tab}
+              onClick={() => setTypeFilter(tab)}
+              className="px-4 py-2 rounded-full text-[9px] font-black tracking-[0.2em] uppercase transition-all duration-200"
+              style={{
+                background: typeFilter === tab ? 'rgba(201,168,76,0.15)' : 'rgba(255,255,255,0.03)',
+                color: typeFilter === tab ? '#c9a84c' : 'rgba(255,255,255,0.25)',
+                border: typeFilter === tab ? '1px solid rgba(201,168,76,0.25)' : '1px solid rgba(255,255,255,0.06)',
+              }}
+            >
+              {tab === 'ALL' ? 'All Signals' : tab === 'MOMENTS' ? 'Moments' : 'Events'}
+            </button>
+          ))}
+        </div>
+
         {/* Section header */}
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-3">
             <div className="h-px w-5 bg-[#c9a84c]/40" />
             <span className="text-[10px] font-black tracking-[0.28em] uppercase text-white/30">
-              {nearbyMoments.length} Signal{nearbyMoments.length !== 1 ? 's' : ''} Nearby
+              {filteredMoments.length} Signal{filteredMoments.length !== 1 ? 's' : ''} Nearby
             </span>
           </div>
+
           <div className="flex items-center gap-1.5">
             <span className="w-1.5 h-1.5 rounded-full bg-[#c9a84c] animate-pulse" />
             <span className="text-[9px] tracking-[0.2em] uppercase text-[#c9a84c]/50">Live</span>
@@ -516,9 +536,9 @@ export default function TodayPage() {
         </div>
 
         {/* Signal cards grid */}
-        {nearbyMoments.length > 0 ? (
+        {nearbyFiltered.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {nearbyMoments.filter(m => !rejectedIds.includes(m.id)).map((moment) => {
+            {nearbyFiltered.filter(m => !rejectedIds.includes(m.id)).map((moment) => {
               const cardImage = moment.image_url || getSignalImage(moment.id, moment.tags, moment.moment_type);
               const isJoined = joinedIds.includes(moment.id);
               return (
@@ -670,13 +690,21 @@ export default function TodayPage() {
             })}
           </div>
         ) : (
-          <div className="flex flex-col items-center justify-center py-24 text-center">
-            <div className="w-20 h-20 rounded-3xl bg-white/[0.025] border border-white/5 flex items-center justify-center mb-6">
-              <MapPin className="w-8 h-8 text-white/10" strokeWidth={1.5} />
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="flex flex-col items-center justify-center py-24 text-center"
+          >
+            <div className="w-16 h-16 rounded-full bg-white/[0.02] border border-white/[0.05] flex items-center justify-center mb-6">
+              <Zap className="w-6 h-6 text-white/10" />
             </div>
-            <p className="text-white/30 text-[12px] font-bold tracking-[0.25em] uppercase mb-2">No Signals Nearby</p>
-            <p className="text-white/10 text-[11px] leading-relaxed max-w-[220px]">Try expanding your search radius to find deeper frequencies.</p>
-          </div>
+            <p className="text-white/30 text-[11px] font-bold tracking-[0.2em] uppercase mb-2">
+              No {typeFilter === 'MOMENTS' ? 'Moments' : typeFilter === 'EVENTS' ? 'Events' : 'Signals'} Nearby
+            </p>
+            <p className="text-white/10 text-[9px] tracking-[0.1em] max-w-[200px] mx-auto leading-relaxed">
+              Try adjusting your exploration radius or check back soon.
+            </p>
+          </motion.div>
         )}
       </div>
 
