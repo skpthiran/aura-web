@@ -16,6 +16,65 @@ import { useRealtimeMoments } from '../hooks/useRealtimeMoments'
 import { calculateDistance } from '../lib/utils'
 import { supabase } from '../lib/supabase'
 
+// Coordinate extraction helper
+const getLngLat = (m: any): [number, number] | null => {
+  if (!m) return null;
+  
+  // 1. Try direct properties (handled by PostgREST if columns exist)
+  const lat = m.latitude ?? m.lat;
+  const lng = m.longitude ?? m.lng;
+  if (lat != null && lng != null) {
+    const flat = typeof lat === 'string' ? parseFloat(lat) : lat;
+    const flng = typeof lng === 'string' ? parseFloat(lng) : lng;
+    if (!isNaN(flat) && !isNaN(flng)) return [flng, flat];
+  }
+
+  // 2. Try parsing location as EWKB hex (PostGIS standard in Supabase)
+  // Format: 0101000020E6100000 + 16 chars for X + 16 chars for Y
+  if (typeof m.location === 'string' && m.location.length >= 50) {
+    try {
+      // EWKB for SRID 4326 Point: 0101000020E6100000...
+      // Substrings for coordinates (Little Endian doubles)
+      const hex = m.location;
+      
+      // Basic check for EWKB Point Header (LE, Point, SRID 4326)
+      if (hex.startsWith('0101000020E6100000')) {
+        const xHex = hex.substring(18, 34);
+        const yHex = hex.substring(34, 50);
+        
+        const reverseHex = (s: string) => s.match(/.{2}/g)?.reverse().join('') || '';
+        
+        const hexToFloat64 = (h: string) => {
+          const buffer = new ArrayBuffer(8);
+          const view = new DataView(buffer);
+          const bytes = h.match(/.{1,2}/g)?.map(b => parseInt(b, 16)) || [];
+          bytes.forEach((b, i) => view.setUint8(i, b));
+          return view.getFloat64(0, true); // Little Endian
+        };
+
+        const flng = hexToFloat64(xHex);
+        const flat = hexToFloat64(yHex);
+        
+        if (!isNaN(flat) && !isNaN(flng)) return [flng, flat];
+      }
+    } catch (e) {
+      console.warn('WKB parse failed:', e);
+    }
+  }
+
+  // 3. Fallback: Try parsing location as "lat,lng" string
+  if (typeof m.location === 'string' && m.location.includes(',')) {
+    const parts = m.location.split(',');
+    if (parts.length === 2) {
+      const flat = parseFloat(parts[0]);
+      const flng = parseFloat(parts[1]);
+      if (!isNaN(flat) && !isNaN(flng)) return [flng, flat];
+    }
+  }
+  
+  return null;
+};
+
 // Distance utility
 function haversineKm(
   lat1: number, lng1: number,
@@ -60,7 +119,13 @@ export default function MapPage() {
       .gt('expires_at', new Date().toISOString())
       .order('created_at', { ascending: false });
     
-    if (data) setMoments(data)
+    if (data) {
+      console.log('MAP MOMENTS RAW:', JSON.stringify(data[0]));
+      console.log('FIRST MOMENT ALL KEYS:', data[0] ? Object.keys(data[0]) : 'no data');
+      console.log('FIRST MOMENT LOCATION:', data[0]?.location);
+      console.log('FIRST MOMENT LAT:', data[0]?.latitude, 'LNG:', data[0]?.longitude);
+      setMoments(data);
+    }
     setLoading(false)
   }, [])
 
@@ -112,11 +177,13 @@ export default function MapPage() {
   const visibleMoments: Moment[] = []
   for (let idx = 0; idx < moments.length; idx++) {
     const sig = moments[idx]
-    if (numericRadius < 99999999 && location) {
+    const coords = getLngLat(sig)
+    if (!coords && numericRadius < 99999999) continue
+
+    if (numericRadius < 99999999 && location && coords) {
       const dKm = haversineKm(
         location.latitude, location.longitude,
-        sig.latitude || sig.lat || 0, 
-        sig.longitude || sig.lng || 0
+        coords[1], coords[0]
       )
       if (dKm > numericRadius / 1000) continue
     }
@@ -271,10 +338,14 @@ export default function MapPage() {
       })
 
       visibleMoments.forEach(sig => {
-        const lat = sig.latitude ?? sig.lat ?? null;
-        const lng = sig.longitude ?? sig.lng ?? null;
+        const coords = getLngLat(sig);
         
-        if (lat === null || lng === null) return;
+        if (!coords) {
+          console.warn('NO COORDS for moment:', sig.id, sig);
+          return;
+        }
+
+        const [lng, lat] = coords;
 
         if (markersRef.current[sig.id]) {
           markersRef.current[sig.id].setLngLat([lng, lat])
@@ -489,7 +560,13 @@ export default function MapPage() {
                   <div>
                     <p className="text-[9px] text-white/30 tracking-widest uppercase font-bold mb-2">Range</p>
                     <p className="font-mono text-lg text-white">
-                      {location ? haversineKm(location.latitude, location.longitude, selectedMoment.latitude || 0, selectedMoment.longitude || 0).toFixed(2) : '---'} <span className="text-xs text-white/30">KM</span>
+                      {(() => {
+                        const coords = getLngLat(selectedMoment);
+                        if (location && coords) {
+                          return haversineKm(location.latitude, location.longitude, coords[1], coords[0]).toFixed(2);
+                        }
+                        return '---';
+                      })()} <span className="text-xs text-white/30">KM</span>
                     </p>
                   </div>
                   <div>
