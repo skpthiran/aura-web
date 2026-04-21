@@ -179,7 +179,7 @@ export default function MomentDetailPage() {
 
       {/* CONTENT */}
       <div className="flex-1 flex flex-col lg:h-screen lg:overflow-y-auto">
-        <div className="flex-1 px-6 lg:px-10 pt-7 lg:pt-14 pb-36 lg:pb-10">
+        <div className="flex-1 px-6 lg:px-10 pt-7 lg:pt-14 pb-48 lg:pb-10">
 
           {/* Mobile title */}
           <div className="lg:hidden mb-6">
@@ -255,11 +255,12 @@ export default function MomentDetailPage() {
         </div>
 
         {/* MOBILE FIXED BOTTOM BAR */}
-        <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 px-4 pb-safe"
+        <div className="lg:hidden fixed left-0 right-0 z-[200] px-4"
           style={{
-            paddingBottom: 'max(24px, env(safe-area-inset-bottom))',
+            bottom: 'calc(64px + env(safe-area-inset-bottom))',
+            paddingBottom: '12px',
             paddingTop: '12px',
-            background: 'linear-gradient(to top, #08080f 70%, rgba(8,8,15,0.95) 85%, transparent)',
+            background: 'linear-gradient(to top, #08080f 60%, rgba(8,8,15,0.9) 80%, transparent)',
           }}>
           {isJoined ? (
             <button
