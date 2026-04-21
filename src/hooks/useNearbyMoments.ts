@@ -13,14 +13,14 @@ export function useNearbyMoments(radiusLabel: string = '50 KM') {
   const fetchMoments = useCallback(async () => {
     setLoading(true)
     setError(null)
-
     try {
       const user_lat = location?.latitude ?? 6.9271
       const user_lng = location?.longitude ?? 79.8612
       const radiusKm = getRadiusValue(radiusLabel)
-      const effective_radius = location ? radiusKm : 0
+      // Always respect the chosen radius — use Colombo as fallback coords if no GPS
+      const effective_radius = radiusKm
 
-      console.log('[useNearbyMoments] fetching — radius:', radiusLabel, '→', effective_radius, 'km')
+      console.log('[useNearbyMoments] fetching — radius:', radiusLabel, '→', effective_radius, 'km', 'at:', user_lat, user_lng)
 
       const { data, error: rpcError } = await supabase.rpc('nearby_moments', {
         user_lat,

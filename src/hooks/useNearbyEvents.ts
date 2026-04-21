@@ -13,12 +13,11 @@ export function useNearbyEvents(radiusLabel: string = '50 KM') {
   const fetchEvents = useCallback(async () => {
     setLoading(true)
     setError(null)
-
     try {
       const user_lat = location?.latitude ?? 6.9271
       const user_lng = location?.longitude ?? 79.8612
       const radiusKm = getRadiusValue(radiusLabel)
-      const effective_radius = location ? radiusKm : 0
+      const effective_radius = radiusKm
 
       console.log('[useNearbyEvents] fetching — radius:', radiusLabel, '→', effective_radius, 'km')
 
@@ -29,7 +28,6 @@ export function useNearbyEvents(radiusLabel: string = '50 KM') {
       })
 
       if (rpcError) throw rpcError
-      
       const allSignals = (data ?? []) as Moment[]
       setEvents(allSignals.filter(m => m.moment_type === 'event'))
     } catch (err) {
