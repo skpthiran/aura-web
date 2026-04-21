@@ -168,7 +168,7 @@ export default function EventsPage() {
   const [radius, setRadius] = useState<number>(DEFAULT_RADIUS)
   const [radiusOpen, setRadiusOpen] = useState(false)
 
-  const { events, loading, refetch, setEvents } = useNearbyEvents(location, radius)
+  const { events, loading, refetch, setEvents } = useNearbyEvents(radius)
   const { addToast } = useToast()
 
   const handleRealtimeInsert = useCallback((newMoment: Moment) => {

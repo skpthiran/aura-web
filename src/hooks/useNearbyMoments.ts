@@ -1,59 +1,50 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { Moment } from '../types'
-import { getNearbyMoments, getAllActiveMoments } from '../lib/db/moments'
-import { UserLocation } from '../types'
+import { supabase } from '../lib/supabase'
+import { useUserLocation } from './useUserLocation'
 
-export function useNearbyMoments(
-  location: UserLocation | null,
-  radiusKm: number = 50
-) {
+export function useNearbyMoments(radiusKm: number = 50) {
   const [moments, setMoments] = useState<Moment[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const locationRef = useRef(location)
-  const radiusRef = useRef(radiusKm)
+  const { location, loading: locationLoading } = useUserLocation()
   const fetchingRef = useRef(false)
 
-  useEffect(() => {
-    locationRef.current = location
-  }, [location])
-
-  useEffect(() => {
-    radiusRef.current = radiusKm
-  }, [radiusKm])
-
-  const fetchMoments = useCallback(async (radius?: number) => {
+  const fetchMoments = useCallback(async () => {
     if (fetchingRef.current) return
     fetchingRef.current = true
     setLoading(true)
     setError(null)
+
     try {
-      const loc = locationRef.current
-      const r = radius ?? radiusRef.current
-      let data: Moment[]
+      // Fallback to Colombo if GPS is unavailable
+      const user_lat = location?.latitude ?? 6.9271
+      const user_lng = location?.longitude ?? 79.8612
       
-      if (r === 0) { // Global
-        data = await getAllActiveMoments()
-      } else if (loc) {
-        // Use the km-based radius directly (migration updated RPC to take km)
-        data = await getNearbyMoments(loc.latitude, loc.longitude, r)
-      } else {
-        // Default to global if no location
-        data = await getAllActiveMoments()
-      }
-      setMoments(data)
+      // If no real GPS, force Global (0) to ensure app isn't empty
+      const effective_radius = location ? radiusKm : 0
+
+      const { data, error: rpcError } = await supabase.rpc('nearby_moments', {
+        user_lat,
+        user_lng,
+        radius_km: effective_radius
+      })
+
+      if (rpcError) throw rpcError
+      setMoments((data ?? []) as Moment[])
     } catch (err) {
+      console.error('[useNearbyMoments] Fetch error:', err)
       setError(err instanceof Error ? err.message : 'Failed to fetch')
     } finally {
       setLoading(false)
       fetchingRef.current = false
     }
-  }, [])
+  }, [location, radiusKm])
 
-  // Fetch when radius changes
   useEffect(() => {
-    fetchMoments(radiusKm)
-  }, [radiusKm, fetchMoments])
+    fetchMoments()
+  }, [fetchMoments])
 
-  return { moments, loading, error, refetch: fetchMoments, setMoments }
+  return { moments, loading: loading || locationLoading, error, refetch: fetchMoments, setMoments }
 }
+

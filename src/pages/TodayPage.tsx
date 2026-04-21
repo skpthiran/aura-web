@@ -169,7 +169,7 @@ export default function TodayPage() {
     setShowRadiusDropdown(o => !o)
   }
   
-  const { moments, loading, setMoments } = useNearbyMoments(location, selectedRadius)
+  const { moments, loading, setMoments } = useNearbyMoments(selectedRadius)
   const { addToast } = useToast()
 
   // Realtime Integration
