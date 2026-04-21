@@ -242,20 +242,25 @@ export default function MapPage() {
         el.style.transform = 'scale(1)';
       });
 
-      // Click handler
-      el.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const rect = el.getBoundingClientRect();
-        const mapRect = map.getContainer().getBoundingClientRect();
-        
-        setPopupPos({ 
-          x: rect.left - mapRect.left + rect.width / 2, 
-          y: rect.top - mapRect.top 
-        });
-        setSelectedMoment(moment);
-      });
+      // Prevent map drag on marker mousedown
+      el.addEventListener('mousedown', (e) => {
+        e.stopPropagation()
+      })
 
-      const marker = new Marker({ element: el, anchor: 'center' })
+      // Prevent map drag on marker touchstart
+      el.addEventListener('touchstart', (e) => {
+        e.stopPropagation()
+      }, { passive: true })
+
+      // Use pointerup for reliable click on both mobile and desktop
+      el.addEventListener('pointerup', (e) => {
+        e.stopPropagation()
+        e.preventDefault()
+        setSelectedMoment(moment)
+        setPopupPos({ x: (e as PointerEvent).clientX, y: (e as PointerEvent).clientY })
+      })
+
+      const marker = new Marker({ element: el, anchor: 'center', draggable: false })
         .setLngLat([moment.lng, moment.lat])
         .addTo(map);
 
