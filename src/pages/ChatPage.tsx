@@ -91,7 +91,7 @@ export default function ChatPage() {
   })
 
   return (
-    <div className="flex-1 flex overflow-hidden w-full h-full">
+    <div className="flex-1 flex overflow-hidden w-full h-[calc(100dvh-64px)] lg:h-full">
       
       {/* Left panel — moment list */}
       <div className={cn(
@@ -216,7 +216,7 @@ export default function ChatPage() {
         ) : (
           <>
             {/* Header info for mobile/active context */}
-            <div className="px-5 lg:px-6 py-4 lg:py-5 hairline-b bg-void/80 backdrop-blur-md flex items-center gap-4 safe-area-pt lg:safe-area-pt-0">
+            <div className="px-5 lg:px-6 py-4 lg:py-5 hairline-b bg-void/80 backdrop-blur-md flex items-center gap-4">
                <button 
                 onClick={() => setActiveMomentId(null)}
                 className="lg:hidden w-8 h-8 flex items-center justify-center rounded-full bg-white/5 border border-white/10"
@@ -316,9 +316,9 @@ export default function ChatPage() {
             </div>
 
             {/* Input area */}
-            <div className="p-4 bg-void/50 backdrop-blur-sm safe-area-pb lg:pb-6">
+            <div className="p-4 bg-void/50 backdrop-blur-sm lg:pb-6">
               <div className="max-w-4xl mx-auto flex gap-3 items-center glass-panel 
-                hairline-all bg-void/80 rounded-2xl px-4 py-2 focus-within:border-gold/30 transition-all shadow-xl">
+                hairline-all bg-void/90 rounded-2xl px-4 py-1.5 focus-within:border-gold/30 transition-all shadow-xl">
                 <input
                   value={input}
                   onChange={e => setInput(e.target.value)}
