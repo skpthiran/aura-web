@@ -164,6 +164,7 @@ export default function MapPage() {
   const mapRef = useRef<MapLibreMap | null>(null)
   const markersRef = useRef<Marker[]>([])
   const userMarkerRef = useRef<Marker | null>(null)
+  const mapClickHandlerRef = useRef<((e: any) => void) | null>(null)
   const hasFlownToUser = useRef(false)
 
   // Map Initialization
@@ -234,38 +235,46 @@ export default function MapPage() {
             <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
           </svg>`;
 
-      // Hover effect
-      el.addEventListener('mouseenter', () => {
-        el.style.transform = 'scale(1.2)';
-      });
-      el.addEventListener('mouseleave', () => {
-        el.style.transform = 'scale(1)';
-      });
-
-      // Prevent map drag on marker mousedown
-      el.addEventListener('mousedown', (e) => {
-        e.stopPropagation()
-      })
-
-      // Prevent map drag on marker touchstart
-      el.addEventListener('touchstart', (e) => {
-        e.stopPropagation()
-      }, { passive: true })
-
-      // Use pointerup for reliable click on both mobile and desktop
-      el.addEventListener('pointerup', (e) => {
-        e.stopPropagation()
-        e.preventDefault()
-        setSelectedMoment(moment)
-        setPopupPos({ x: (e as PointerEvent).clientX, y: (e as PointerEvent).clientY })
-      })
-
       const marker = new Marker({ element: el, anchor: 'center', draggable: false })
         .setLngLat([moment.lng, moment.lat])
         .addTo(map);
 
       markersRef.current.push(marker);
     });
+
+    // Clean up previous click handler
+    if (mapClickHandlerRef.current) {
+      map.off('click', mapClickHandlerRef.current)
+    }
+
+    // Store new handler ref
+    mapClickHandlerRef.current = (e: any) => {
+      const clickLng = e.lngLat.lng
+      const clickLat = e.lngLat.lat
+      const THRESHOLD = 0.008
+      const hit = visibleMoments.find((m: any) => 
+        Math.abs(m.lng - clickLng) < THRESHOLD && 
+        Math.abs(m.lat - clickLat) < THRESHOLD
+      )
+      if (hit) {
+        setSelectedMoment(hit)
+        setPopupPos({ x: e.point.x, y: e.point.y })
+      } else {
+        setSelectedMoment(null)
+      }
+    }
+
+    map.on('click', mapClickHandlerRef.current)
+
+    // Mouse move cursor pointer logic
+    map.on('mousemove', (e) => {
+      const THRESHOLD = 0.008
+      const near = visibleMoments.some((m: any) =>
+        Math.abs(m.lng - e.lngLat.lng) < THRESHOLD &&
+        Math.abs(m.lat - e.lngLat.lat) < THRESHOLD
+      )
+      map.getCanvas().style.cursor = near ? 'pointer' : ''
+    })
   }, [visibleMoments, mapLoaded])
 
   // User Position
