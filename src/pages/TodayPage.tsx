@@ -19,6 +19,7 @@ import { SignalCardSkeleton, SkeletonBlock } from '../components/Skeleton'
 import JoinedOverlay from '../components/JoinedOverlay'
 import { getRejectedIds, addRejectedId } from '../lib/cardState'
 import { useNavigate } from 'react-router-dom'
+import { RADIUS_OPTIONS, DEFAULT_RADIUS } from '../lib/radius'
 
 interface MomentGridCardProps {
   moment: Moment
@@ -154,7 +155,7 @@ export default function TodayPage() {
   const { location } = useUserLocation()
   const [activeTab, setActiveTab] = useState<'all' | 'moments' | 'events'>('all')
   
-  const [selectedRadius, setSelectedRadius] = useState('50 KM')
+  const [selectedRadius, setSelectedRadius] = useState<number>(DEFAULT_RADIUS)
   const [showRadiusDropdown, setShowRadiusDropdown] = useState(false)
   const radiusBtnRef = useRef<HTMLButtonElement>(null)
   const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0 })
@@ -168,8 +169,7 @@ export default function TodayPage() {
     setShowRadiusDropdown(o => !o)
   }
   
-  const radiusValue = parseInt(selectedRadius) || 50
-  const { moments, loading, setMoments } = useNearbyMoments(location, radiusValue * 1000)
+  const { moments, loading, setMoments } = useNearbyMoments(location, selectedRadius)
   const { addToast } = useToast()
 
   // Realtime Integration
@@ -192,7 +192,7 @@ export default function TodayPage() {
         newMoment.lng
       )
       
-      if (dist <= radiusValue * 1000) { 
+      if (selectedRadius === 0 || dist <= selectedRadius * 1000) { 
         addToast({
           title: newMoment.title,
           description: `New ${newMoment.moment_type === 'event' ? 'event' : 'signal'} detected nearby.`,
@@ -201,7 +201,7 @@ export default function TodayPage() {
         })
       }
     }
-  }, [location, radiusValue, addToast, setMoments])
+  }, [location, selectedRadius, addToast, setMoments])
 
   const handleRealtimeDelete = useCallback((id: string) => {
     setMoments(prev => prev.filter(m => m.id !== id))
@@ -409,7 +409,7 @@ export default function TodayPage() {
                 onClick={handleRadiusOpen}
                 className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-black/50 backdrop-blur-xl border border-white/10 text-white/50 text-[9px] tracking-[0.18em] uppercase hover:border-white/20 transition-all"
               >
-                {selectedRadius}
+                {RADIUS_OPTIONS.find(o => o.value === selectedRadius)?.label || `${selectedRadius} KM`}
                 {showRadiusDropdown
                   ? <ChevronUp className="w-3 h-3" />
                   : <ChevronDown className="w-3 h-3" />
@@ -686,14 +686,14 @@ export default function TodayPage() {
           style={{ position: 'fixed', top: dropdownPos.top, left: dropdownPos.left, zIndex: 9999 }}
           className="w-40 rounded-2xl border border-white/10 bg-[#0f0f1a]/95 backdrop-blur-2xl shadow-2xl overflow-hidden py-1"
         >
-          {['5 KM','10 KM','25 KM','50 KM','100 KM','Province','Country'].map(opt => (
+          {RADIUS_OPTIONS.map(opt => (
             <button
-              key={opt}
-              onClick={() => { setSelectedRadius(opt); setShowRadiusDropdown(false); }}
-              className="w-full px-5 py-3 text-left text-[10px] tracking-[0.15em] uppercase hover:bg-white/5 transition-all"
-              style={{ color: selectedRadius === opt ? '#c9a84c' : 'rgba(255,255,255,0.4)' }}
+              key={opt.value}
+              onClick={() => { setSelectedRadius(opt.value); setShowRadiusDropdown(false); }}
+              className="w-full px-5 py-3 text-left text-[10px] tracking-[0.15em] uppercase hover:bg-white/5 transition-all outline-none"
+              style={{ color: selectedRadius === opt.value ? '#c9a84c' : 'rgba(255,255,255,0.4)' }}
             >
-              {opt}
+              {opt.label}
             </button>
           ))}
         </div>,

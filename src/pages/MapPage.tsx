@@ -15,6 +15,7 @@ import { joinMoment, leaveMoment } from '../lib/db/moments'
 import { useRealtimeMoments } from '../hooks/useRealtimeMoments'
 import { supabase } from '../lib/supabase'
 import { getSignalImage } from '../lib/signalImage'
+import { RADIUS_OPTIONS, DEFAULT_RADIUS } from '../lib/radius'
 
 // Distance utility
 function haversineKm(
@@ -36,7 +37,7 @@ export default function MapPage() {
   const navigate = useNavigate()
   usePageTitle('Forum')
   const { location, error: locationError } = useUserLocation()
-  const [radius, setRadius] = useState('50 KM')
+  const [radius, setRadius] = useState<number>(DEFAULT_RADIUS)
   const [filter, setFilter] = useState<'ALL' | 'MOMENTS' | 'EVENTS'>('ALL')
   const [mapLoaded, setMapLoaded] = useState(false)
   const [selectedMoment, setSelectedMoment] = useState<Moment | null>(null)
@@ -45,29 +46,24 @@ export default function MapPage() {
   const { user: currentUser } = useAuth()
   const { addToast } = useToast()
 
-  const radiusMap: Record<string, number> = {
-    '5 KM': 5000,
-    '50 KM': 50000,
-    'PROVINCE': 150000,
-    'COUNTRY': 500000,
-    'GLOBAL': 999999999
-  }
-
-  const numericRadius = radiusMap[radius] || 50000
   const [moments, setMoments] = useState<Moment[]>([])
   const [loading, setLoading] = useState(true)
-
   const fetchMoments = useCallback(async () => {
+    if (!location) return;
     setLoading(true)
-    const { data, error } = await supabase.rpc('get_moments_map');
+    const { data, error } = await supabase.rpc('nearby_moments', {
+      user_lat: location.latitude,
+      user_lng: location.longitude,
+      radius_km: radius
+    });
     
     if (error) {
-      console.error('RPC get_moments_map error:', error);
+      console.error('RPC nearby_moments error:', error);
     } else if (data) {
       setMoments(data);
     }
     setLoading(false)
-  }, [])
+  }, [location, radius])
 
   useEffect(() => {
     fetchMoments()
@@ -75,16 +71,28 @@ export default function MapPage() {
 
   // Realtime Integration
   const handleRealtimeInsert = useCallback((newMoment: Moment) => {
-    setMoments(prev => {
-      const idx = prev.findIndex(m => m.id === newMoment.id)
-      if (idx >= 0) {
-        const next = [...prev]
-        next[idx] = newMoment
-        return next
-      }
-      return [newMoment, ...prev]
-    })
-  }, [])
+    if (!location) return;
+    
+    const dist = haversineKm(
+      location.latitude,
+      location.longitude,
+      newMoment.lat!,
+      newMoment.lng!
+    );
+    
+    // Check if within current radius
+    if (radius === 0 || dist <= radius) {
+      setMoments(prev => {
+        const idx = prev.findIndex(m => m.id === newMoment.id)
+        if (idx >= 0) {
+          const next = [...prev]
+          next[idx] = newMoment
+          return next
+        }
+        return [newMoment, ...prev]
+      })
+    }
+  }, [location, radius])
 
   const handleRealtimeDelete = useCallback((id: string) => {
     setMoments(prev => prev.filter(m => m.id !== id))
@@ -141,15 +149,6 @@ export default function MapPage() {
 
   const visibleMoments = useMemo(() => {
     return moments.filter(sig => {
-      const lat = sig.lat
-      const lng = sig.lng
-      if ((lat == null || lng == null) && numericRadius < 99999999) return false
-
-      if (numericRadius < 999999999 && location && lat != null && lng != null) {
-        const dKm = haversineKm(location.latitude, location.longitude, lat, lng)
-        if (dKm > numericRadius / 1000) return false
-      }
-
       const typeFilter = filter.toLowerCase()
       if (typeFilter !== 'all') {
         const momentType = sig.moment_type === 'moment' ? 'moments' : 'events'
@@ -157,7 +156,7 @@ export default function MapPage() {
       }
       return true
     })
-  }, [moments, numericRadius, location, filter])
+  }, [moments, filter])
 
   const mapContainer = useRef<HTMLDivElement>(null)
   const mapRef = useRef<MapLibreMap | null>(null)
@@ -490,18 +489,18 @@ export default function MapPage() {
 
       {/* ── BOTTOM RADIUS PILLS ── */}
       <div className="absolute bottom-32 lg:bottom-12 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2 max-w-[90vw] overflow-x-auto pb-2 scrollbar-none">
-        {['5 KM', '50 KM', 'PROVINCE', 'COUNTRY', 'GLOBAL'].map(r => (
+        {RADIUS_OPTIONS.map(opt => (
           <button
-            key={r}
-            onClick={() => setRadius(r)}
-            className="px-4 py-2 rounded-full text-[9px] font-bold tracking-[0.15em] uppercase transition-all duration-200 backdrop-blur-md"
+            key={opt.value}
+            onClick={() => setRadius(opt.value)}
+            className="px-4 py-2 rounded-full text-[9px] font-bold tracking-[0.15em] uppercase transition-all duration-200 backdrop-blur-md whitespace-nowrap"
             style={{
-              background: radius === r ? '#c9a84c' : 'rgba(8,8,15,0.7)',
-              color: radius === r ? '#08080f' : 'rgba(255,255,255,0.5)',
-              border: radius === r ? 'none' : '1px solid rgba(255,255,255,0.1)',
+              background: radius === opt.value ? '#c9a84c' : 'rgba(8,8,15,0.7)',
+              color: radius === opt.value ? '#08080f' : 'rgba(255,255,255,0.5)',
+              border: radius === opt.value ? 'none' : '1px solid rgba(255,255,255,0.1)',
             }}
           >
-            {r}
+            {opt.label}
           </button>
         ))}
       </div>
@@ -510,7 +509,7 @@ export default function MapPage() {
       <div className="absolute bottom-24 lg:bottom-6 left-1/2 -translate-x-1/2 z-10 flex items-center gap-3 whitespace-nowrap opacity-40">
         <span className="w-1 h-1 rounded-full bg-[#c9a84c] animate-pulse" />
         <span className="text-white text-[8px] tracking-[0.25em] uppercase">
-          {visibleMoments.length} Signals Captured · {radius} Range
+          {visibleMoments.length} Signals Captured · {RADIUS_OPTIONS.find(o => o.value === radius)?.label || `${radius} KM`} Range
         </span>
       </div>
 

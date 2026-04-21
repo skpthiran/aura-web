@@ -5,7 +5,7 @@ import { UserLocation } from '../types'
 
 export function useNearbyEvents(
   location: UserLocation | null,
-  radiusMeters: number = 50000
+  radiusKm: number = 50
 ) {
   const [events, setEvents] = useState<Moment[]>([])
   const [loading, setLoading] = useState(false)
@@ -17,25 +17,24 @@ export function useNearbyEvents(
     locationRef.current = location
   }, [location])
 
-  const fetchEvents = useCallback(async (radius?: number) => {
+  const fetchEvents = useCallback(async (rParam?: number) => {
     if (fetchingRef.current) return
     fetchingRef.current = true
     setLoading(true)
     setError(null)
     try {
       const loc = locationRef.current
-      const r = radius ?? radiusMeters
+      const r = rParam ?? radiusKm
       let data: Moment[]
       
-      if (r >= 99999999) {
+      if (r === 0) { // Global
         data = await getAllActiveMoments()
       } else if (loc) {
         data = await getNearbyMoments(loc.latitude, loc.longitude, r)
-        if (data.length === 0) {
-          data = await getAllActiveMoments()
-        }
       } else {
-        data = await getAllActiveMoments()
+        // No location and not global? Return empty or global?
+        // Standardizing: if no location and not global, return empty to prevent confusing user
+        data = []
       }
       setEvents(data.filter(m => m.moment_type === 'event'))
     } catch (err) {
@@ -44,12 +43,12 @@ export function useNearbyEvents(
       setLoading(false)
       fetchingRef.current = false
     }
-  }, [radiusMeters])
+  }, [radiusKm])
 
   // Fetch when radius changes
   useEffect(() => {
-    fetchEvents(radiusMeters)
-  }, [radiusMeters, fetchEvents])
+    fetchEvents(radiusKm)
+  }, [radiusKm, fetchEvents])
 
   return { events, loading, error, refetch: fetchEvents, setEvents }
 }

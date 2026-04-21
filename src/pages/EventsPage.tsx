@@ -14,6 +14,7 @@ import { useRealtimeMoments } from '../hooks/useRealtimeMoments'
 import JoinedOverlay from '../components/JoinedOverlay'
 import { getRejectedIds } from '../lib/cardState'
 import { supabase } from '../lib/supabase'
+import { RADIUS_OPTIONS, DEFAULT_RADIUS } from '../lib/radius'
 
 interface PremiumEventCardProps {
   event: Moment
@@ -164,11 +165,10 @@ export default function EventsPage() {
   const { user } = useAuth()
   const navigate = useNavigate()
   const { location } = useUserLocation()
-  const RADIUS_OPTIONS = [5, 10, 25, 50, 100, 500]
-  const [radius, setRadius] = useState<number>(50)
+  const [radius, setRadius] = useState<number>(DEFAULT_RADIUS)
   const [radiusOpen, setRadiusOpen] = useState(false)
 
-  const { events, loading, refetch, setEvents } = useNearbyEvents(location, radius * 1000)
+  const { events, loading, refetch, setEvents } = useNearbyEvents(location, radius)
   const { addToast } = useToast()
 
   const handleRealtimeInsert = useCallback((newMoment: Moment) => {
@@ -190,7 +190,7 @@ export default function EventsPage() {
         newMoment.lat,
         newMoment.lng
       )
-      if (dist <= radius * 1000) {
+      if (radius === 0 || dist <= radius * 1000) {
         addToast({
           title: newMoment.title,
           description: "New structured gathering initialized nearby.",
@@ -266,7 +266,7 @@ export default function EventsPage() {
                   className="flex items-center gap-3 px-5 py-2.5 rounded-full bg-white/[0.03] border border-white/10 text-white/70 text-[10px] font-black tracking-widest uppercase hover:bg-white/[0.06] transition-all"
                 >
                   <Radar className="w-3.5 h-3.5 text-gold" />
-                  {radius >= 500 ? 'Global' : `${radius} KM`}
+                  {RADIUS_OPTIONS.find(o => o.value === radius)?.label || `${radius} KM`}
                 </button>
                 
                 <AnimatePresence>
@@ -277,27 +277,18 @@ export default function EventsPage() {
                       exit={{ opacity: 0, y: 10, scale: 0.95 }}
                       className="absolute top-full mt-3 right-0 z-[100] min-w-[180px] bg-obsidian/95 backdrop-blur-2xl border border-white/10 rounded-2xl overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.5)]"
                     >
-                      {RADIUS_OPTIONS.map(r => (
+                       {RADIUS_OPTIONS.map(opt => (
                         <button
-                          key={r}
-                          onClick={() => { setRadius(r); setRadiusOpen(false); }}
+                          key={opt.value}
+                          onClick={() => { setRadius(opt.value); setRadiusOpen(false); }}
                           className={cn(
                             "w-full px-6 py-4 text-left text-[10px] font-bold tracking-[0.2em] uppercase transition-colors border-b border-white/[0.03]",
-                            radius === r ? "text-gold bg-gold/5" : "text-white/40 hover:bg-white/5 hover:text-white"
+                            radius === opt.value ? "text-gold bg-gold/5" : "text-white/40 hover:bg-white/5 hover:text-white"
                           )}
                         >
-                          {r} KM
+                          {opt.label}
                         </button>
                       ))}
-                      <button
-                        onClick={() => { setRadius(99999); setRadiusOpen(false); }}
-                        className={cn(
-                          "w-full px-6 py-4 text-left text-[10px] font-bold tracking-[0.2em] uppercase transition-colors",
-                          radius >= 99999 ? "text-gold bg-gold/5" : "text-white/40 hover:bg-white/5 hover:text-white"
-                        )}
-                      >
-                        Global
-                      </button>
                     </motion.div>
                   )}
                 </AnimatePresence>
