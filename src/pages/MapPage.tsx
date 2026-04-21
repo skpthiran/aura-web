@@ -1,23 +1,20 @@
-import { useEffect, useRef, useState, useCallback } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useEffect, useRef, useState, useCallback, useMemo } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'motion/react'
 import { Map as MapLibreMap, Marker } from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import { MAPTILER_STYLE } from '../lib/constants'
 import { useUserLocation } from '../hooks/useUserLocation'
-import { useNearbyMoments } from '../hooks/useNearbyMoments'
-import { joinMoment } from '../lib/db/moments'
-import { Crosshair, Search, Flame, Target, Users, Settings2, Target as Radar, Loader, Shield, X } from 'lucide-react'
+import { Search, Shield, X, Users, MapPin, ExternalLink, Flame, Lock } from 'lucide-react'
 import { cn } from '../lib/utils'
 import { Moment } from '../types'
 import { usePageTitle } from '../hooks/usePageTitle'
 import { useToast } from '../components/ToastProvider'
+import { useAuth } from '../contexts/AuthContext'
+import { joinMoment, leaveMoment } from '../lib/db/moments'
 import { useRealtimeMoments } from '../hooks/useRealtimeMoments'
-import { calculateDistance } from '../lib/utils'
 import { supabase } from '../lib/supabase'
 import { getSignalImage } from '../lib/signalImage'
-
-
 
 // Distance utility
 function haversineKm(
@@ -40,8 +37,14 @@ export default function MapPage() {
   usePageTitle('Forum')
   const { location, error: locationError } = useUserLocation()
   const [radius, setRadius] = useState('50 KM')
+  const [filter, setFilter] = useState<'ALL' | 'MOMENTS' | 'EVENTS'>('ALL')
   const [mapLoaded, setMapLoaded] = useState(false)
-  
+  const [selectedMoment, setSelectedMoment] = useState<Moment | null>(null)
+  const [popupPos, setPopupPos] = useState({ x: 0, y: 0 })
+  const [joinedIds, setJoinedIds] = useState<string[]>([]);
+  const { user: currentUser } = useAuth()
+  const { addToast } = useToast()
+
   const radiusMap: Record<string, number> = {
     '5 KM': 5000,
     '50 KM': 50000,
@@ -49,10 +52,6 @@ export default function MapPage() {
     'COUNTRY': 500000,
     'GLOBAL': 999999999
   }
-
-  const [filter, setFilter] = useState<'ALL' | 'MOMENTS' | 'EVENTS'>('ALL')
-  const [activeSignal, setActiveSignal] = useState<any>(null);
-  const [popupPos, setPopupPos] = useState({ x: 0, y: 0 });
 
   const numericRadius = radiusMap[radius] || 50000
   const [moments, setMoments] = useState<Moment[]>([])
@@ -74,9 +73,7 @@ export default function MapPage() {
     fetchMoments()
   }, [fetchMoments])
 
-  const { addToast } = useToast()
-
-  // Realtime Integration for Map
+  // Realtime Integration
   const handleRealtimeInsert = useCallback((newMoment: Moment) => {
     setMoments(prev => {
       const idx = prev.findIndex(m => m.id === newMoment.id)
@@ -87,135 +84,88 @@ export default function MapPage() {
       }
       return [newMoment, ...prev]
     })
-
-    if (location && newMoment.lat !== undefined && newMoment.lng !== undefined) {
-      const dist = calculateDistance(
-        location.latitude,
-        location.longitude,
-        newMoment.lat,
-        newMoment.lng
-      )
-      
-      if (dist <= numericRadius) {
-        addToast({
-          title: newMoment.title,
-          description: `Intercepted new ${newMoment.moment_type} at coordinates.`,
-          link: `/app/moment/${newMoment.id}`,
-          type: 'signal'
-        })
-      }
-    }
-  }, [location, numericRadius, addToast, setMoments])
+  }, [])
 
   const handleRealtimeDelete = useCallback((id: string) => {
     setMoments(prev => prev.filter(m => m.id !== id))
     setSelectedMoment(prev => prev?.id === id ? null : prev)
-  }, [setMoments])
+  }, [])
 
   useRealtimeMoments(handleRealtimeInsert, handleRealtimeDelete)
 
-  // === SIGNAL FILTERING ===
-  const visibleMoments: Moment[] = []
-  for (let idx = 0; idx < moments.length; idx++) {
-    const sig = moments[idx]
-    const lat = sig.lat
-    const lng = sig.lng
-    
-    if ((lat == null || lng == null) && numericRadius < 99999999) continue
-
-    if (numericRadius < 999999999 && location && lat != null && lng != null) {
-      const dKm = haversineKm(
-        location.latitude, location.longitude,
-        lat, lng
-      )
-      if (dKm > numericRadius / 1000) continue
-    }
-    const typeFilter = filter.toLowerCase()
-    if (typeFilter !== 'all') {
-      const momentType = sig.moment_type === 'moment' ? 'moments' : 'events'
-      if (typeFilter !== momentType) continue
-    }
-    visibleMoments.push(sig)
-  }
-
-  // Radius Circle Visualization
-  const updateRadiusCircle = useCallback(() => {
-    const map = mapRef.current
-    if (!map || !mapLoaded) return
-
-    const safeRemove = () => {
-      try {
-        if (map.getLayer('radius-fill')) map.removeLayer('radius-fill')
-        if (map.getLayer('radius-outline')) map.removeLayer('radius-outline')
-        if (map.getSource('radius-source')) map.removeSource('radius-source')
-      } catch {}
-    }
-
-    if (!location || numericRadius >= 999999999) {
-      safeRemove()
-      return
-    }
-
-    const radiusKm = numericRadius / 1000
-    const points = 64
-    const coords: [number, number][] = Array.from({ length: points + 1 }, (_, i) => {
-      const angle = (i / points) * 2 * Math.PI
-      const lat = location.latitude + (radiusKm / 111.32) * Math.cos(angle)
-      const lng = location.longitude +
-        (radiusKm / (111.32 * Math.cos(location.latitude * Math.PI / 180))) * Math.sin(angle)
-      return [lng, lat]
-    })
-
-    const geojsonData = {
-      type: 'Feature' as const,
-      properties: {},
-      geometry: {
-        type: 'Polygon' as const,
-        coordinates: [coords]
-      }
-    }
-
-    try {
-      if (map.getSource('radius-source')) {
-        (map.getSource('radius-source') as any).setData(geojsonData)
-      } else {
-        map.addSource('radius-source', { type: 'geojson', data: geojsonData })
-        map.addLayer({
-          id: 'radius-fill',
-          type: 'fill',
-          source: 'radius-source',
-          paint: { 'fill-color': '#C9A84C', 'fill-opacity': 0.04 }
-        })
-        map.addLayer({
-          id: 'radius-outline',
-          type: 'line',
-          source: 'radius-source',
-          paint: {
-            'line-color': '#C9A84C',
-            'line-opacity': 0.3,
-            'line-width': 1.5,
-            'line-dasharray': [4, 4]
-          }
-        })
-      }
-    } catch (err) {
-      console.warn('Radius circle error:', err)
-    }
-  }, [location, numericRadius, mapLoaded])
-
+  // Fetch joined status
   useEffect(() => {
-    updateRadiusCircle()
-  }, [updateRadiusCircle])
+    if (!currentUser) return;
+    supabase
+      .from('participants')
+      .select('moment_id')
+      .eq('user_id', currentUser.id)
+      .eq('status', 'joined')
+      .then(({ data }) => {
+        if (data) setJoinedIds(data.map(d => d.moment_id));
+      });
+  }, [currentUser]);
 
-  const [selectedMoment, setSelectedMoment] = useState<Moment | null>(null)
-  const [isJoining, setIsJoining] = useState(false)
-  const [hasJoined, setHasJoined] = useState(false)
+  const handleJoin = async (momentId: string) => {
+    if (!currentUser) {
+      addToast({ title: 'Authentication Required', description: 'Please sign in to join signals.', type: 'info' });
+      return;
+    }
+    try {
+      await joinMoment(momentId);
+      setJoinedIds(prev => [...prev, momentId]);
+      addToast({ 
+        title: 'Signal Locked', 
+        description: 'Connection established. Channel secure.', 
+        type: 'signal' 
+      });
+    } catch (err) {
+      console.error('Join failed:', err);
+    }
+  };
+
+  const handleLeave = async (momentId: string) => {
+    if (!currentUser) return;
+    try {
+      await leaveMoment(momentId);
+      setJoinedIds(prev => prev.filter(id => id !== momentId));
+      addToast({ 
+        title: 'Connection Terminated', 
+        description: 'Frequency connection released.', 
+        type: 'info' 
+      });
+    } catch (err) {
+      console.error('Leave failed:', err);
+    }
+  };
+
+  const visibleMoments = useMemo(() => {
+    return moments.filter(sig => {
+      const lat = sig.lat
+      const lng = sig.lng
+      if ((lat == null || lng == null) && numericRadius < 99999999) return false
+
+      if (numericRadius < 999999999 && location && lat != null && lng != null) {
+        const dKm = haversineKm(location.latitude, location.longitude, lat, lng)
+        if (dKm > numericRadius / 1000) return false
+      }
+
+      const typeFilter = filter.toLowerCase()
+      if (typeFilter !== 'all') {
+        const momentType = sig.moment_type === 'moment' ? 'moments' : 'events'
+        if (typeFilter !== momentType) return false
+      }
+      return true
+    })
+  }, [moments, numericRadius, location, filter])
+
   const mapContainer = useRef<HTMLDivElement>(null)
   const mapRef = useRef<MapLibreMap | null>(null)
+  const markersRef = useRef<{ [id: string]: Marker }>({})
   const userMarkerRef = useRef<Marker | null>(null)
   const hasFlownToUser = useRef(false)
-  const markersRef = useRef<{ [id: string]: Marker }>({})
 
+  // Map Initialization
   useEffect(() => {
     if (!mapContainer.current || mapRef.current) return
 
@@ -229,80 +179,8 @@ export default function MapPage() {
     })
 
     mapRef.current = map
-
-    const createMomentIcon = () => {
-      const el = document.createElement('div');
-      el.innerHTML = `
-        <div style="
-          position: relative;
-          width: 36px; height: 36px;
-          cursor: pointer;
-          filter: drop-shadow(0 0 8px rgba(201,168,76,0.7));
-        ">
-          <svg width="36" height="36" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="18" cy="18" r="16" fill="#08080f" stroke="#c9a84c" stroke-width="1.5"/>
-            <circle cx="18" cy="18" r="6" fill="#c9a84c"/>
-            <circle cx="18" cy="18" r="10" fill="#c9a84c" fill-opacity="0.15"/>
-          </svg>
-        </div>
-      `;
-      el.style.cssText = 'width:36px;height:36px;cursor:pointer;';
-      return el;
-    };
-
-    const createEventIcon = () => {
-      const el = document.createElement('div');
-      el.innerHTML = `
-        <div style="
-          position: relative;
-          width: 36px; height: 42px;
-          cursor: pointer;
-          filter: drop-shadow(0 0 8px rgba(255,255,255,0.3));
-        ">
-          <svg width="36" height="42" viewBox="0 0 36 42" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M18 2C10.268 2 4 8.268 4 16c0 10 14 24 14 24S32 26 32 16C32 8.268 25.732 2 18 2z" 
-              fill="#08080f" stroke="rgba(255,255,255,0.5)" stroke-width="1.5"/>
-            <path d="M18 2C10.268 2 4 8.268 4 16c0 10 14 24 14 24S32 26 32 16C32 8.268 25.732 2 18 2z" 
-              fill="rgba(255,255,255,0.05)"/>
-            <rect x="13" y="10" width="10" height="2" rx="1" fill="white" fill-opacity="0.8"/>
-            <rect x="13" y="14" width="7" height="2" rx="1" fill="white" fill-opacity="0.5"/>
-            <circle cx="18" cy="20" r="2" fill="rgba(201,168,76,0.8)"/>
-          </svg>
-        </div>
-      `;
-      el.style.cssText = 'width:36px;height:42px;cursor:pointer;';
-      return el;
-    };
-
-    const addMomentsToMap = (mMap: MapLibreMap, momentsData: any[]) => {
-      momentsData.forEach((m) => {
-        if (!m.lat || !m.lng) return;
-        const el = m.moment_type === 'event' ? createEventIcon() : createMomentIcon();
-        
-        el.addEventListener('click', (e) => {
-          e.stopPropagation();
-          const rect = el.getBoundingClientRect();
-          const mapContainerRect = mMap.getContainer().getBoundingClientRect();
-          setPopupPos({
-            x: rect.left - mapContainerRect.left + rect.width / 2,
-            y: rect.top - mapContainerRect.top,
-          });
-          setActiveSignal(m);
-        });
-
-        new Marker({ element: el })
-          .setLngLat([m.lng, m.lat])
-          .addTo(mMap);
-      });
-    };
-
-    map.on('load', async () => {
-      setMapLoaded(true)
-      const { data } = await supabase.rpc('get_moments_map');
-      if (data) addMomentsToMap(map, data);
-    })
-
-    map.on('click', () => setActiveSignal(null));
+    map.on('load', () => setMapLoaded(true))
+    map.on('click', () => setSelectedMoment(null))
 
     return () => {
       map.remove()
@@ -310,22 +188,71 @@ export default function MapPage() {
     }
   }, [])
 
+  // Manage Markers
   useEffect(() => {
-    if (location && !hasFlownToUser.current && mapRef.current) {
-      mapRef.current.flyTo({
-        center: [location.longitude, location.latitude],
-        zoom: 15,
-        duration: 2000
-      })
-      hasFlownToUser.current = true
-    }
-  }, [location])
+    const map = mapRef.current
+    if (!map || !mapLoaded) return
 
+    // Remove old markers that are no longer visible
+    Object.keys(markersRef.current).forEach(id => {
+      if (!visibleMoments.find(m => m.id === id)) {
+        markersRef.current[id].remove()
+        delete markersRef.current[id]
+      }
+    })
+
+    // Add/Update markers for visible moments
+    visibleMoments.forEach(m => {
+      if (!m.lat || !m.lng) return
+      
+      if (markersRef.current[m.id]) {
+        markersRef.current[m.id].setLngLat([m.lng, m.lat])
+      } else {
+        const el = document.createElement('div')
+        el.className = 'cursor-pointer group'
+        const isEvent = m.moment_type === 'event'
+        
+        el.innerHTML = isEvent ? `
+          <div class="relative w-9 h-11 flex items-center justify-center filter drop-shadow-[0_0_10px_rgba(255,255,255,0.3)] transition-transform group-hover:scale-110">
+            <svg width="36" height="42" viewBox="0 0 36 42" fill="none">
+              <path d="M18 2C10.268 2 4 8.268 4 16c0 10 14 24 14 24S32 26 32 16C32 8.268 25.732 2 18 2z" fill="#08080f" stroke="rgba(255,255,255,0.5)" stroke-width="1.5"/>
+              <circle cx="18" cy="16" r="6" fill="#c9a84c" fill-opacity="0.8"/>
+            </svg>
+          </div>
+        ` : `
+          <div class="relative w-9 h-9 flex items-center justify-center filter drop-shadow-[0_0_10px_rgba(201,168,76,0.5)] transition-transform group-hover:scale-110">
+            <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
+              <circle cx="18" cy="18" r="16" fill="#08080f" stroke="#c9a84c" stroke-width="1.5"/>
+              <circle cx="18" cy="18" r="6" fill="#c9a84c"/>
+              <circle cx="18" cy="18" r="10" fill="#c9a84c" fill-opacity="0.15"/>
+            </svg>
+          </div>
+        `
+
+        el.addEventListener('click', (e) => {
+          e.stopPropagation()
+          const rect = el.getBoundingClientRect()
+          const mapRect = map.getContainer().getBoundingClientRect()
+          setPopupPos({
+            x: rect.left - mapRect.left + rect.width / 2,
+            y: rect.top - mapRect.top
+          })
+          setSelectedMoment(m)
+        })
+
+        const marker = new Marker({ element: el })
+          .setLngLat([m.lng, m.lat])
+          .addTo(map)
+        markersRef.current[m.id] = marker
+      }
+    })
+  }, [visibleMoments, mapLoaded])
+
+  // User Position
   useEffect(() => {
     if (!mapRef.current || !location) return
     if (!userMarkerRef.current) {
       const el = document.createElement('div')
-      el.className = 'user-marker'
       el.innerHTML = `
         <div class="relative flex items-center justify-center">
           <div class="absolute w-8 h-8 bg-[#4A90E2] rounded-full opacity-20 animate-ping"></div>
@@ -339,6 +266,19 @@ export default function MapPage() {
       userMarkerRef.current.setLngLat([location.longitude, location.latitude])
     }
   }, [location])
+
+  // Initial Fly To
+  useEffect(() => {
+    if (location && !hasFlownToUser.current && mapRef.current) {
+      mapRef.current.flyTo({
+        center: [location.longitude, location.latitude],
+        zoom: 14,
+        duration: 2500
+      })
+      hasFlownToUser.current = true
+    }
+  }, [location])
+
   const recenterMap = () => {
     if (mapRef.current && location) {
       mapRef.current.flyTo({
@@ -349,23 +289,8 @@ export default function MapPage() {
     }
   }
 
-
-  const handleJoinMoment = async () => {
-    if (!selectedMoment) return
-    setIsJoining(true)
-    try {
-      await joinMoment(selectedMoment.id)
-      setHasJoined(true)
-      fetchMoments()
-    } catch (err: any) {
-      console.error('Failed to join moment:', err)
-    } finally {
-      setIsJoining(false)
-    }
-  }
-
   return (
-    <div className="relative w-full h-screen bg-[#08080f] overflow-hidden flex flex-col">
+    <div className="relative w-full h-screen bg-[#08080f] overflow-hidden flex flex-col font-sans">
 
       {/* ── HEADER ── */}
       <div className="absolute top-0 left-0 right-0 z-20 px-4 lg:px-8 pt-7 pb-4"
@@ -376,173 +301,200 @@ export default function MapPage() {
           <span className="text-white/20 text-[8px] lg:text-[10px] tracking-[0.25em] uppercase">Geospatial Intelligence</span>
         </div>
 
-        {/* Search bar */}
-        <div className="relative mb-4 max-w-sm">
-          <div className="flex items-center gap-3 px-4 py-3 rounded-xl border border-white/8 bg-white/[0.03] backdrop-blur-md">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-            <input
-              type="text"
-              placeholder="TARGET COORDINATES / EVENT SEARCH"
-              className="flex-1 bg-transparent text-white/50 text-[10px] tracking-[0.18em] uppercase placeholder:text-white/20 outline-none"
-            />
+        {/* Search & Filter bar */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 max-w-4xl">
+          <div className="relative flex-1">
+            <div className="flex items-center gap-3 px-4 py-3 rounded-xl border border-white/8 bg-white/[0.03] backdrop-blur-md">
+              <Search className="w-3.5 h-3.5 text-white/30" />
+              <input
+                type="text"
+                placeholder="TARGET COORDINATES / EVENT SEARCH"
+                className="flex-1 bg-transparent text-white/50 text-[10px] tracking-[0.18em] uppercase placeholder:text-white/20 outline-none"
+              />
+            </div>
+            <div className="absolute left-0 bottom-0 h-px w-1/3 bg-gradient-to-r from-[#c9a84c]/40 to-transparent" />
           </div>
-          <div className="absolute left-0 bottom-0 h-px w-1/3 bg-gradient-to-r from-[#c9a84c]/40 to-transparent" />
-        </div>
 
-        {/* Filter pills */}
-        <div className="flex items-center gap-2">
-          {(['ALL', 'MOMENTS', 'EVENTS'] as const).map(f => (
-            <button
-              key={f}
-              onClick={() => setFilter(f)}
-              className="px-4 py-1.5 rounded-full text-[9px] font-bold tracking-[0.18em] uppercase transition-all duration-200"
-              style={{
-                background: filter === f ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.05)',
-                color: filter === f ? '#08080f' : 'rgba(255,255,255,0.45)',
-                border: filter === f ? 'none' : '1px solid rgba(255,255,255,0.08)',
-              }}
-            >
-              {f}
-            </button>
-          ))}
+          <div className="flex items-center gap-2">
+            {(['ALL', 'MOMENTS', 'EVENTS'] as const).map(f => (
+              <button
+                key={f}
+                onClick={() => {
+                  setFilter(f);
+                  setSelectedMoment(null);
+                }}
+                className="px-4 py-2 rounded-full text-[9px] font-bold tracking-[0.18em] uppercase transition-all duration-200 border"
+                style={{
+                  background: filter === f ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.05)',
+                  color: filter === f ? '#08080f' : 'rgba(255,255,255,0.45)',
+                  borderColor: filter === f ? 'transparent' : 'rgba(255,255,255,0.08)',
+                }}
+              >
+                {f}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
       {/* ── MAP ── */}
       <div ref={mapContainer} className="absolute inset-0 w-full h-full" />
 
-      {/* ── POPUP (keep existing activeSignal popup JSX here unchanged) ── */}
-      {activeSignal && (
-        <div
-          className="absolute z-50 pointer-events-auto"
-          style={{
-            position: 'absolute',
-            left: Math.min(popupPos.x, window.innerWidth - 320) + 'px',
-            top: (popupPos.y - 20) + 'px',
-            transform: 'translate(-50%, -100%)',
-            zIndex: 50,
-            filter: 'drop-shadow(0 20px 40px rgba(0,0,0,0.8))',
-          }}
-        >
-          <div style={{
-            width: '300px',
-            borderRadius: '16px',
-            overflow: 'hidden',
-            border: '1px solid rgba(255,255,255,0.1)',
-            background: '#0f0f1a',
-            boxShadow: '0 25px 60px rgba(0,0,0,0.9)',
-          }}>
-            
-            {/* Image or gradient header */}
-            <div className="relative h-[140px] overflow-hidden">
-              {(() => {
-                const cardImage = activeSignal?.image_url 
-                  || getSignalImage(activeSignal?.id, activeSignal?.tags, activeSignal?.moment_type);
-                return (
-                  <img 
-                    src={cardImage}
-                    className="w-full h-full object-cover"
-                    onError={(e) => { e.currentTarget.src = `https://picsum.photos/seed/${activeSignal?.id}/600/400`; }}
-                  />
-                );
-              })()}
-              <div className="absolute inset-0 bg-gradient-to-t from-[#08080f] via-transparent to-transparent" />
+      {/* ── SELECTED MOMENT UI ── */}
+      <AnimatePresence>
+        {selectedMoment && (
+          <>
+            {/* Desktop Overlay Background */}
+            <div 
+              className="hidden lg:block absolute inset-0 z-[40]" 
+              onClick={() => setSelectedMoment(null)} 
+            />
+
+            {/* Signal Details Content */}
+            {(() => {
+              const isJoined = joinedIds.includes(selectedMoment.id);
+              const cardImage = getSignalImage(selectedMoment.id, selectedMoment.tags || [], selectedMoment.moment_type);
+              const isEvent = selectedMoment.moment_type === 'event';
               
-              {/* Close button */}
-              <button
-                onClick={() => setActiveSignal(null)}
-                className="absolute top-3 right-3 w-7 h-7 rounded-full bg-black/60 backdrop-blur-xl border border-white/10 flex items-center justify-center hover:bg-white/10 transition-all"
-              >
-                <span className="text-white/60 text-[12px] leading-none">✕</span>
-              </button>
+              const CardContent = (
+                <div className="bg-[#0f0f1a] border border-white/10 rounded-2xl overflow-hidden shadow-2xl">
+                  {/* Image Section */}
+                  <div className="relative h-40 overflow-hidden">
+                    <img 
+                      src={cardImage} 
+                      alt={selectedMoment.title} 
+                      className="w-full h-full object-cover"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-[#0f0f1a] to-transparent" />
+                    
+                    {/* Lock Overlay if Joined */}
+                    {isJoined && (
+                      <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/40 backdrop-blur-[2px] z-10">
+                        <Lock className="w-8 h-8 text-[#c9a84c]/80 mb-1" />
+                        <span className="text-[8px] font-black tracking-[0.2em] uppercase text-[#c9a84c]">Joined Signal</span>
+                      </div>
+                    )}
 
-              {/* Type badge */}
-              <div className="absolute top-3 left-3 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-black/60 backdrop-blur-xl border border-[#c9a84c]/30">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#c9a84c] animate-pulse" />
-                <span className="text-[8px] font-black tracking-[0.18em] uppercase text-[#c9a84c]">
-                  {activeSignal.moment_type || 'Moment'}
-                </span>
-              </div>
+                    <div className="absolute top-3 left-3 px-2 py-1 rounded-full bg-black/60 border border-white/10 flex items-center gap-1.5">
+                      <span className={cn("w-1 h-1 rounded-full", isEvent ? "bg-white" : "bg-[#c9a84c]")} />
+                      <span className="text-[7px] font-bold tracking-widest uppercase text-white/70">
+                        {selectedMoment.moment_type}
+                      </span>
+                    </div>
 
-              {/* Title over bottom of image */}
-              <div className="absolute bottom-0 left-0 right-0 px-4 pb-3">
-                <h3 className="text-white font-black uppercase text-[16px] tracking-[0.05em] leading-tight drop-shadow-lg line-clamp-2">
-                  {activeSignal.title}
-                </h3>
-              </div>
-            </div>
+                    <div className="absolute bottom-3 left-4 right-4">
+                      <h3 className="text-white font-black uppercase text-sm tracking-tight leading-tight line-clamp-2">
+                        {selectedMoment.title}
+                      </h3>
+                    </div>
+                  </div>
 
-            {/* Content */}
-            <div className="px-4 pt-3 pb-4" style={{ background: '#0f0f1a' }}>
-              {/* Tags */}
-              {activeSignal.tags?.length > 0 && (
-                <div className="flex flex-wrap gap-1.5 mb-3">
-                  {activeSignal.tags.slice(0, 3).map((tag: string) => (
-                    <span key={tag} className="px-2 py-0.5 rounded-full bg-white/5 border border-white/8 text-white/40 text-[8px] tracking-widest uppercase">
-                      #{tag}
-                    </span>
-                  ))}
+                  {/* Body Section */}
+                  <div className="p-4 pt-3">
+                    {/* Metadata Row */}
+                    <div className="flex items-center gap-4 mb-4">
+                      <div className="flex items-center gap-1.5 text-white/40 text-[9px]">
+                        <Users size={12} className="text-[#c9a84c]/50" />
+                        <span>{selectedMoment.participant_count ?? 0}</span>
+                      </div>
+                      <div className="flex items-center gap-1.5 text-white/40 text-[9px]">
+                        <MapPin size={12} className="text-[#c9a84c]/50" />
+                        <span>Nearby</span>
+                      </div>
+                      <div className="flex-1 text-right">
+                        <span className="text-[8px] tracking-widest uppercase text-white/20">
+                          by {selectedMoment.creator?.username || 'Anonymous'}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Actions */}
+                    <div className="grid grid-cols-3 gap-2">
+                      <button
+                        onClick={() => setSelectedMoment(null)}
+                        className="py-2.5 rounded-xl border border-white/5 bg-white/[0.02] text-white/30 text-[8px] font-black tracking-widest uppercase hover:text-red-400 hover:border-red-400/30 transition-all">
+                        Reject
+                      </button>
+                      
+                      {isJoined ? (
+                        <button
+                          onClick={() => handleLeave(selectedMoment.id)}
+                          className="py-2.5 rounded-xl border border-red-500/30 bg-red-500/10 text-red-400 text-[8px] font-black tracking-widest uppercase transition-all">
+                          Leave
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => handleJoin(selectedMoment.id)}
+                          className="py-2.5 rounded-xl text-void text-[8px] font-black tracking-widest uppercase transition-all shadow-lg shadow-[#c9a84c]/20"
+                          style={{ background: 'linear-gradient(135deg, #c9a84c, #dfc070)' }}>
+                          Join
+                        </button>
+                      )}
+
+                      <button
+                        onClick={() => {
+                          navigate(`/app/${isEvent ? 'event' : 'moment'}/${selectedMoment.id}`);
+                          setSelectedMoment(null);
+                        }}
+                        className="py-2.5 rounded-xl bg-white/[0.06] border border-white/10 text-white/60 text-[8px] font-black tracking-widest uppercase hover:bg-white/[0.1] transition-all flex items-center justify-center gap-1">
+                        Go <ExternalLink size={8} />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Desktop Pointer */}
+                  <div className="hidden lg:block absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-3 h-3 bg-[#0f0f1a] border-r border-b border-white/10 rotate-45" />
                 </div>
-              )}
+              );
 
-              {/* Stats row */}
-              <div className="flex items-center gap-4 mb-4">
-                <div className="flex items-center gap-1.5 text-white/40 text-[10px]">
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-                  <span>{activeSignal.participant_count ?? 0} attending</span>
-                </div>
-                <div className="flex items-center gap-1.5 text-white/40 text-[10px]">
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                  <span>{activeSignal.creator?.username || 'Anonymous'}</span>
-                </div>
-              </div>
+              return (
+                <>
+                  {/* MOBILE BOTTOM SHEET */}
+                  <motion.div
+                    initial={{ y: '100%' }}
+                    animate={{ y: 0 }}
+                    exit={{ y: '100%' }}
+                    transition={{ type: 'spring', damping: 25, stiffness: 220 }}
+                    className="lg:hidden fixed left-0 right-0 z-[100] px-4 pointer-events-none"
+                    style={{ bottom: 'calc(64px + 12px + env(safe-area-inset-bottom))' }}
+                  >
+                    <div className="w-full max-w-md mx-auto pointer-events-auto">
+                      {CardContent}
+                    </div>
+                  </motion.div>
 
-              {/* Action buttons */}
-              <div className="grid grid-cols-3 gap-2" style={{ background: '#0f0f1a' }}>
-                <button
-                  onClick={() => setActiveSignal(null)}
-                  className="py-2.5 rounded-xl border border-white/8 bg-white/[0.03] text-white/35 text-[9px] font-bold tracking-[0.15em] uppercase hover:border-red-500/20 hover:text-red-400/50 transition-all">
-                  Reject
-                </button>
-                <button
-                  onClick={() => {
-                    // handle join logic if needed, or just close
-                    setActiveSignal(null);
-                  }}
-                  className="py-2.5 rounded-xl border border-[#c9a84c]/30 bg-[#c9a84c]/10 text-[#c9a84c] text-[9px] font-bold tracking-[0.15em] uppercase hover:bg-[#c9a84c]/20 transition-all">
-                  Join
-                </button>
-                <button
-                  onClick={() => {
-                    navigate(`/app/${activeSignal.moment_type === 'event' ? 'event' : 'moment'}/${activeSignal.id}`);
-                    setActiveSignal(null);
-                  }}
-                  className="py-2.5 rounded-xl bg-white/[0.06] border border-white/10 text-white/60 text-[9px] font-bold tracking-[0.15em] uppercase hover:bg-white/[0.1] transition-all">
-                  Details
-                </button>
-              </div>
-            </div>
-
-            {/* Pointer arrow */}
-            <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-2 overflow-hidden">
-              <div className="w-4 h-4 bg-[#0f0f1a] border-r border-b border-white/10 rotate-45 -translate-y-2" />
-            </div>
-          </div>
-        </div>
-      )}
+                  {/* DESKTOP FLOATING CARD */}
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.9, y: 10 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.9, y: 10 }}
+                    className="hidden lg:block absolute z-[100] w-[300px] pointer-events-auto"
+                    style={{
+                      left: popupPos.x,
+                      top: popupPos.y,
+                      transform: 'translate(-50%, calc(-100% - 24px))'
+                    }}
+                  >
+                    {CardContent}
+                  </motion.div>
+                </>
+              );
+            })()}
+          </>
+        )}
+      </AnimatePresence>
 
       {/* ── BOTTOM RADIUS PILLS ── */}
-      <div className="absolute bottom-32 lg:bottom-20 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2 max-w-[90vw] overflow-x-auto pb-2 scrollbar-none">
+      <div className="absolute bottom-32 lg:bottom-12 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2 max-w-[90vw] overflow-x-auto pb-2 scrollbar-none">
         {['5 KM', '50 KM', 'PROVINCE', 'COUNTRY', 'GLOBAL'].map(r => (
           <button
             key={r}
             onClick={() => setRadius(r)}
-            className="px-4 py-2 rounded-full text-[9px] font-bold tracking-[0.15em] uppercase transition-all duration-200"
+            className="px-4 py-2 rounded-full text-[9px] font-bold tracking-[0.15em] uppercase transition-all duration-200 backdrop-blur-md"
             style={{
-              background: radius === r ? '#c9a84c' : 'rgba(8,8,15,0.85)',
+              background: radius === r ? '#c9a84c' : 'rgba(8,8,15,0.7)',
               color: radius === r ? '#08080f' : 'rgba(255,255,255,0.5)',
               border: radius === r ? 'none' : '1px solid rgba(255,255,255,0.1)',
-              backdropFilter: 'blur(12px)',
             }}
           >
             {r}
@@ -551,26 +503,28 @@ export default function MapPage() {
       </div>
 
       {/* ── STATUS BAR ── */}
-      <div className="absolute bottom-24 lg:bottom-8 left-1/2 -translate-x-1/2 z-20 flex items-center gap-3 whitespace-nowrap">
-        <span className="w-1.5 h-1.5 rounded-full bg-[#c9a84c] animate-pulse" />
-        <span className="text-white/30 text-[9px] tracking-[0.22em] uppercase">
-          {moments.length} Active Signal{moments.length !== 1 ? 's' : ''} · Live Radius: {radius}
+      <div className="absolute bottom-24 lg:bottom-6 left-1/2 -translate-x-1/2 z-10 flex items-center gap-3 whitespace-nowrap opacity-40">
+        <span className="w-1 h-1 rounded-full bg-[#c9a84c] animate-pulse" />
+        <span className="text-white text-[8px] tracking-[0.25em] uppercase">
+          {visibleMoments.length} Signals Captured · {radius} Range
         </span>
       </div>
 
-      {/* ── RECENTER BUTTON ── */}
-      <button
-        onClick={recenterMap}
-        className="absolute top-7 right-7 z-20 w-10 h-10 rounded-full bg-black/60 backdrop-blur-xl border border-white/10 flex items-center justify-center hover:border-white/20 transition-all"
-      >
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.6)" strokeWidth="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/></svg>
-      </button>
+      {/* ── UTILITY BUTTONS ── */}
+      <div className="absolute top-24 right-4 lg:top-8 lg:right-8 z-20 flex flex-col gap-3">
+        <button
+          onClick={recenterMap}
+          className="w-10 h-10 rounded-full bg-black/60 backdrop-blur-xl border border-white/10 flex items-center justify-center hover:border-white/20 transition-all text-white/60"
+        >
+          <Flame className="w-4 h-4" />
+        </button>
+      </div>
 
       {/* Location Error Toast */}
       {locationError && (
         <div className="absolute top-24 left-1/2 -translate-x-1/2 z-30 flex items-center gap-3 px-4 py-2 rounded-lg bg-red-500/10 border border-red-500/30 backdrop-blur-md">
           <Shield className="w-3 h-3 text-red-400" />
-          <span className="text-[9px] text-red-400 tracking-widest uppercase font-bold">Signal Interference / Position Unavailable</span>
+          <span className="text-[9px] text-red-400 tracking-widest uppercase font-bold">Signal Interference</span>
         </div>
       )}
 

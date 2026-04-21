@@ -38,6 +38,10 @@ export interface Moment {
   age_min?: number
   age_max?: number
   image_url?: string
+  creator?: {
+    username: string | null
+    avatar_url?: string | null
+  }
 }
 
 export interface MapPin {
