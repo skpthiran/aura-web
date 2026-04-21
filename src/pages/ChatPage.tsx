@@ -95,13 +95,13 @@ export default function ChatPage() {
       
       {/* Left panel — moment list */}
       <div className={cn(
-        "w-full lg:w-72 shrink-0 hairline-r flex flex-col glass-panel bg-void/50",
+        "w-full lg:w-80 shrink-0 hairline-r flex flex-col glass-panel bg-void/50 border-r border-white/[0.04]",
         activeMomentId && "hidden lg:flex"
       )}>
-        <div className="p-5 hairline-b flex items-center justify-between">
+        <div className="p-5 lg:px-6 lg:py-7 hairline-b border-t border-[#c9a84c]/10 flex items-center justify-between">
           <div>
             <p className="micro-caps text-gold text-xs mb-1">Channels</p>
-            <h2 className="font-serif text-xl text-marble">Signal Chat</h2>
+            <h2 className="font-serif text-xl lg:text-[18px] lg:tracking-[0.12em] text-marble">Signal Chat</h2>
           </div>
           <p className="micro-caps text-[10px] text-marble/30 font-mono">
             {filteredJoinedMoments.length} ACTIVE
@@ -162,7 +162,7 @@ export default function ChatPage() {
                 key={item.moment_id}
                 onClick={() => setActiveMomentId(item.moment_id)}
                 className={cn(
-                  'w-full text-left p-3 rounded-xl transition-all mb-1 cursor-pointer group',
+                  'w-full text-left p-3 lg:px-5 lg:py-4 rounded-xl transition-all mb-1 cursor-pointer group',
                   isActive 
                     ? 'bg-white/5 hairline-all' 
                     : 'hover:bg-white/3'
@@ -202,15 +202,50 @@ export default function ChatPage() {
         !activeMomentId && "hidden lg:flex"
       )}>
         {!activeMomentId ? (
-          <div className="flex-1 flex items-center justify-center p-10">
-            <div className="text-center">
-              <MessageSquare className="w-12 h-12 text-marble/10 mx-auto mb-4" />
-              <p className="font-serif text-2xl text-marble/20">
-                Select a channel
-              </p>
-              <p className="micro-caps text-xs text-marble/10 mt-2">
-                Secure link active
-              </p>
+          /* DESKTOP EMPTY STATE */
+          <div className="hidden lg:flex flex-1 flex-col items-center justify-center h-full relative overflow-hidden">
+            
+            {/* Background ambient glow */}
+            <div className="absolute inset-0" style={{
+              background: 'radial-gradient(ellipse at 50% 40%, rgba(201,168,76,0.04) 0%, transparent 70%)'
+            }} />
+            
+            {/* Decorative grid lines */}
+            <div className="absolute inset-0 opacity-[0.02]" style={{
+              backgroundImage: 'linear-gradient(rgba(255,255,255,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.5) 1px, transparent 1px)',
+              backgroundSize: '60px 60px'
+            }} />
+
+            {/* Center content */}
+            <div className="relative flex flex-col items-center gap-5 max-w-xs text-center">
+              
+              {/* Animated icon */}
+              <div className="relative w-20 h-20 flex items-center justify-center">
+                <div className="absolute inset-0 rounded-full border border-[#c9a84c]/15 animate-ping" style={{ animationDuration: '3s' }} />
+                <div className="absolute inset-2 rounded-full border border-[#c9a84c]/10" />
+                <div className="w-16 h-16 rounded-full bg-white/[0.025] border border-white/8 flex items-center justify-center">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="rgba(201,168,76,0.5)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                  </svg>
+                </div>
+              </div>
+
+              <div>
+                <p className="text-[9px] tracking-[0.3em] uppercase text-[#c9a84c]/50 mb-2">Frequency</p>
+                <h2 className="text-white/70 text-[20px] font-bold tracking-[0.06em] uppercase mb-2">Signal Chat</h2>
+                <p className="text-white/20 text-[11px] leading-relaxed tracking-wide">
+                  Select a channel from the left to enter the signal stream
+                </p>
+              </div>
+
+              {/* Decorative line */}
+              <div className="flex items-center gap-3 w-full">
+                <div className="h-px flex-1 bg-gradient-to-r from-transparent to-[#c9a84c]/20" />
+                <span className="w-1.5 h-1.5 rounded-full bg-[#c9a84c]/30" />
+                <div className="h-px flex-1 bg-gradient-to-l from-transparent to-[#c9a84c]/20" />
+              </div>
+
+              <p className="text-white/10 text-[9px] tracking-[0.2em] uppercase">Secure Link Active</p>
             </div>
           </div>
         ) : (
