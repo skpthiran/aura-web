@@ -376,9 +376,9 @@ export default function MapPage() {
                   {/* Image Section */}
                   <div className="relative h-40 overflow-hidden">
                     <img
-                      src={`https://picsum.photos/seed/${selectedMoment.id}/${w}/${h}`}
+                      src={selectedMoment.image_url || `https://picsum.photos/seed/${selectedMoment.id}/800/600`}
                       alt={selectedMoment.title}
-                      className="w-full h-full object-cover"
+                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                       onError={(e) => {
                         e.currentTarget.onerror = null;
                         e.currentTarget.src = `https://picsum.photos/seed/${selectedMoment.id}ab/${w}/${h}`;

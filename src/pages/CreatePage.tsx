@@ -8,7 +8,7 @@ import {
   Zap, Calendar, MapPin, Users, ChevronRight,
   ChevronLeft, Check, Loader2, X, Clock, Lock,
   Music, Utensils, Palette, Dumbbell, Laptop,
-  Heart, Sun, Moon, Coffee, Sparkles, Loader
+  Heart, Sun, Moon, Coffee, Sparkles, Loader, Camera
 } from 'lucide-react'
 import { cn } from '../lib/utils'
 import { Map as MapLibreMap, Marker } from 'maplibre-gl'
@@ -97,6 +97,33 @@ export default function CreatePage() {
   const [latitude, setLatitude] = useState<number | null>(null)
   const [longitude, setLongitude] = useState<number | null>(null)
 
+  const [imageFile, setImageFile] = useState<File | null>(null)
+  const [imagePreview, setImagePreview] = useState<string | null>(null)
+  const [uploadingImage, setUploadingImage] = useState(false)
+
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setImageFile(file)
+    const reader = new FileReader()
+    reader.onload = () => setImagePreview(reader.result as string)
+    reader.readAsDataURL(file)
+  }
+
+  const uploadImage = async (momentId: string): Promise<string | null> => {
+    if (!imageFile || !user) return null
+    const ext = imageFile.name.split('.').pop()
+    const path = `moments/${momentId}.${ext}`
+    const { error } = await supabase.storage
+      .from('moment-images')
+      .upload(path, imageFile, { upsert: true })
+    if (error) { console.error('Image upload failed:', error); return null }
+    const { data: { publicUrl } } = supabase.storage
+      .from('moment-images')
+      .getPublicUrl(path)
+    return publicUrl
+  }
+
   const mapContainerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<MapLibreMap | null>(null)
   const markerRef = useRef<Marker | null>(null)
@@ -152,7 +179,8 @@ export default function CreatePage() {
         ? [...new Set([...tags, selectedMood.toLowerCase()])]
         : tags
 
-      await createMoment({
+      // Create moment first to get the ID
+      const newMoment = await createMoment({
         title: title.trim(),
         description: description.trim() || undefined,
         moment_type: momentType,
@@ -169,6 +197,17 @@ export default function CreatePage() {
         start_time: startTime || undefined,
         end_time: endTime || undefined,
       })
+
+      // Upload image if selected, then update the moment with the URL
+      if (imageFile && newMoment?.id) {
+        setUploadingImage(true)
+        const imageUrl = await uploadImage(newMoment.id)
+        if (imageUrl) {
+          await supabase.from('moments').update({ image_url: imageUrl }).eq('id', newMoment.id)
+        }
+        setUploadingImage(false)
+      }
+
       navigate('/app/today')
     } catch (e: any) {
       setError(e.message ?? 'Failed to create signal')
@@ -388,6 +427,36 @@ export default function CreatePage() {
               {/* ── STEP 2: DETAILS ── */}
               {step === 2 && (
                 <div className="flex flex-col gap-5">
+
+                  {/* Cover Image Upload */}
+                  <div>
+                    <label className="micro-caps text-xs text-marble/40 mb-2 block">
+                      Cover Image <span className="text-marble/20">(optional)</span>
+                    </label>
+                    <label className="block cursor-pointer">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleImageSelect}
+                        className="hidden"
+                      />
+                      {imagePreview ? (
+                        <div className="relative w-full h-[160px] rounded-xl overflow-hidden border border-white/10">
+                          <img src={imagePreview} className="w-full h-full object-cover" alt="Cover preview" />
+                          <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
+                            <span className="text-white/70 text-xs tracking-widest uppercase font-bold">Change Photo</span>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="w-full h-[120px] rounded-xl border border-dashed border-white/15 bg-white/[0.02] flex flex-col items-center justify-center gap-2 hover:border-gold/30 hover:bg-white/[0.04] transition-all">
+                          <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center">
+                            <Camera className="w-4 h-4 text-white/30" />
+                          </div>
+                          <span className="text-white/25 text-[10px] tracking-[0.2em] uppercase font-bold">Add Cover Photo</span>
+                        </div>
+                      )}
+                    </label>
+                  </div>
 
                   {/* Title */}
                   <div>
@@ -756,29 +825,20 @@ export default function CreatePage() {
             </button>
           )}
 
-          {step < 4 ? (
-            <button onClick={goNext} disabled={!canProceed()}
-              className={cn(
-                'flex-1 flex items-center justify-center gap-2 py-4 rounded-2xl micro-caps text-sm font-medium transition-all',
-                canProceed()
-                  ? 'bg-marble text-void hover:bg-gold shadow-lg shadow-gold/10'
-                  : 'bg-white/5 text-marble/25 cursor-not-allowed border border-white/8'
-              )}>
-              Continue <ChevronRight className="w-4 h-4" />
-            </button>
-          ) : (
-            <button onClick={handleSubmit} disabled={submitting || !latitude}
-              className={cn(
-                'flex-1 flex items-center justify-center gap-2 py-4 rounded-2xl micro-caps text-sm font-bold transition-all',
-                submitting || !latitude
-                  ? 'bg-white/5 text-marble/25 cursor-not-allowed border border-white/8'
-                  : 'bg-gold text-void hover:bg-gold/80 shadow-lg shadow-gold/20'
-              )}>
-              {submitting
-                ? <><Loader2 className="w-4 h-4 animate-spin" />Dropping Signal...</>
-                : <><Zap className="w-4 h-4 shrink-0" />Drop Signal</>}
-            </button>
-          )}
+          <button
+            onClick={step === 4 ? handleSubmit : goNext}
+            disabled={!canProceed() || submitting}
+            className="flex-1 glass-panel py-4 rounded-xl text-[10px] tracking-[0.3em] uppercase font-bold text-gold transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:scale-100 flex items-center justify-center"
+          >
+            {submitting ? (
+              <span className="flex items-center gap-2">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                {uploadingImage ? 'Uploading image...' : 'Creating signal...'}
+              </span>
+            ) : (
+              step === 4 ? 'Launch Signal' : 'Next Step'
+            )}
+          </button>
         </div>
       </div>
     </div>

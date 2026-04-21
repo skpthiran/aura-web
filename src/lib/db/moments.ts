@@ -113,6 +113,7 @@ export async function createMoment(payload: {
   dresscode?: string
   age_min?: number
   age_max?: number
+  image_url?: string
 }): Promise<Moment> {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error('Not authenticated')
@@ -126,6 +127,8 @@ export async function createMoment(payload: {
     moment_type: payload.moment_type,
     tags: payload.tags ?? []
   }
+
+  if (payload.image_url) insertData.image_url = payload.image_url
 
   if (payload.expires_at) {
     insertData.expires_at = payload.expires_at

@@ -70,7 +70,7 @@ const MomentGridCard: React.FC<MomentGridCardProps> = ({
           hover:border-white/10 transition-all duration-500 cursor-pointer"
       >
         <img
-          src={`https://picsum.photos/seed/${moment.id}/800/1200`}
+          src={moment.image_url || `https://picsum.photos/seed/${moment.id}/800/1200`}
           className="absolute inset-0 h-full w-full object-cover transition-transform duration-[3s] group-hover:scale-110"
           alt={moment.title}
           onError={(e) => { 
