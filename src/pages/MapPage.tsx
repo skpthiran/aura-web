@@ -507,13 +507,13 @@ export default function MapPage() {
       <div className="absolute bottom-32 lg:bottom-12 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2 max-w-[90vw] overflow-x-auto pb-2 scrollbar-none">
         {RADIUS_OPTIONS.map(opt => (
           <button
-            key={opt.value}
-            onClick={() => setRadius(opt.value)}
+            key={opt.label}
+            onClick={() => setRadius(opt.label)}
             className="px-4 py-2 rounded-full text-[9px] font-bold tracking-[0.15em] uppercase transition-all duration-200 backdrop-blur-md whitespace-nowrap"
             style={{
-              background: radius === opt.value ? '#c9a84c' : 'rgba(8,8,15,0.7)',
-              color: radius === opt.value ? '#08080f' : 'rgba(255,255,255,0.5)',
-              border: radius === opt.value ? 'none' : '1px solid rgba(255,255,255,0.1)',
+              background: radius === opt.label ? '#c9a84c' : 'rgba(8,8,15,0.7)',
+              color: radius === opt.label ? '#08080f' : 'rgba(255,255,255,0.5)',
+              border: radius === opt.label ? 'none' : '1px solid rgba(255,255,255,0.1)',
             }}
           >
             {opt.label}
@@ -525,7 +525,7 @@ export default function MapPage() {
       <div className="absolute bottom-24 lg:bottom-6 left-1/2 -translate-x-1/2 z-10 flex items-center gap-3 whitespace-nowrap opacity-40">
         <span className="w-1 h-1 rounded-full bg-[#c9a84c] animate-pulse" />
         <span className="text-white text-[8px] tracking-[0.25em] uppercase">
-          {visibleMoments.length} Signals Captured · {RADIUS_OPTIONS.find(o => o.value === radius)?.label || `${radius} KM`} Range
+          {visibleMoments.length} Signals Captured · {radius} Range
         </span>
       </div>
 
