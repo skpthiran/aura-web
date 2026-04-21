@@ -120,205 +120,149 @@ export default function MomentDetailPage() {
     : 0
 
   const timeLeft = `${hoursLeft}h`
-  const timeAgo = moment.created_at ? formatDistanceToNow(new Date(moment.created_at)) + ' ago' : ''
   const distanceLabel = moment.distance_meters 
     ? (moment.distance_meters > 1000 ? `${(moment.distance_meters / 1000).toFixed(1)}km` : `${Math.round(moment.distance_meters)}m`)
     : 'Nearby'
+  const attendeeCount = moment?.participant_count ?? moment?.attendee_count ?? 0
   const isJoined = joined
-
-  // Fallback image logic
-  // Robust image logic: 
-  // 1. Skip if we've already had an error
-  // 2. Ensure it's a full URL
-  // 3. Otherwise use the generative fallback
-  const hasValidImageUrl = moment.image_url && moment.image_url.startsWith('http');
-  const displayImage = (!imgError && hasValidImageUrl) 
-    ? moment.image_url 
-    : getSignalImage(moment.id, moment.tags, moment.moment_type);
+  const heroImage = moment?.image_url || (moment as any)?.photo_url || null
 
   return (
-    <div className="min-h-screen bg-[#08080f] lg:flex lg:flex-row overflow-x-hidden">
-      {/* ═══════════════════════════════════════
-          HERO SECTION
-      ═══════════════════════════════════════ */}
-      <div className="relative w-full lg:w-[55%] lg:h-screen lg:sticky lg:top-0 flex-shrink-0 overflow-hidden bg-obsidian">
-        {displayImage ? (
-          <img 
-            src={displayImage} 
-            className="absolute inset-0 w-full h-full object-cover object-center transition-transform duration-1000 group-hover:scale-105" 
-            alt={moment.title}
-            onError={() => setImgError(true)}
-          />
+    <div className="min-h-screen bg-[#08080f] lg:flex">
+
+      {/* HERO */}
+      <div
+        className="relative w-full lg:w-[50%] lg:h-screen lg:sticky lg:top-0 flex-shrink-0 overflow-hidden"
+        style={{ height: '55vw', maxHeight: '500px', minHeight: '280px' }}
+      >
+        {heroImage ? (
+          <img src={heroImage} className="absolute inset-0 w-full h-full object-cover object-center" />
         ) : (
-          <div className="absolute inset-0 bg-gradient-to-br from-[#1e1628] via-[#130e1f] to-[#08080f]" />
-        )}
-        
-        {/* Cinematic Overlays */}
-        <div className="absolute inset-0 bg-gradient-to-t from-[#08080f] via-[#08080f]/40 to-transparent" />
-        <div className="absolute inset-0 bg-gradient-to-r from-[#08080f]/40 via-transparent to-transparent lg:hidden" />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_transparent_0%,_#08080f_100%)] opacity-40" />
-
-        {/* Top Actions */}
-        <div className="absolute top-6 left-6 right-6 z-30 flex justify-between items-start">
-          <button 
-            onClick={() => navigate(-1)}
-            className="group flex items-center gap-2 px-4 py-2 rounded-full bg-black/40 backdrop-blur-xl border border-white/10 hover:border-gold/40 hover:bg-black/60 transition-all duration-500"
-          >
-            <ChevronLeft className="w-4 h-4 text-white group-hover:text-gold transition-colors" />
-            <span className="text-[10px] font-bold tracking-[0.2em] uppercase text-white/80 group-hover:text-white">Back</span>
-          </button>
-
-          <div className="flex gap-3">
-            <button 
-              onClick={handleShare}
-              className="w-10 h-10 rounded-full bg-black/40 backdrop-blur-xl border border-white/10 flex items-center justify-center hover:border-gold/40 transition-all duration-300"
-            >
-              {copied ? <Check className="w-4 h-4 text-green-400" /> : <Share2 className="w-4 h-4 text-white" />}
-            </button>
-            <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-black/40 backdrop-blur-xl border border-gold/20">
-              <span className="w-1.5 h-1.5 rounded-full bg-gold animate-pulse" />
-              <span className="text-[9px] font-black tracking-[0.3em] uppercase text-gold">Active Signal</span>
-            </div>
+          <div className="absolute inset-0 bg-gradient-to-br from-[#2a1f3d] via-[#1a1228] to-[#08080f]">
+            <div className="absolute inset-0 opacity-20"
+              style={{ backgroundImage: 'radial-gradient(circle at 30% 50%, #c9a84c 0%, transparent 60%)' }} />
           </div>
+        )}
+        <div className="absolute inset-0 bg-gradient-to-t from-[#08080f] via-[#08080f]/30 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-b from-[#08080f]/60 via-transparent to-transparent" />
+
+        {/* Back */}
+        <button onClick={() => navigate(-1)}
+          className="absolute top-5 left-5 z-20 w-10 h-10 rounded-full bg-black/60 backdrop-blur-xl border border-white/10 flex items-center justify-center hover:bg-white/10 transition-all">
+          <ChevronLeft className="w-5 h-5 text-white" />
+        </button>
+
+        {/* Badge */}
+        <div className="absolute top-5 right-5 z-20 flex items-center gap-2 px-3 py-1.5 rounded-full bg-black/60 backdrop-blur-xl border border-[#c9a84c]/30">
+          <span className="w-1.5 h-1.5 rounded-full bg-[#c9a84c] animate-pulse" />
+          <span className="text-[9px] font-black tracking-[0.2em] uppercase text-[#c9a84c]">Live Signal</span>
         </div>
 
-        {/* Desktop Title Overlay */}
-        <div className="absolute bottom-12 left-12 right-12 z-20 hidden lg:block">
-          <div className="flex flex-wrap gap-2 mb-6">
-            {moment?.tags?.map((tag: string) => (
-              <span key={tag} className="px-3 py-1 rounded-full bg-gold/10 backdrop-blur-md border border-gold/20 text-gold-pale text-[9px] tracking-[0.2em] uppercase">
-                #{tag}
-              </span>
+        {/* Desktop title */}
+        <div className="absolute bottom-0 left-0 right-0 p-8 hidden lg:block">
+          <div className="flex flex-wrap gap-2 mb-4">
+            {moment?.tags?.map(tag => (
+              <span key={tag} className="px-3 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/10 text-white/60 text-[9px] tracking-[0.15em] uppercase">#{tag}</span>
             ))}
           </div>
-          <h1 className="text-white font-black uppercase text-6xl leading-[0.9] tracking-tighter mb-4 drop-shadow-2xl">
-            {moment.title}
+          <h1 className="text-white font-black uppercase leading-[0.95] drop-shadow-2xl"
+            style={{ fontSize: 'clamp(32px, 4vw, 52px)', letterSpacing: '0.04em' }}>
+            {moment?.title}
           </h1>
-          <div className="flex items-center gap-6 text-white/50">
-            <div className="flex items-center gap-2">
-              <Users className="w-4 h-4 text-gold/60" />
-              <span className="text-xs font-bold tracking-[0.1em]">{moment.attendee_count || 0} Participating</span>
-            </div>
-            <div className="w-1 h-1 rounded-full bg-white/20" />
-            <div className="flex items-center gap-2">
-              <Clock className="w-4 h-4 text-gold/60" />
-              <span className="text-xs font-bold tracking-[0.1em]">{timeLeft} Remaining</span>
-            </div>
-          </div>
         </div>
       </div>
 
-      {/* ═══════════════════════════════════════
-          CONTENT SECTION
-      ═══════════════════════════════════════ */}
-      <div className="relative flex-1 flex flex-col bg-[#08080f] lg:border-l border-white/5 shadow-[-20px_0_50px_rgba(0,0,0,0.5)]">
-        <div className="flex-1 px-6 lg:px-16 pt-10 lg:pt-24 pb-48">
-          
-          {/* Mobile Title */}
-          <div className="lg:hidden mb-10">
-             <div className="flex flex-wrap gap-2 mb-4">
-              {moment?.tags?.map((tag: string) => (
-                <span key={tag} className="text-gold/60 text-[9px] tracking-[0.2em] uppercase">#{tag}</span>
+      {/* CONTENT */}
+      <div className="flex-1 flex flex-col lg:h-screen lg:overflow-y-auto">
+        <div className="flex-1 px-6 lg:px-10 pt-7 lg:pt-14 pb-36 lg:pb-10">
+
+          {/* Mobile title */}
+          <div className="lg:hidden mb-6">
+            <div className="flex flex-wrap gap-2 mb-3">
+              {moment?.tags?.map(tag => (
+                <span key={tag} className="px-3 py-1 rounded-full bg-white/5 border border-white/8 text-white/40 text-[9px] tracking-[0.15em] uppercase">#{tag}</span>
               ))}
             </div>
-            <h1 className="text-white font-black uppercase text-4xl leading-none tracking-tight mb-4">{moment.title}</h1>
-            <div className="h-px w-20 bg-gold/30" />
+            <h1 className="text-white font-black uppercase text-[28px] tracking-[0.03em] leading-tight">{moment?.title}</h1>
           </div>
 
-          {/* Stats Grid - Luxury Style */}
-          <div className="grid grid-cols-2 gap-4 mb-12 lg:hidden">
-             <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-4">
-                <p className="text-white/30 text-[8px] tracking-[0.2em] uppercase mb-1">Impact</p>
-                <div className="flex items-baseline gap-2">
-                   <span className="text-white font-black text-xl">{moment.attendee_count || 0}</span>
-                   <span className="text-white/20 text-[10px] uppercase font-bold tracking-widest">Active</span>
-                </div>
-             </div>
-             <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-4">
-                <p className="text-white/30 text-[8px] tracking-[0.2em] uppercase mb-1">Time Window</p>
-                <div className="flex items-baseline gap-2">
-                   <span className="text-white font-black text-xl">{timeLeft}</span>
-                   <span className="text-white/20 text-[10px] uppercase font-bold tracking-widest">Left</span>
-                </div>
-             </div>
-          </div>
-
-          {/* Location / Mission Brief */}
-          <div className="space-y-12 max-w-xl">
-            <section>
-              <h3 className="text-gold text-[10px] font-black tracking-[0.3em] uppercase mb-6 flex items-center gap-3">
-                <span className="w-6 h-px bg-gold/30" />
-                The Mission
-              </h3>
-              <p className="text-white/60 text-lg leading-relaxed font-light font-serif italic">
-                "{moment.description || "Entering unchartered territories. No mission brief provided."}"
-              </p>
-            </section>
-
-            <section>
-              <h3 className="text-gold text-[10px] font-black tracking-[0.3em] uppercase mb-6 flex items-center gap-3">
-                <span className="w-6 h-px bg-gold/30" />
-                Details
-              </h3>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between p-5 rounded-2xl bg-white/[0.02] border border-white/5 hover:bg-white/[0.04] transition-all group">
-                   <div className="flex items-center gap-4">
-                      <div className="w-10 h-10 rounded-full bg-gold/5 border border-gold/10 flex items-center justify-center">
-                         <MapPin className="w-4 h-4 text-gold/60" />
-                      </div>
-                      <div>
-                         <p className="text-white font-bold tracking-widest uppercase text-xs">{distanceLabel}</p>
-                      </div>
-                   </div>
-                   <ExternalLink className="w-4 h-4 text-white/10 group-hover:text-gold transition-colors" />
-                </div>
-
-                {creator && (
-                  <div className="flex items-center justify-between p-5 rounded-2xl bg-white/[0.02] border border-white/5 hover:bg-white/[0.04] transition-all group cursor-pointer"
-                       onClick={() => navigate(`/app/user/${creator.id}`)}>
-                    <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 rounded-full overflow-hidden border border-white/10 bg-white/5">
-                          {creator.avatar_url 
-                            ? <img src={creator.avatar_url} className="w-full h-full object-cover" alt="" />
-                            : <div className="w-full h-full flex items-center justify-center text-xs font-black text-gold/40">{(creator.username || '?')[0].toUpperCase()}</div>
-                          }
-                        </div>
-                        <div>
-                          <p className="text-white/30 text-[8px] tracking-[0.2em] uppercase">Organized by</p>
-                          <p className="text-white font-bold tracking-widest uppercase text-xs">{creator.username}</p>
-                        </div>
-                    </div>
-                  </div>
-                )}
+          {/* STATS */}
+          <div className="grid grid-cols-3 gap-3 mb-7">
+            {[
+              { Icon: Users, value: attendeeCount ?? 0, label: 'Attending' },
+              { Icon: Clock, value: timeLeft, label: 'Remaining' },
+              { Icon: MapPin, value: distanceLabel || 'Nearby', label: 'Distance' },
+            ].map(({ Icon, value, label }) => (
+              <div key={label}
+                className="rounded-2xl bg-white/[0.03] border border-white/[0.06] p-4 flex flex-col items-center gap-2 hover:border-[#c9a84c]/20 hover:bg-white/[0.05] transition-all duration-300">
+                <Icon className="w-4 h-4 text-[#c9a84c]/50" strokeWidth={1.5} />
+                <p className="text-white font-bold text-[18px] leading-none">{value}</p>
+                <p className="text-white/25 text-[8px] tracking-[0.2em] uppercase">{label}</p>
               </div>
-            </section>
-
+            ))}
           </div>
+
+          {/* DIVIDER */}
+          <div className="flex items-center gap-3 mb-6">
+            <div className="h-px flex-1 bg-gradient-to-r from-[#c9a84c]/25 to-transparent" />
+            <span className="text-[8px] tracking-[0.3em] uppercase text-white/15">Signal Details</span>
+            <div className="h-px flex-1 bg-gradient-to-l from-[#c9a84c]/25 to-transparent" />
+          </div>
+
+          {/* HOST */}
+          {moment?.creator && (
+            <div
+              onClick={() => navigate(`/profile/${moment.creator_id}`)}
+              className="flex items-center gap-4 p-4 rounded-2xl bg-white/[0.025] border border-white/[0.06] mb-6 cursor-pointer hover:border-[#c9a84c]/20 hover:bg-white/[0.04] transition-all group"
+            >
+              <div className="w-11 h-11 rounded-full overflow-hidden flex-shrink-0 border border-white/10 bg-gradient-to-br from-[#c9a84c]/20 to-transparent flex items-center justify-center">
+                {moment.creator.avatar_url
+                  ? <img src={moment.creator.avatar_url} className="w-full h-full object-cover" />
+                  : <span className="text-[15px] font-black text-[#c9a84c] uppercase">{moment.creator.username?.[0]}</span>
+                }
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-[8px] tracking-[0.25em] uppercase text-white/25 mb-0.5">Organized by</p>
+                <p className="text-white font-bold text-[13px] tracking-widest uppercase truncate">{moment.creator.username}</p>
+              </div>
+              <ExternalLink className="w-4 h-4 text-white/20 group-hover:text-[#c9a84c]/50 transition-colors flex-shrink-0" />
+            </div>
+          )}
+
+          {/* DESCRIPTION */}
+          <div className="mb-6">
+            <p className="text-[8px] tracking-[0.3em] uppercase text-[#c9a84c]/40 mb-3 flex items-center gap-2">
+              <span className="h-px w-5 bg-[#c9a84c]/30 inline-block" />
+              The Mission
+            </p>
+            <p className="text-white/55 text-[14px] leading-[1.8] font-light">{moment?.description}</p>
+          </div>
+
+          {/* CHAT */}
+          <button
+            onClick={() => navigate(`/moment/${moment?.id}/chat`)}
+            className="w-full flex items-center justify-center gap-3 py-3.5 rounded-2xl bg-white/[0.025] border border-white/[0.06] text-white/35 text-[10px] tracking-[0.2em] uppercase hover:bg-white/[0.05] hover:border-white/[0.12] hover:text-white/55 transition-all duration-300 group"
+          >
+            <MessageSquare className="w-4 h-4 group-hover:text-[#c9a84c]/60 transition-colors" />
+            Open Signal Chat
+          </button>
+
         </div>
 
-        {/* ── STICKY FOOTER ACTION ── */}
-        <div className="fixed lg:absolute bottom-0 left-0 right-0 p-6 lg:p-12 z-50 bg-gradient-to-t from-[#08080f] via-[#08080f]/90 to-transparent">
-          <div className="max-w-xl mx-auto lg:ml-0">
-            {isJoined ? (
-              <button
-                onClick={handleLeave}
-                disabled={joining}
-                className="w-full py-5 rounded-2xl border border-white/10 bg-white/[0.02] text-white/40 text-[11px] font-black tracking-[0.3em] uppercase hover:bg-white/[0.05] hover:border-red-500/20 hover:text-red-400/60 transition-all duration-500 flex items-center justify-center gap-3"
-              >
-                {joining ? <Loader className="w-4 h-4 animate-spin" /> : <>✓ PART OF THE SIGNAL <span className="text-white/10">|</span> LEAVE</>}
-              </button>
-            ) : (
-              <button
-                onClick={handleJoin}
-                disabled={joining || (moment.capacity_limit > 0 && (moment.attendee_count || 0) >= moment.capacity_limit)}
-                className="w-full py-4 rounded-2xl text-[#08080f] text-[12px] font-black tracking-[0.2em] uppercase transition-all duration-300 hover:opacity-90 active:scale-[0.98]"
-                style={{ background: 'linear-gradient(135deg, #c9a84c, #e2c06a, #c9a84c)' }}
-              >
-                {joining ? <Loader className="w-5 h-5 animate-spin mx-auto" /> : 
-                  (moment.capacity_limit > 0 && (moment.attendee_count || 0) >= moment.capacity_limit ? "SIGNAL FULL" : "Join Moment")}
-              </button>
-            )}
-          </div>
+        {/* BOTTOM ACTION */}
+        <div className="fixed lg:sticky bottom-0 left-0 right-0 px-6 lg:px-10 pb-8 pt-5 bg-gradient-to-t from-[#08080f] via-[#08080f]/95 to-transparent">
+          {isJoined ? (
+            <button onClick={handleLeave}
+              className="w-full py-4 rounded-2xl border border-white/10 bg-white/[0.03] text-white/35 text-[11px] font-bold tracking-[0.22em] uppercase hover:border-red-500/20 hover:text-red-400/40 transition-all duration-300">
+              ✓ Joined · Tap to Leave
+            </button>
+          ) : (
+            <button onClick={handleJoin}
+              className="w-full py-4 rounded-2xl text-[#08080f] text-[12px] font-black tracking-[0.22em] uppercase transition-all duration-300 hover:opacity-90 active:scale-[0.98] shadow-2xl shadow-[#c9a84c]/20"
+              style={{ background: 'linear-gradient(135deg, #c9a84c 0%, #dfc070 50%, #c9a84c 100%)' }}>
+              Join Moment
+            </button>
+          )}
         </div>
       </div>
     </div>
