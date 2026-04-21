@@ -524,7 +524,7 @@ export default function MapPage() {
                     {isJoining ? "SYCHRONIZING..." : hasJoined ? "CONNECTION ACTIVE" : "ENGAGE SIGNAL"}
                   </button>
                   <Link 
-                    to={`/app/moment/${selectedMoment.id}`}
+                    to={`/app/${selectedMoment.moment_type === 'event' ? 'event' : 'moment'}/${selectedMoment.id}`}
                     className="flex-1 px-8 py-5 text-[11px] tracking-[0.4em] font-black text-white border border-white/10 rounded-xl hover:bg-white/5 transition-all text-center shadow-xl"
                   >
                     FULL RECORD
@@ -537,7 +537,7 @@ export default function MapPage() {
       </AnimatePresence>
 
       {/* Global Sector Scanning */}
-      {momentsLoading && moments.length === 0 && (
+      {loading && moments.length === 0 && (
         <div className="absolute inset-0 z-[200] bg-obsidian flex items-center justify-center">
           <div className="flex flex-col items-center gap-6">
             <div className="w-24 h-[1px] bg-white/5 relative overflow-hidden">

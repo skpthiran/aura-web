@@ -44,7 +44,7 @@ const PremiumEventCard: React.FC<PremiumEventCardProps> = ({ event, index, isJoi
         index === 0 ? "lg:col-span-3" : "lg:col-span-1"
       )}
       style={{ minHeight: index === 0 ? 'clamp(320px, 45vh, 480px)' : '280px' }}
-      onClick={() => navigate(`/app/moment/${event.id}`)}
+      onClick={() => navigate(`/app/event/${event.id}`)}
     >
       {/* BG IMAGE */}
       <div className="absolute inset-0">
@@ -262,7 +262,7 @@ export default function EventsPage() {
                       initial={{ opacity: 0, y: 10, scale: 0.95 }}
                       animate={{ opacity: 1, y: 0, scale: 1 }}
                       exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                      className="absolute top-full mt-3 right-0 z-[100] min-w-[160px] bg-obsidian border border-white/10 rounded-2xl overflow-hidden shadow-2xl backdrop-blur-2xl"
+                      className="absolute top-full mt-3 right-0 z-[100] min-w-[180px] bg-obsidian/95 backdrop-blur-2xl border border-white/10 rounded-2xl overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.5)]"
                     >
                       {RADIUS_OPTIONS.map(r => (
                         <button

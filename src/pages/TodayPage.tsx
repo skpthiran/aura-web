@@ -447,8 +447,11 @@ export default function TodayPage() {
                   </button>
                 ))}
 
+              </div>
+
+              <div className="flex items-center gap-2 mt-4 pointer-events-auto">
                 {/* Radius Filter Dropdown */}
-                <div className="relative shrink-0 snap-start" data-radius-dropdown>
+                <div className="relative" data-radius-dropdown>
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
@@ -471,15 +474,15 @@ export default function TodayPage() {
                         initial={{ opacity: 0, y: 10, scale: 0.95 }}
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                        className="absolute top-full mt-2 left-0 z-50 bg-[#1a1a2e]/95 backdrop-blur-xl border
-                          border-white/15 rounded-2xl overflow-hidden shadow-2xl min-w-[120px]"
+                        className="absolute top-full mt-2 left-0 z-[100] bg-void/95 backdrop-blur-xl border
+                          border-white/15 rounded-2xl overflow-hidden shadow-2xl min-w-[140px]"
                       >
                         {RADIUS_OPTIONS.map(r => (
                           <button
                             key={r}
                             onClick={() => { setRadius(r); setRadiusOpen(false) }}
                             className={cn(
-                              'w-full px-5 py-3 text-left text-xs micro-caps transition-colors',
+                              'w-full px-5 py-4 text-left text-[11px] micro-caps transition-colors border-b border-white/5 last:border-0',
                               radius === r
                                 ? 'text-gold bg-gold/10'
                                 : 'text-marble/60 hover:text-marble hover:bg-white/5'
@@ -493,21 +496,10 @@ export default function TodayPage() {
                   </AnimatePresence>
                 </div>
 
-                {/* Search icon */}
-                <Link to="/app/search" className="shrink-0 snap-start">
-                  <div className="flex items-center justify-center w-11 h-11 rounded-full
-                    bg-black/30 backdrop-blur-md border border-white/15
-                    text-marble/50 hover:text-marble hover:border-white/30 transition-all">
-                    <Search className="w-4 h-4" />
-                  </div>
-                </Link>
-              </div>
-
-              {/* Redesigned Filter Row 2 — Live Count Badge */}
-              <div className="flex items-center gap-2 mt-3 pointer-events-auto">
+                {/* Live Count Badge */}
                 <div className="flex items-center gap-2
                   bg-black/50 backdrop-blur-md border border-white/10
-                  rounded-full px-3 py-1.5 w-fit">
+                  rounded-full px-3 py-1.5">
                   <div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
                   <span className="micro-caps text-xs text-white/60">
                     {filteredMoments.length} active signals
@@ -535,7 +527,7 @@ export default function TodayPage() {
                 </span>
               </motion.div>
 
-              <Link to={`/app/moment/${heroMoment.id}`}>
+              <Link to={`/app/${heroMoment.moment_type === 'event' ? 'event' : 'moment'}/${heroMoment.id}`}>
                 <motion.h2 
                   initial={{ opacity: 0, y: 30 }}
                   animate={{ opacity: 1, y: 0 }}
