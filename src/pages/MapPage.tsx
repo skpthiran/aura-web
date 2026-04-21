@@ -349,7 +349,7 @@ export default function MapPage() {
 
   return (
     <div
-      className="relative flex flex-col bg-[#08080f] overflow-hidden"
+      className="relative flex flex-col bg-[#08080f] overflow-hidden lg:h-screen"
       style={{ height: '100dvh' }}
     >
 
@@ -557,7 +557,7 @@ export default function MapPage() {
       <div
         className="absolute left-0 right-0 z-[200] flex items-center justify-center gap-2 px-4 lg:bottom-0"
         style={{
-          bottom: 'calc(80px + env(safe-area-inset-bottom))',
+          bottom: typeof window !== 'undefined' && window.innerWidth >= 1024 ? '0px' : 'calc(80px + env(safe-area-inset-bottom))',
           paddingBottom: '12px',
           paddingTop: '12px',
           background: 'linear-gradient(to top, rgba(8,8,15,0.95) 0%, transparent 100%)',
@@ -583,8 +583,8 @@ export default function MapPage() {
 
       {/* ── STATUS BAR ── */}
       <div 
-        className="absolute lg:bottom-6 left-1/2 -translate-x-1/2 z-10 flex items-center gap-3 whitespace-nowrap opacity-40"
-        style={{ bottom: 'calc(130px + env(safe-area-inset-bottom))' }}
+        className="absolute left-1/2 -translate-x-1/2 z-10 flex items-center gap-3 whitespace-nowrap opacity-40"
+        style={{ bottom: typeof window !== 'undefined' && window.innerWidth >= 1024 ? '3rem' : 'calc(130px + env(safe-area-inset-bottom))' }}
       >
         <span className="w-1 h-1 rounded-full bg-[#c9a84c] animate-pulse" />
         <span className="text-white text-[8px] tracking-[0.25em] uppercase">
