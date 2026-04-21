@@ -485,6 +485,17 @@ export default function TodayPage() {
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-[#08080f] via-[#08080f]/20 to-transparent" />
 
+                    {/* Joined Lock Overlay */}
+                    {isJoined && (
+                      <div className="absolute inset-0 flex flex-col items-center justify-center z-10"
+                        style={{ background: 'rgba(8,8,15,0.45)', backdropFilter: 'blur(2px)' }}>
+                        <div className="flex flex-col items-center gap-2">
+                          <Lock className="w-8 h-8 text-[#c9a84c]/70" strokeWidth={1.5} />
+                          <span className="text-[9px] font-black tracking-[0.25em] uppercase text-[#c9a84c]/70">✓ Joined</span>
+                        </div>
+                      </div>
+                    )}
+
                     {/* Type badge */}
                     <div className="absolute top-4 left-4 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-black/60 backdrop-blur-xl border border-white/8">
                       <span className="w-1 h-1 rounded-full bg-[#c9a84c]" />

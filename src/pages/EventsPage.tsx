@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useEffect } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Calendar, Users, Clock, Loader, RefreshCw, Radar, MapPin } from 'lucide-react'
+import { Calendar, Users, Clock, Loader, RefreshCw, Radar, MapPin, Lock } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { useUserLocation } from '../hooks/useUserLocation'
 import { useNearbyEvents } from '../hooks/useNearbyEvents'
@@ -57,6 +57,17 @@ const PremiumEventCard: React.FC<PremiumEventCardProps> = ({ event, index, isJoi
         <div className="absolute inset-0 bg-black/40" />
         <div className="absolute inset-0 bg-gradient-to-t from-obsidian via-obsidian/40 to-transparent opacity-90" />
         <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-transparent" />
+
+        {/* Joined Lock Overlay */}
+        {isJoined && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center z-10"
+            style={{ background: 'rgba(8,8,15,0.45)', backdropFilter: 'blur(2px)' }}>
+            <div className="flex flex-col items-center gap-2">
+              <Lock className="w-8 h-8 text-[#c9a84c]/70" strokeWidth={1.5} />
+              <span className="text-[9px] font-black tracking-[0.25em] uppercase text-[#c9a84c]/70">✓ Joined</span>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* TOP LEFT BADGE */}
