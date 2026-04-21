@@ -356,14 +356,18 @@ export default function MapPage() {
               const cardImage = getSignalImage(selectedMoment.id, selectedMoment.tags || [], selectedMoment.moment_type);
               const isEvent = selectedMoment.moment_type === 'event';
               
-              const CardContent = (
+              const renderCardContent = (w: number, h: number) => (
                 <div className="bg-[#0f0f1a] border border-white/10 rounded-2xl overflow-hidden shadow-2xl">
                   {/* Image Section */}
                   <div className="relative h-40 overflow-hidden">
-                    <img 
-                      src={cardImage} 
-                      alt={selectedMoment.title} 
+                    <img
+                      src={`https://picsum.photos/seed/${selectedMoment.id}/${w}/${h}`}
+                      alt={selectedMoment.title}
                       className="w-full h-full object-cover"
+                      onError={(e) => {
+                        e.currentTarget.onerror = null;
+                        e.currentTarget.src = `https://picsum.photos/seed/${selectedMoment.id}ab/${w}/${h}`;
+                      }}
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-[#0f0f1a] to-transparent" />
                     
@@ -459,7 +463,7 @@ export default function MapPage() {
                     style={{ bottom: 'calc(64px + 12px + env(safe-area-inset-bottom))' }}
                   >
                     <div className="w-full max-w-md mx-auto pointer-events-auto">
-                      {CardContent}
+                      {renderCardContent(800, 400)}
                     </div>
                   </motion.div>
 
@@ -475,7 +479,7 @@ export default function MapPage() {
                       transform: 'translate(-50%, calc(-100% - 24px))'
                     }}
                   >
-                    {CardContent}
+                    {renderCardContent(600, 300)}
                   </motion.div>
                 </>
               );
