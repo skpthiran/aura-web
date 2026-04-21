@@ -112,15 +112,13 @@ export default function ChatPage() {
   }, [channels, selectedChannelId])
 
   return (
-    <div className="flex h-screen bg-[#08080f] overflow-hidden relative">
+    <div className="flex bg-[#08080f] overflow-hidden relative"
+      style={{ height: '100dvh' }}>
 
       {/* ══════════════════════════════════
           LEFT PANEL — Channel List
       ══════════════════════════════════ */}
-      <div className={cn(
-        "w-full lg:w-[280px] flex-shrink-0 flex-col border-r border-white/[0.04] transition-all duration-300",
-        showMobileChat ? "hidden lg:flex" : "flex"
-      )}
+      <div className={`lg:w-[280px] lg:flex-shrink-0 lg:flex flex-col border-r border-white/[0.04] ${selectedChannel ? 'hidden lg:flex' : 'flex w-full'}`}
         style={{ background: 'linear-gradient(180deg, #0a0a12 0%, #08080f 100%)' }}>
 
         {/* Header */}
@@ -234,21 +232,18 @@ export default function ChatPage() {
           RIGHT PANEL — Chat
       ══════════════════════════════════ */}
       {selectedChannel ? (
-        <div className={cn(
-          "flex-1 flex flex-col overflow-hidden",
-          showMobileChat ? "flex" : "hidden lg:flex"
-        )}>
+        <div className={`flex-1 flex flex-col overflow-hidden ${!selectedChannel ? 'hidden lg:flex' : 'flex'}`}>
 
           {/* Chat header */}
           <div className="flex-shrink-0 flex items-center gap-4 px-4 lg:px-6 py-4 border-b border-white/[0.04]"
             style={{ background: 'rgba(8,8,15,0.95)', backdropFilter: 'blur(20px)' }}>
 
-            {/* Mobile Back Button */}
-            <button 
-              onClick={() => setShowMobileChat(false)}
-              className="lg:hidden w-10 h-10 rounded-full flex items-center justify-center border border-white/10 bg-white/5 active:scale-95 transition-all"
+            {/* Mobile back button */}
+            <button
+              onClick={() => setSelectedChannelId(null)}
+              className="lg:hidden w-8 h-8 rounded-full bg-white/[0.04] border border-white/8 flex items-center justify-center flex-shrink-0 mr-1"
             >
-              <ChevronLeft className="w-5 h-5 text-white/50" />
+              <ChevronLeft className="w-4 h-4 text-white/50" />
             </button>
 
             {/* Channel image */}
@@ -282,7 +277,7 @@ export default function ChatPage() {
           </div>
 
           {/* Messages */}
-          <div className="flex-1 overflow-y-auto px-6 py-6 space-y-4 custom-scrollbar"
+          <div className="flex-1 overflow-y-auto px-4 lg:px-6 py-4 lg:py-6 space-y-4 custom-scrollbar"
             style={{ background: 'linear-gradient(180deg, #09090f 0%, #08080f 100%)' }}>
 
             {messages.length === 0 && (
@@ -347,8 +342,12 @@ export default function ChatPage() {
           </div>
 
           {/* Input bar */}
-          <div className="flex-shrink-0 px-5 py-4 border-t border-white/[0.04]"
-            style={{ background: 'rgba(8,8,15,0.98)' }}>
+          <div className="flex-shrink-0 px-4 lg:px-5 border-t border-white/[0.04]"
+            style={{
+              background: 'rgba(8,8,15,0.98)',
+              paddingBottom: 'calc(env(safe-area-inset-bottom) + 8px)',
+              paddingTop: '12px',
+            }}>
             <div className="flex items-center gap-3 px-4 py-3 rounded-2xl border border-white/8 bg-white/[0.03] focus-within:border-[#c9a84c]/25 focus-within:bg-white/[0.05] transition-all duration-300">
               <input
                 type="text"
