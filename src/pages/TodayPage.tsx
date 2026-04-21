@@ -487,11 +487,13 @@ export default function TodayPage() {
 
                     {/* Joined Lock Overlay */}
                     {isJoined && (
-                      <div className="absolute inset-0 flex flex-col items-center justify-center z-10"
-                        style={{ background: 'rgba(8,8,15,0.45)', backdropFilter: 'blur(2px)' }}>
-                        <div className="flex flex-col items-center gap-2">
-                          <Lock className="w-8 h-8 text-[#c9a84c]/70" strokeWidth={1.5} />
-                          <span className="text-[9px] font-black tracking-[0.25em] uppercase text-[#c9a84c]/70">✓ Joined</span>
+                      <div className="absolute inset-0 flex flex-col items-center justify-center z-10 transition-all duration-300 group-hover:backdrop-blur-[3px]"
+                        style={{ background: 'rgba(8,8,15,0.5)' }}>
+                        <div className="flex flex-col items-center gap-2 transition-transform duration-300 group-hover:scale-110">
+                          <div className="w-12 h-12 rounded-full flex items-center justify-center border border-[#c9a84c]/30 bg-[#c9a84c]/10 transition-all duration-300 group-hover:border-[#c9a84c]/60 group-hover:bg-[#c9a84c]/20 group-hover:shadow-lg group-hover:shadow-[#c9a84c]/20">
+                            <Lock className="w-5 h-5 text-[#c9a84c]" strokeWidth={1.5} />
+                          </div>
+                          <span className="text-[9px] font-black tracking-[0.25em] uppercase text-[#c9a84c]/80 group-hover:text-[#c9a84c] transition-colors duration-300">✓ Joined</span>
                         </div>
                       </div>
                     )}
@@ -545,20 +547,32 @@ export default function TodayPage() {
                         </div>
                       </div>
 
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          isJoined ? handleLeave(moment.id) : handleJoin(moment.id);
-                        }}
-                        className={cn(
-                          "w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300",
-                          isJoined 
-                            ? "bg-emerald-500/10 border border-emerald-500/30 text-emerald-400" 
-                            : "bg-[#c9a84c] text-[#08080f] shadow-lg shadow-[#c9a84c]/10 hover:shadow-[#c9a84c]/20"
-                        )}
-                      >
-                        {isJoined ? <span className="text-xs">✓</span> : <span className="text-lg">+</span>}
-                      </button>
+                    {isJoined ? (
+                      <div className="grid grid-cols-2 gap-2" onClick={e => e.stopPropagation()}>
+                        <button
+                          onClick={() => handleLeave(moment.id)}
+                          className="py-2.5 rounded-xl border border-white/8 bg-white/[0.03] text-white/30 text-[8px] font-bold tracking-[0.15em] uppercase hover:border-red-500/25 hover:text-red-400/50 hover:bg-red-500/5 transition-all">
+                          Leave
+                        </button>
+                        <div className="py-2.5 rounded-xl border border-emerald-500/25 bg-emerald-500/8 flex items-center justify-center gap-1.5">
+                          <span className="text-emerald-400 text-[8px] font-black tracking-[0.15em] uppercase">✓ Joined</span>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-2 gap-2" onClick={e => e.stopPropagation()}>
+                        <button
+                          onClick={() => handleReject(moment.id)}
+                          className="py-2.5 rounded-xl border border-white/8 bg-white/[0.03] text-white/30 text-[8px] font-bold tracking-[0.15em] uppercase hover:border-red-500/20 hover:text-red-400/50 transition-all">
+                          Reject
+                        </button>
+                        <button
+                          onClick={() => handleJoin(moment.id)}
+                          className="py-2.5 rounded-xl text-[#08080f] text-[8px] font-black tracking-[0.15em] uppercase transition-all hover:opacity-90 active:scale-[0.97]"
+                          style={{ background: 'linear-gradient(135deg, #c9a84c, #dfc070)' }}>
+                          Join
+                        </button>
+                      </div>
+                    )}
                     </div>
                   </div>
                 </div>

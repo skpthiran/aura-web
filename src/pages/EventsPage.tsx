@@ -60,11 +60,13 @@ const PremiumEventCard: React.FC<PremiumEventCardProps> = ({ event, index, isJoi
 
         {/* Joined Lock Overlay */}
         {isJoined && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center z-10"
-            style={{ background: 'rgba(8,8,15,0.45)', backdropFilter: 'blur(2px)' }}>
-            <div className="flex flex-col items-center gap-2">
-              <Lock className="w-8 h-8 text-[#c9a84c]/70" strokeWidth={1.5} />
-              <span className="text-[9px] font-black tracking-[0.25em] uppercase text-[#c9a84c]/70">✓ Joined</span>
+          <div className="absolute inset-0 flex flex-col items-center justify-center z-10 transition-all duration-300 group-hover:backdrop-blur-[3px]"
+            style={{ background: 'rgba(8,8,15,0.5)' }}>
+            <div className="flex flex-col items-center gap-2 transition-transform duration-300 group-hover:scale-110">
+              <div className="w-12 h-12 rounded-full flex items-center justify-center border border-[#c9a84c]/30 bg-[#c9a84c]/10 transition-all duration-300 group-hover:border-[#c9a84c]/60 group-hover:bg-[#c9a84c]/20 group-hover:shadow-lg group-hover:shadow-[#c9a84c]/20">
+                <Lock className="w-5 h-5 text-[#c9a84c]" strokeWidth={1.5} />
+              </div>
+              <span className="text-[9px] font-black tracking-[0.25em] uppercase text-[#c9a84c]/80 group-hover:text-[#c9a84c] transition-colors duration-300">✓ Joined</span>
             </div>
           </div>
         )}
