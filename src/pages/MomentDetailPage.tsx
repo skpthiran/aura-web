@@ -132,8 +132,7 @@ export default function MomentDetailPage() {
 
       {/* HERO */}
       <div
-        className="relative w-full lg:w-[50%] lg:h-screen lg:sticky lg:top-0 flex-shrink-0 overflow-hidden"
-        style={{ height: '55vw', maxHeight: '500px', minHeight: '280px' }}
+        className="relative w-full lg:w-[50%] lg:h-screen lg:sticky lg:top-0 flex-shrink-0 overflow-hidden h-[40vh] lg:h-auto"
       >
         {heroImage ? (
           <img 
@@ -189,7 +188,7 @@ export default function MomentDetailPage() {
                 <span key={tag} className="px-3 py-1 rounded-full bg-white/5 border border-white/8 text-white/40 text-[9px] tracking-[0.15em] uppercase">#{tag}</span>
               ))}
             </div>
-            <h1 className="text-white font-black uppercase text-[28px] tracking-[0.03em] leading-tight">{moment?.title}</h1>
+            <h1 className="text-white font-black uppercase text-3xl tracking-[0.03em] leading-tight">{moment?.title}</h1>
           </div>
 
           {/* STATS */}

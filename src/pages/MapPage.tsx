@@ -368,12 +368,12 @@ export default function MapPage() {
     <div className="relative w-full h-screen bg-[#08080f] overflow-hidden flex flex-col">
 
       {/* ── HEADER ── */}
-      <div className="absolute top-0 left-0 right-0 z-20 px-8 pt-7 pb-4"
+      <div className="absolute top-0 left-0 right-0 z-20 px-4 lg:px-8 pt-7 pb-4"
         style={{ background: 'linear-gradient(to bottom, rgba(8,8,15,0.95) 0%, rgba(8,8,15,0) 100%)' }}>
         
         <div className="flex items-baseline gap-4 mb-5">
-          <h1 className="text-white text-[32px] font-bold tracking-[0.08em] uppercase">Forum</h1>
-          <span className="text-white/20 text-[10px] tracking-[0.25em] uppercase">Geospatial Intelligence</span>
+          <h1 className="text-white text-2xl lg:text-[32px] font-bold tracking-[0.08em] uppercase">Forum</h1>
+          <span className="text-white/20 text-[8px] lg:text-[10px] tracking-[0.25em] uppercase">Geospatial Intelligence</span>
         </div>
 
         {/* Search bar */}
@@ -532,7 +532,7 @@ export default function MapPage() {
       )}
 
       {/* ── BOTTOM RADIUS PILLS ── */}
-      <div className="absolute bottom-20 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2">
+      <div className="absolute bottom-32 lg:bottom-20 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2 max-w-[90vw] overflow-x-auto pb-2 scrollbar-none">
         {['5 KM', '50 KM', 'PROVINCE', 'COUNTRY', 'GLOBAL'].map(r => (
           <button
             key={r}
@@ -551,7 +551,7 @@ export default function MapPage() {
       </div>
 
       {/* ── STATUS BAR ── */}
-      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-20 flex items-center gap-3">
+      <div className="absolute bottom-24 lg:bottom-8 left-1/2 -translate-x-1/2 z-20 flex items-center gap-3 whitespace-nowrap">
         <span className="w-1.5 h-1.5 rounded-full bg-[#c9a84c] animate-pulse" />
         <span className="text-white/30 text-[9px] tracking-[0.22em] uppercase">
           {moments.length} Active Signal{moments.length !== 1 ? 's' : ''} · Live Radius: {radius}

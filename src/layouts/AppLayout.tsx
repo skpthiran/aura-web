@@ -209,7 +209,7 @@ export default function AppLayout() {
       </aside>
 
       {/* Main Content Area */}
-      <main className="flex-1 overflow-y-auto relative z-10 scroll-smooth pt-16 lg:pt-0 pb-32 lg:pb-8 flex flex-col h-[100dvh] lg:h-screen">
+      <main className="flex-1 overflow-y-auto relative z-10 scroll-smooth pt-16 lg:pt-0 pb-20 lg:pb-8 flex flex-col h-[100dvh] lg:h-screen">
         <AnimatePresence mode="wait" initial={false}>
           <PageTransition key={location.pathname}>
             <Outlet />
@@ -217,26 +217,26 @@ export default function AppLayout() {
         </AnimatePresence>
       </main>
 
-      {/* Redesigned Mobile Bottom Nav */}
-      <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 safe-area-pb bg-black/80 backdrop-blur-3xl hairline-t">
-        <div className="px-2 pt-2 pb-1">
-          <div className="flex items-center justify-around max-w-md mx-auto">
+      {/* Premium Redesigned Mobile Bottom Nav */}
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 z-[60] safe-area-pb bg-[#08080f]/90 backdrop-blur-2xl border-t border-white/5">
+        <div className="px-1 pt-2 pb-1">
+          <div className="flex items-center justify-around max-w-md mx-auto h-16">
             {[
               { to: '/app/today', icon: Compass, label: 'Pulse' },
               { to: '/app/map', icon: MapIcon, label: 'Forum' },
-              { to: '/app/create', icon: Plus, label: '' },
-              { to: '/app/events', icon: Building2, label: 'Colosseum' },
-              { to: '/app/chat', icon: MessageSquare, label: 'Agora' },
+              { to: '/app/create', icon: Plus, label: 'Summon' },
+              { to: '/app/events', icon: Landmark, label: 'Coliseum' },
+              { to: '/app/chat', icon: MessageSquareText, label: 'Agora' },
             ].map(({ to, icon: Icon, label }) => (
               <NavLink key={to} to={to} className="flex-1">
                 {({ isActive }) => (
                   to === '/app/create' ? (
-                    <div className="flex justify-center -mt-6 mb-2">
+                    <div className="flex justify-center -mt-8 mb-4">
                       <div className={cn(
                         'w-14 h-14 rounded-full flex items-center justify-center transition-all duration-300 shadow-2xl',
                         isActive
                           ? 'bg-gold border-gold shadow-gold/40'
-                          : 'bg-void border border-gold/50 shadow-gold/10'
+                          : 'bg-void border border-gold/40 shadow-gold/10 hover:border-gold transition-colors duration-500'
                       )}>
                         <Icon className={cn(
                           'w-6 h-6 transition-colors',
@@ -245,14 +245,19 @@ export default function AppLayout() {
                       </div>
                     </div>
                   ) : (
-                    <div className="flex flex-col items-center gap-1 py-1 px-1">
-                      <Icon className={cn(
-                        'w-6 h-6 transition-colors duration-200',
-                        isActive ? 'text-gold' : 'text-white/30'
-                      )} />
+                    <div className="flex flex-col items-center gap-1 py-1 px-1 transition-all duration-300">
+                      <div className={cn(
+                        "p-1.5 rounded-xl transition-all duration-300",
+                        isActive ? "bg-gold/10 shadow-[0_0_15px_rgba(201,168,76,0.1)]" : ""
+                      )}>
+                        <Icon className={cn(
+                          'w-[22px] h-[22px] transition-all duration-300',
+                          isActive ? 'text-gold-pale drop-shadow-[0_0_8px_rgba(201,168,76,0.5)]' : 'text-marble/40'
+                        )} strokeWidth={isActive ? 2 : 1.5} />
+                      </div>
                       <span className={cn(
-                        'text-[10px] tracking-wider uppercase font-medium leading-none whitespace-nowrap',
-                        isActive ? 'text-gold' : 'text-white/20'
+                        'micro-caps text-[9px] tracking-[0.1em] transition-colors font-medium',
+                        isActive ? 'text-gold-pale' : 'text-marble/30'
                       )}>
                         {label}
                       </span>

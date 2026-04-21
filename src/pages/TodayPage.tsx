@@ -340,13 +340,12 @@ export default function TodayPage() {
           HERO — Featured Signal
       ══════════════════════════════════════ */}
       {heroMoment && (
-        <div className="relative w-full overflow-hidden flex-shrink-0"
-          style={{ height: 'clamp(420px, 60vh, 580px)' }}>
+        <div className="relative w-full overflow-hidden flex-shrink-0 h-[45vh] lg:h-[60vh] min-h-[400px] lg:min-h-[580px]">
 
           {/* Background image */}
           <img
             src={heroMoment.image_url || getSignalImage(heroMoment.id, heroMoment.tags, heroMoment.moment_type)}
-            className="absolute inset-0 w-full h-full object-cover object-center"
+            className="absolute inset-0 w-full h-full object-cover object-center scale-105"
             onError={(e) => { e.currentTarget.src = `https://picsum.photos/seed/${heroMoment.id}/1600/900`; }}
           />
 
@@ -355,15 +354,12 @@ export default function TodayPage() {
           <div className="absolute inset-0 bg-gradient-to-b from-[#08080f]/70 via-transparent to-transparent" />
           <div className="absolute inset-0 bg-gradient-to-r from-[#08080f]/30 via-transparent to-transparent" />
 
-          {/* Top bar */}
+          {/* Top bar (Radius selector moved to hero for mobile) */}
           <div className="absolute top-0 left-0 right-0 flex items-center justify-between px-6 pt-6 z-10">
             <div className="flex items-center gap-2">
               <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-black/50 backdrop-blur-xl border border-[#c9a84c]/20">
                 <span className="w-1.5 h-1.5 rounded-full bg-[#c9a84c] animate-pulse" />
-                <span className="text-[9px] font-black tracking-[0.22em] uppercase text-[#c9a84c]">Featured Signal</span>
-              </div>
-              <div className="px-3 py-1.5 rounded-full bg-black/40 backdrop-blur-xl border border-white/8">
-                <span className="text-[9px] font-bold tracking-[0.18em] uppercase text-white/40">Nearby</span>
+                <span className="text-[9px] font-black tracking-[0.22em] uppercase text-[#c9a84c]">Featured</span>
               </div>
             </div>
 
@@ -384,67 +380,64 @@ export default function TodayPage() {
           </div>
 
           {/* Hero content */}
-          <div className="absolute bottom-0 left-0 right-0 px-6 pb-8 z-10">
-
-            {/* Tags */}
-            <div className="flex flex-wrap gap-2 mb-4">
-              {heroMoment.tags?.slice(0, 3).map(tag => (
-                <span key={tag}
-                  className="px-3 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/10 text-white/60 text-[9px] tracking-[0.15em] uppercase">
-                  #{tag}
-                </span>
-              ))}
-            </div>
-
-            {/* Title */}
-            <h1 className="text-white font-black uppercase leading-[0.92] mb-5 drop-shadow-2xl"
-              style={{ fontSize: 'clamp(36px, 6vw, 72px)', letterSpacing: '0.03em' }}>
-              {heroMoment.title}
-            </h1>
-
-            {/* Bottom row */}
-            <div className="flex items-center gap-4 flex-wrap">
-
-              {/* Attendees stack */}
-              <div className="flex items-center gap-3">
-                <div className="flex -space-x-2">
-                  {[...Array(Math.min(heroMoment.participant_count ?? 1, 3))].map((_, i) => (
-                    <div key={i}
-                      className="w-8 h-8 rounded-full border-2 border-[#08080f] bg-gradient-to-br from-[#c9a84c]/40 to-[#c9a84c]/10 flex items-center justify-center text-[10px] font-bold text-[#c9a84c]">
-                      {i + 1}
-                    </div>
-                  ))}
-                </div>
-                <span className="text-white/40 text-[10px] tracking-[0.15em] uppercase">
-                  {heroMoment.participant_count ?? 0} inside
-                </span>
+          <div className="absolute bottom-0 left-0 right-0 px-6 pb-12 lg:pb-16 z-10">
+            <div className="max-w-7xl mx-auto">
+              {/* Tags */}
+              <div className="flex flex-wrap gap-2 mb-4">
+                {heroMoment.tags?.slice(0, 3).map(tag => (
+                  <span key={tag}
+                    className="px-3 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/10 text-white/60 text-[9px] tracking-[0.15em] uppercase">
+                    #{tag}
+                  </span>
+                ))}
               </div>
 
-              {/* Spacer */}
-              <div className="flex-1" />
+              {/* Title */}
+              <h1 className="text-white font-black uppercase leading-[0.92] mb-6 drop-shadow-2xl"
+                style={{ fontSize: 'clamp(32px, 8vw, 84px)', letterSpacing: '0.03em' }}>
+                {heroMoment.title}
+              </h1>
 
-              {/* Action buttons */}
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => handleReject(heroMoment.id)}
-                  className="px-5 py-2.5 rounded-full border border-white/10 bg-black/40 backdrop-blur-xl text-white/40 text-[10px] font-bold tracking-[0.18em] uppercase hover:border-red-500/30 hover:text-red-400/60 transition-all duration-300">
-                  Reject
-                </button>
+              {/* Action row - Stacked on mobile */}
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
+                
+                {/* Attendees stack (desktop/tablet only) */}
+                <div className="hidden sm:flex items-center gap-3 mr-4">
+                  <div className="flex -space-x-2">
+                    {[...Array(Math.min(heroMoment.participant_count ?? 1, 3))].map((_, i) => (
+                      <div key={i}
+                        className="w-8 h-8 rounded-full border-2 border-[#08080f] bg-gradient-to-br from-[#c9a84c]/40 to-[#c9a84c]/10 flex items-center justify-center text-[10px] font-bold text-[#c9a84c]">
+                        {i + 1}
+                      </div>
+                    ))}
+                  </div>
+                  <span className="text-white/40 text-[10px] tracking-[0.15em] uppercase whitespace-nowrap">
+                    {heroMoment.participant_count ?? 0} inside
+                  </span>
+                </div>
 
-                {joinedIds.includes(heroMoment.id) ? (
+                <div className="flex items-center gap-2 flex-1 sm:flex-none">
+                  {joinedIds.includes(heroMoment.id) ? (
+                    <button
+                      onClick={() => handleLeave(heroMoment.id)}
+                      className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-8 py-3.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 text-emerald-400 text-[10px] font-black tracking-[0.18em] uppercase transition-all">
+                      <span>✓</span> Joined
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => handleJoin(heroMoment.id)}
+                      className="flex-1 sm:flex-none px-8 py-3.5 rounded-full text-[#08080f] text-[10px] font-black tracking-[0.18em] uppercase transition-all hover:opacity-90 active:scale-[0.97] shadow-lg shadow-[#c9a84c]/20"
+                      style={{ background: 'linear-gradient(135deg, #c9a84c, #dfc070)' }}>
+                      Join Signal
+                    </button>
+                  )}
+                  
                   <button
-                    onClick={() => handleLeave(heroMoment.id)}
-                    className="flex items-center gap-2 px-5 py-2.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 text-emerald-400 text-[10px] font-black tracking-[0.18em] uppercase transition-all">
-                    <span>✓</span> Joined
+                    onClick={() => handleReject(heroMoment.id)}
+                    className="p-3.5 rounded-full border border-white/10 bg-black/40 backdrop-blur-xl text-white/40 hover:border-red-500/30 hover:text-red-400/60 transition-all duration-300">
+                    <X className="w-4 h-4" />
                   </button>
-                ) : (
-                  <button
-                    onClick={() => handleJoin(heroMoment.id)}
-                    className="px-6 py-2.5 rounded-full text-[#08080f] text-[10px] font-black tracking-[0.18em] uppercase transition-all hover:opacity-90 active:scale-[0.97] shadow-lg shadow-[#c9a84c]/20"
-                    style={{ background: 'linear-gradient(135deg, #c9a84c, #dfc070)' }}>
-                    Join Signal
-                  </button>
-                )}
+                </div>
               </div>
             </div>
           </div>
@@ -454,69 +447,69 @@ export default function TodayPage() {
       {/* ══════════════════════════════════════
           NEARBY SIGNALS SECTION
       ══════════════════════════════════════ */}
-      <div className="flex-1 px-5 pt-6 pb-28">
+      <div className="flex-1 px-5 pt-10 pb-32 max-w-7xl mx-auto w-full">
 
         {/* Section header */}
-        <div className="flex items-center justify-between mb-5">
+        <div className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-3">
             <div className="h-px w-5 bg-[#c9a84c]/40" />
-            <span className="text-[9px] font-black tracking-[0.28em] uppercase text-white/30">
+            <span className="text-[10px] font-black tracking-[0.28em] uppercase text-white/30">
               {nearbyMoments.length} Signal{nearbyMoments.length !== 1 ? 's' : ''} Nearby
             </span>
           </div>
           <div className="flex items-center gap-1.5">
             <span className="w-1.5 h-1.5 rounded-full bg-[#c9a84c] animate-pulse" />
-            <span className="text-[8px] tracking-[0.2em] uppercase text-[#c9a84c]/50">Live</span>
+            <span className="text-[9px] tracking-[0.2em] uppercase text-[#c9a84c]/50">Live</span>
           </div>
         </div>
 
         {/* Signal cards grid */}
         {nearbyMoments.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {nearbyMoments.filter(m => !rejectedIds.includes(m.id)).map((moment) => {
               const cardImage = moment.image_url || getSignalImage(moment.id, moment.tags, moment.moment_type);
               const isJoined = joinedIds.includes(moment.id);
               return (
                 <div
                   key={moment.id}
-                  className="group relative rounded-2xl overflow-hidden cursor-pointer transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl hover:shadow-black/60"
+                  className="group relative rounded-3xl overflow-hidden cursor-pointer transition-all duration-500 hover:scale-[1.02] hover:shadow-2xl hover:shadow-black/60"
                   style={{ border: '1px solid rgba(255,255,255,0.06)' }}
                   onClick={() => navigate(`/app/moment/${moment.id}`)}
                 >
                   {/* Card image */}
-                  <div className="relative h-[200px] overflow-hidden">
+                  <div className="relative h-[220px] overflow-hidden">
                     <img
                       src={cardImage}
-                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                       onError={(e) => { e.currentTarget.src = `https://picsum.photos/seed/${moment.id}/600/400`; }}
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-[#08080f] via-[#08080f]/20 to-transparent" />
 
                     {/* Type badge */}
-                    <div className="absolute top-3 left-3 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-black/60 backdrop-blur-xl border border-white/8">
+                    <div className="absolute top-4 left-4 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-black/60 backdrop-blur-xl border border-white/8">
                       <span className="w-1 h-1 rounded-full bg-[#c9a84c]" />
-                      <span className="text-[7px] font-black tracking-[0.2em] uppercase text-[#c9a84c]/80">
+                      <span className="text-[8px] font-black tracking-[0.2em] uppercase text-[#c9a84c]/80">
                         {moment.moment_type || 'Moment'}
                       </span>
                     </div>
 
                     {/* Joined badge */}
                     {isJoined && (
-                      <div className="absolute top-3 right-3 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/20 backdrop-blur-xl border border-emerald-500/30">
-                        <span className="text-[7px] font-black tracking-[0.18em] uppercase text-emerald-400">✓ Joined</span>
+                      <div className="absolute top-4 right-4 flex items-center justify-center w-8 h-8 rounded-full bg-emerald-500/20 backdrop-blur-xl border border-emerald-500/30">
+                        <span className="text-xs text-emerald-400">✓</span>
                       </div>
                     )}
                   </div>
 
                   {/* Card content */}
-                  <div className="p-4" style={{ background: 'linear-gradient(180deg, #0d0d18 0%, #0a0a12 100%)' }}>
+                  <div className="p-6" style={{ background: 'linear-gradient(180deg, #0d0d18 0%, #0a0a12 100%)' }}>
 
                     {/* Tags */}
                     {moment.tags?.length > 0 && (
-                      <div className="flex flex-wrap gap-1.5 mb-2.5">
+                      <div className="flex flex-wrap gap-1.5 mb-3">
                         {moment.tags.slice(0, 2).map(tag => (
                           <span key={tag}
-                            className="px-2 py-0.5 rounded-full bg-white/[0.04] border border-white/[0.06] text-white/30 text-[7px] tracking-[0.15em] uppercase">
+                            className="px-2.5 py-1 rounded-full bg-white/[0.04] border border-white/[0.06] text-white/30 text-[7px] tracking-[0.15em] uppercase">
                             #{tag}
                           </span>
                         ))}
@@ -524,45 +517,37 @@ export default function TodayPage() {
                     )}
 
                     {/* Title */}
-                    <h3 className="text-white font-black uppercase text-[14px] tracking-[0.04em] leading-tight mb-3 line-clamp-2">
+                    <h3 className="text-white font-black uppercase text-[15px] tracking-[0.04em] leading-tight mb-4 min-h-[2.5rem] line-clamp-2">
                       {moment.title}
                     </h3>
 
-                    {/* Stats row */}
-                    <div className="flex items-center justify-between mb-4">
-                      <div className="flex items-center gap-3 text-white/25 text-[9px]">
+                    {/* Stats and Action */}
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3 text-white/25 text-[10px]">
                         <div className="flex items-center gap-1.5">
-                          <Users className="w-3 h-3" strokeWidth={1.5} />
+                          <Users className="w-3.5 h-3.5 text-[#c9a84c]/40" strokeWidth={1.5} />
                           <span>{moment.participant_count ?? 0}</span>
                         </div>
                         <div className="flex items-center gap-1.5">
-                          <Clock className="w-3 h-3" strokeWidth={1.5} />
-                          <span>{moment.distance_meters ? `${(moment.distance_meters / 1000).toFixed(1)} KM` : 'Nearby'}</span>
+                          <MapPin className="w-3.5 h-3.5 text-[#c9a84c]/40" strokeWidth={1.5} />
+                          <span>{moment.distance_meters ? `${(moment.distance_meters / 1000).toFixed(1)}KM` : 'Nearby'}</span>
                         </div>
                       </div>
-                    </div>
 
-                    {/* Action buttons */}
-                    <div className="grid grid-cols-2 gap-2" onClick={e => e.stopPropagation()}>
                       <button
-                        onClick={() => handleReject(moment.id)}
-                        className="py-2 rounded-xl border border-white/8 bg-white/[0.03] text-white/30 text-[8px] font-bold tracking-[0.15em] uppercase hover:border-red-500/20 hover:text-red-400/50 transition-all">
-                        Reject
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          isJoined ? handleLeave(moment.id) : handleJoin(moment.id);
+                        }}
+                        className={cn(
+                          "w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300",
+                          isJoined 
+                            ? "bg-emerald-500/10 border border-emerald-500/30 text-emerald-400" 
+                            : "bg-[#c9a84c] text-[#08080f] shadow-lg shadow-[#c9a84c]/10 hover:shadow-[#c9a84c]/20"
+                        )}
+                      >
+                        {isJoined ? <span className="text-xs">✓</span> : <span className="text-lg">+</span>}
                       </button>
-                      {isJoined ? (
-                        <button
-                          onClick={() => handleLeave(moment.id)}
-                          className="py-2 rounded-xl border border-emerald-500/25 bg-emerald-500/8 text-emerald-400/70 text-[8px] font-bold tracking-[0.15em] uppercase transition-all">
-                          ✓ Joined
-                        </button>
-                      ) : (
-                        <button
-                          onClick={() => handleJoin(moment.id)}
-                          className="py-2 rounded-xl text-[#08080f] text-[8px] font-black tracking-[0.15em] uppercase transition-all hover:opacity-90"
-                          style={{ background: 'linear-gradient(135deg, #c9a84c, #dfc070)' }}>
-                          Join
-                        </button>
-                      )}
                     </div>
                   </div>
                 </div>
@@ -571,11 +556,11 @@ export default function TodayPage() {
           </div>
         ) : (
           <div className="flex flex-col items-center justify-center py-24 text-center">
-            <div className="w-16 h-16 rounded-2xl bg-white/[0.025] border border-white/5 flex items-center justify-center mb-4">
-              <MapPin className="w-6 h-6 text-white/10" strokeWidth={1.5} />
+            <div className="w-20 h-20 rounded-3xl bg-white/[0.025] border border-white/5 flex items-center justify-center mb-6">
+              <MapPin className="w-8 h-8 text-white/10" strokeWidth={1.5} />
             </div>
-            <p className="text-white/30 text-[11px] font-bold tracking-[0.2em] uppercase mb-2">No Signals Nearby</p>
-            <p className="text-white/10 text-[10px] leading-relaxed max-w-[200px]">Expand your radius or check back soon</p>
+            <p className="text-white/30 text-[12px] font-bold tracking-[0.25em] uppercase mb-2">No Signals Nearby</p>
+            <p className="text-white/10 text-[11px] leading-relaxed max-w-[220px]">Try expanding your search radius to find deeper frequencies.</p>
           </div>
         )}
       </div>
@@ -584,13 +569,13 @@ export default function TodayPage() {
       {showRadiusDropdown && createPortal(
         <div
           style={{ position: 'fixed', top: dropdownPos.top, left: dropdownPos.left, zIndex: 9999 }}
-          className="w-36 rounded-xl border border-white/10 bg-[#0f0f1a] shadow-2xl overflow-hidden"
+          className="w-40 rounded-2xl border border-white/10 bg-[#0f0f1a]/95 backdrop-blur-2xl shadow-2xl overflow-hidden py-1"
         >
           {['5 KM','10 KM','25 KM','50 KM','100 KM','Province','Country'].map(opt => (
             <button
               key={opt}
               onClick={() => { setSelectedRadius(opt); setShowRadiusDropdown(false); }}
-              className="w-full px-4 py-2.5 text-left text-[10px] tracking-widest uppercase hover:bg-white/5 transition-all"
+              className="w-full px-5 py-3 text-left text-[10px] tracking-[0.15em] uppercase hover:bg-white/5 transition-all"
               style={{ color: selectedRadius === opt ? '#c9a84c' : 'rgba(255,255,255,0.4)' }}
             >
               {opt}

@@ -3,7 +3,7 @@ import { motion } from 'motion/react'
 import { useAuth } from '../contexts/AuthContext'
 import { getJoinedMoments, getChatMessages, sendMessage } from '../lib/db/chat'
 import { ChatMessage } from '../types'
-import { MessageSquare, ExternalLink, Send, Calendar, Zap, MessageCircle } from 'lucide-react'
+import { MessageSquare, ExternalLink, Send, Calendar, Zap, MessageCircle, ChevronLeft } from 'lucide-react'
 import { cn } from '../lib/utils'
 import { useNavigate } from 'react-router-dom'
 import { usePageTitle } from '../hooks/usePageTitle'
@@ -21,6 +21,7 @@ export default function ChatPage() {
   const [sending, setSending] = useState(false)
   const [loadingChannels, setLoadingChannels] = useState(true)
   const [activeFilter, setActiveFilter] = useState<'ALL' | 'MOMENTS' | 'EVENTS'>('ALL')
+  const [showMobileChat, setShowMobileChat] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   // Load joined moments on mount
@@ -111,12 +112,15 @@ export default function ChatPage() {
   }, [channels, selectedChannelId])
 
   return (
-    <div className="flex h-screen bg-[#08080f] overflow-hidden">
+    <div className="flex h-screen bg-[#08080f] overflow-hidden relative">
 
       {/* ══════════════════════════════════
           LEFT PANEL — Channel List
       ══════════════════════════════════ */}
-      <div className="w-[280px] hidden lg:flex flex-shrink-0 flex-col border-r border-white/[0.04]"
+      <div className={cn(
+        "w-full lg:w-[280px] flex-shrink-0 flex-col border-r border-white/[0.04] transition-all duration-300",
+        showMobileChat ? "hidden lg:flex" : "flex"
+      )}
         style={{ background: 'linear-gradient(180deg, #0a0a12 0%, #08080f 100%)' }}>
 
         {/* Header */}
@@ -157,7 +161,10 @@ export default function ChatPage() {
             return (
               <button
                 key={channel.id}
-                onClick={() => setSelectedChannelId(channel.id)}
+                onClick={() => {
+                  setSelectedChannelId(channel.id);
+                  setShowMobileChat(true);
+                }}
                 className="w-full text-left rounded-2xl overflow-hidden transition-all duration-200 group"
                 style={{
                   background: isActive ? 'rgba(201,168,76,0.08)' : 'transparent',
@@ -227,11 +234,22 @@ export default function ChatPage() {
           RIGHT PANEL — Chat
       ══════════════════════════════════ */}
       {selectedChannel ? (
-        <div className="flex-1 flex flex-col overflow-hidden">
+        <div className={cn(
+          "flex-1 flex flex-col overflow-hidden",
+          showMobileChat ? "flex" : "hidden lg:flex"
+        )}>
 
           {/* Chat header */}
-          <div className="flex-shrink-0 flex items-center gap-4 px-6 py-4 border-b border-white/[0.04]"
+          <div className="flex-shrink-0 flex items-center gap-4 px-4 lg:px-6 py-4 border-b border-white/[0.04]"
             style={{ background: 'rgba(8,8,15,0.95)', backdropFilter: 'blur(20px)' }}>
+
+            {/* Mobile Back Button */}
+            <button 
+              onClick={() => setShowMobileChat(false)}
+              className="lg:hidden w-10 h-10 rounded-full flex items-center justify-center border border-white/10 bg-white/5 active:scale-95 transition-all"
+            >
+              <ChevronLeft className="w-5 h-5 text-white/50" />
+            </button>
 
             {/* Channel image */}
             <div className="w-10 h-10 rounded-xl overflow-hidden flex-shrink-0 border border-white/8">
