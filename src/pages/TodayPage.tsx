@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'motion/react'
 import { Link } from 'react-router-dom'
-import { Radio, Users, Loader, MapPin, Zap, Search, ArrowRight, Clock, Compass, Check, X, ChevronDown, Lock } from 'lucide-react'
+import { Radio, Users, Loader, MapPin, Zap, Search, ArrowRight, Clock, Compass, Check, X, ChevronDown, ChevronUp, Lock } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 import { useUserLocation } from '../hooks/useUserLocation'
@@ -471,10 +471,7 @@ export default function TodayPage() {
                       micro-caps text-xs transition-all hover:border-white/30 active:scale-95"
                   >
                     {radius} KM
-                    <svg className={cn('w-3 h-3 transition-transform duration-200', radiusOpen && 'rotate-180')}
-                      viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <polyline points="6 9 12 15 18 9"></polyline>
-                    </svg>
+                    {radiusOpen ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
                   </button>
                 </div>
 
@@ -584,7 +581,7 @@ export default function TodayPage() {
       )}
 
       {/* ── SIGNALS GRID ── */}
-      <div className="px-4 lg:px-8 pb-24 pt-6">
+      <div className="px-4 lg:px-8 pb-32 pt-6">
 
         {filteredMoments.length === 0 ? (
           <motion.div
@@ -806,13 +803,7 @@ export default function TodayPage() {
                               <Check className="w-3.5 h-3.5" />
                               Joined
                             </div>
-                          ) : cardActions[moment.id] === 'rejected' ? (
-                            <div className="flex items-center gap-2 micro-caps text-xs
-                              text-white/25">
-                              <X className="w-3.5 h-3.5" />
-                              Skipped
-                            </div>
-                          ) : (
+                          ) : cardActions[moment.id] === 'rejected' ? null : (
                             <div className="flex items-center gap-2">
                               {/* Reject */}
                               <button
