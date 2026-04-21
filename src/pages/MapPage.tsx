@@ -604,13 +604,22 @@ export default function MapPage() {
         <div
           className="absolute z-50 pointer-events-auto"
           style={{
+            position: 'absolute',
             left: Math.min(popupPos.x, window.innerWidth - 320) + 'px',
             top: (popupPos.y - 20) + 'px',
             transform: 'translate(-50%, -100%)',
+            zIndex: 50,
+            filter: 'drop-shadow(0 20px 40px rgba(0,0,0,0.8))',
           }}
         >
-          <div className="relative w-[300px] rounded-2xl overflow-hidden border border-white/10 shadow-2xl shadow-black/80"
-            style={{ background: 'linear-gradient(145deg, #0f0f1a, #08080f)' }}>
+          <div style={{
+            width: '300px',
+            borderRadius: '16px',
+            overflow: 'hidden',
+            border: '1px solid rgba(255,255,255,0.1)',
+            background: '#0f0f1a',
+            boxShadow: '0 25px 60px rgba(0,0,0,0.9)',
+          }}>
             
             {/* Image or gradient header */}
             <div className="relative h-[140px] overflow-hidden">
@@ -649,7 +658,7 @@ export default function MapPage() {
             </div>
 
             {/* Content */}
-            <div className="px-4 pt-3 pb-4">
+            <div className="px-4 pt-3 pb-4" style={{ background: '#0f0f1a' }}>
               {/* Tags */}
               {activeSignal.tags?.length > 0 && (
                 <div className="flex flex-wrap gap-1.5 mb-3">
@@ -674,7 +683,7 @@ export default function MapPage() {
               </div>
 
               {/* Action buttons */}
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-3 gap-2" style={{ background: '#0f0f1a' }}>
                 <button
                   onClick={() => setActiveSignal(null)}
                   className="py-2.5 rounded-xl border border-white/8 bg-white/[0.03] text-white/35 text-[9px] font-bold tracking-[0.15em] uppercase hover:border-red-500/20 hover:text-red-400/50 transition-all">
