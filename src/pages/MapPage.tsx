@@ -225,7 +225,31 @@ export default function MapPage() {
     })
 
     mapRef.current = map
-    map.on('load', () => setMapLoaded(true))
+
+    const addMomentsToMap = (mMap: MapLibreMap, momentsData: any[]) => {
+      momentsData.forEach((m) => {
+        if (!m.lat || !m.lng) return;
+        const el = document.createElement('div');
+        el.style.cssText = `
+          width: 12px; height: 12px; border-radius: 50%;
+          background: #c9a84c; border: 2px solid white;
+          box-shadow: 0 0 8px rgba(201,168,76,0.8);
+          cursor: pointer;
+        `;
+        el.addEventListener('click', () => {
+          window.location.href = `/app/moment/${m.id}`;
+        });
+        new Marker({ element: el })
+          .setLngLat([m.lng, m.lat])
+          .addTo(mMap);
+      });
+    };
+
+    map.on('load', async () => {
+      setMapLoaded(true)
+      const { data } = await supabase.rpc('get_moments_map');
+      if (data) addMomentsToMap(map, data);
+    })
 
     return () => {
       map.remove()
@@ -263,57 +287,7 @@ export default function MapPage() {
     }
   }, [location])
 
-  useEffect(() => {
-    if (!mapRef.current) return
-    const map = mapRef.current
 
-    const syncMarkers = () => {
-      const currentIds = new Set(visibleMoments.map(m => m.id))
-      Object.keys(markersRef.current).forEach(id => {
-        if (!currentIds.has(id)) {
-          markersRef.current[id].remove()
-          delete markersRef.current[id]
-        }
-      })
-
-      visibleMoments.forEach(sig => {
-        const lng = sig.lng;
-        const lat = sig.lat;
-        
-        if (lng == null || lat == null) {
-          console.warn('NO COORDS for moment:', sig.id, sig);
-          return;
-        }
-
-        if (markersRef.current[sig.id]) {
-          markersRef.current[sig.id].setLngLat([lng, lat])
-          return
-        }
-        
-        const el = document.createElement('div')
-        el.className = 'flex items-center justify-center cursor-pointer group'
-        el.innerHTML = `
-          <div class="relative w-10 h-10 flex items-center justify-center bg-obsidian rounded-sm border border-white/20 shadow-2xl transition-all group-hover:scale-110 group-hover:border-gold/50">
-             <div class="absolute inset-0 bg-gold/10 animate-[ping_2s_infinite] rounded-full scale-150 opacity-20 pointer-events-none"></div>
-            <span class="text-lg relative z-10">${sig.moment_type === 'event' ? '📅' : '⚡'}</span>
-            <div class="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-gold rounded-full opacity-50 group-hover:opacity-100 glow-sm"></div>
-          </div>
-        `
-        el.addEventListener('click', () => {
-          setSelectedMoment(sig)
-          setHasJoined(false)
-        })
-
-        const marker = new Marker({ element: el })
-          .setLngLat([lng, lat])
-          .addTo(map)
-        markersRef.current[sig.id] = marker
-      })
-    }
-
-    if (map.isStyleLoaded()) syncMarkers()
-    else map.once('load', syncMarkers)
-  }, [visibleMoments])
 
   const handleJoinMoment = async () => {
     if (!selectedMoment) return
