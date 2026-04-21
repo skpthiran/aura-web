@@ -1,4 +1,5 @@
-import React, { useState, useMemo, useEffect, useCallback } from 'react'
+import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'motion/react'
 import { Link } from 'react-router-dom'
 import { Radio, Users, Loader, MapPin, Zap, Search, ArrowRight, Clock, Compass, Check, X, ChevronDown, Lock } from 'lucide-react'
@@ -154,6 +155,17 @@ export default function TodayPage() {
   const RADIUS_OPTIONS = [5, 10, 25, 50, 100]
   const [radius, setRadius] = useState(50)
   const [radiusOpen, setRadiusOpen] = useState(false)
+  const radiusBtnRef = useRef<HTMLButtonElement>(null)
+  const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0 })
+
+  const handleRadiusOpen = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (radiusBtnRef.current) {
+      const rect = radiusBtnRef.current.getBoundingClientRect()
+      setDropdownPos({ top: rect.bottom + 8, left: rect.left })
+    }
+    setRadiusOpen(o => !o)
+  }
   
   const { moments, loading, setMoments } = useNearbyMoments(location, radius * 1000)
   const { addToast } = useToast()
@@ -207,15 +219,14 @@ export default function TodayPage() {
   })
 
   useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      const target = e.target as HTMLElement
-      if (radiusOpen && !target.closest('[data-radius-dropdown]')) {
+    const handleClick = (e: MouseEvent) => {
+      if (radiusBtnRef.current && !radiusBtnRef.current.contains(e.target as Node)) {
         setRadiusOpen(false)
       }
     }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
-  }, [radiusOpen])
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [])
 
 
   const handleJoin = async (momentId: string) => {
@@ -451,12 +462,10 @@ export default function TodayPage() {
 
               <div className="flex items-center gap-2 mt-4 pointer-events-auto">
                 {/* Radius Filter Dropdown */}
-                <div className="relative z-[999]" data-radius-dropdown>
+                <div className="relative" data-radius-dropdown>
                   <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setRadiusOpen(o => !o);
-                    }}
+                    ref={radiusBtnRef}
+                    onClick={handleRadiusOpen}
                     className="flex items-center gap-1.5 px-5 py-3 rounded-full
                       bg-black/30 backdrop-blur-md border border-white/15 text-white/60
                       micro-caps text-xs transition-all hover:border-white/30 active:scale-95"
@@ -467,32 +476,6 @@ export default function TodayPage() {
                       <polyline points="6 9 12 15 18 9"></polyline>
                     </svg>
                   </button>
-
-                  <AnimatePresence>
-                    {radiusOpen && (
-                        <motion.div
-                          initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                          animate={{ opacity: 1, y: 0, scale: 1 }}
-                          exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                          className="absolute top-full left-0 mt-2 w-36 rounded-xl border border-white/10 bg-[#0f0f1a] z-[999] shadow-2xl overflow-hidden"
-                        >
-                        {RADIUS_OPTIONS.map(r => (
-                          <button
-                            key={r}
-                            onClick={() => { setRadius(r); setRadiusOpen(false) }}
-                            className={cn(
-                              'w-full px-5 py-4 text-left text-[11px] micro-caps transition-colors border-b border-white/5 last:border-0',
-                              radius === r
-                                ? 'text-gold bg-gold/10'
-                                : 'text-marble/60 hover:text-marble hover:bg-white/5'
-                            )}
-                          >
-                            {r} KM
-                          </button>
-                        ))}
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
                 </div>
 
                 {/* Live Count Badge */}
@@ -879,6 +862,40 @@ export default function TodayPage() {
           </div>
         )}
       </div>
+
+      {/* Radius Dropdown Portal */}
+      <AnimatePresence>
+        {radiusOpen && createPortal(
+          <motion.div
+            initial={{ opacity: 0, y: 10, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 10, scale: 0.95 }}
+            style={{ 
+              position: 'fixed', 
+              top: dropdownPos.top, 
+              left: dropdownPos.left, 
+              zIndex: 9999 
+            }}
+            className="w-36 rounded-xl border border-white/10 bg-[#0f0f1a] shadow-2xl overflow-hidden"
+          >
+            {RADIUS_OPTIONS.map(r => (
+              <button
+                key={r}
+                onClick={() => { setRadius(r); setRadiusOpen(false) }}
+                className={cn(
+                  'w-full px-5 py-4 text-left text-[11px] micro-caps transition-colors border-b border-white/5 last:border-0',
+                  radius === r
+                    ? 'text-gold bg-gold/10'
+                    : 'text-marble/60 hover:text-marble hover:bg-white/5'
+                )}
+              >
+                {r} KM
+              </button>
+            ))}
+          </motion.div>,
+          document.body
+        )}
+      </AnimatePresence>
 
       {/* Bottom Spacer */}
       <div className="h-32" />
