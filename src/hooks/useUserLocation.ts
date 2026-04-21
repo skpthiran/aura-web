@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import { UserLocation } from '../types'
 import { STATIONARY_THRESHOLD_METERS, LOCATION_POLL_INTERVAL_MS } from '../lib/constants'
 
