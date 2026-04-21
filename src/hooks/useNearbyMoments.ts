@@ -2,8 +2,11 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { Moment } from '../types'
 import { supabase } from '../lib/supabase'
 import { useUserLocation } from './useUserLocation'
+import { getRadiusValue } from '../lib/radius'
 
-export function useNearbyMoments(radiusKm: number = 50) {
+export function useNearbyMoments(radiusLabel: string = '50 KM') {
+  const radiusKm = getRadiusValue(radiusLabel)
+
   const [moments, setMoments] = useState<Moment[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)

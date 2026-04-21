@@ -24,3 +24,8 @@ export function normalizeRadius(radius: number): RadiusValue {
     return Math.abs(curr - radius) < Math.abs(prev - radius) ? (curr as RadiusValue) : (prev as RadiusValue);
   }, 50 as RadiusValue);
 }
+
+export function getRadiusValue(label: string): number {
+  const option = RADIUS_OPTIONS.find(o => o.label === label);
+  return option ? option.value : 50;
+}

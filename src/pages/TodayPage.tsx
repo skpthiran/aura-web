@@ -19,7 +19,7 @@ import { SignalCardSkeleton, SkeletonBlock } from '../components/Skeleton'
 import JoinedOverlay from '../components/JoinedOverlay'
 import { getRejectedIds, addRejectedId } from '../lib/cardState'
 import { useNavigate } from 'react-router-dom'
-import { RADIUS_OPTIONS, DEFAULT_RADIUS } from '../lib/radius'
+import { RADIUS_OPTIONS, DEFAULT_RADIUS, getRadiusValue } from '../lib/radius'
 
 interface MomentGridCardProps {
   moment: Moment
@@ -155,7 +155,7 @@ export default function TodayPage() {
   const { location } = useUserLocation()
   const [typeFilter, setTypeFilter] = useState<'ALL' | 'MOMENTS' | 'EVENTS'>('ALL');
   
-  const [selectedRadius, setSelectedRadius] = useState<number>(DEFAULT_RADIUS)
+  const [selectedRadius, setSelectedRadius] = useState<string>('50 KM');
   const [showRadiusDropdown, setShowRadiusDropdown] = useState(false)
   const radiusBtnRef = useRef<HTMLButtonElement>(null)
   const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0 })
@@ -192,7 +192,8 @@ export default function TodayPage() {
         newMoment.lng
       )
       
-      if (selectedRadius === 0 || dist <= selectedRadius * 1000) { 
+      const radiusValue = getRadiusValue(selectedRadius);
+      if (radiusValue === 0 || dist <= radiusValue * 1000) { 
         addToast({
           title: newMoment.title,
           description: `New ${newMoment.moment_type === 'event' ? 'event' : 'signal'} detected nearby.`,
@@ -410,7 +411,8 @@ export default function TodayPage() {
                 onClick={handleRadiusOpen}
                 className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-black/50 backdrop-blur-xl border border-white/10 text-white/50 text-[9px] tracking-[0.18em] uppercase hover:border-white/20 transition-all"
               >
-                {RADIUS_OPTIONS.find(o => o.value === selectedRadius)?.label || `${selectedRadius} KM`}
+                {selectedRadius}
+
                 {showRadiusDropdown
                   ? <ChevronUp className="w-3 h-3" />
                   : <ChevronDown className="w-3 h-3" />
@@ -716,14 +718,15 @@ export default function TodayPage() {
         >
           {RADIUS_OPTIONS.map(opt => (
             <button
-              key={opt.value}
-              onClick={() => { setSelectedRadius(opt.value); setShowRadiusDropdown(false); }}
+              key={opt.label}
+              onClick={() => { setSelectedRadius(opt.label); setShowRadiusDropdown(false); }}
               className="w-full px-5 py-3 text-left text-[10px] tracking-[0.15em] uppercase hover:bg-white/5 transition-all outline-none"
-              style={{ color: selectedRadius === opt.value ? '#c9a84c' : 'rgba(255,255,255,0.4)' }}
+              style={{ color: selectedRadius === opt.label ? '#c9a84c' : 'rgba(255,255,255,0.4)' }}
             >
               {opt.label}
             </button>
           ))}
+
         </div>,
         document.body
       )}
