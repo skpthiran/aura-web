@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useCallback, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'motion/react'
-import { Map as MapLibreMap, Marker } from 'maplibre-gl'
+import maplibregl, { Map as MapLibreMap, Marker } from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import { MAPTILER_STYLE } from '../lib/constants'
 import { useUserLocation } from '../hooks/useUserLocation'
@@ -162,9 +162,7 @@ export default function MapPage() {
 
   const mapContainer = useRef<HTMLDivElement>(null)
   const mapRef = useRef<MapLibreMap | null>(null)
-  const markersRef = useRef<Marker[]>([])
   const userMarkerRef = useRef<Marker | null>(null)
-  const mapClickHandlerRef = useRef<((e: any) => void) | null>(null)
   const hasFlownToUser = useRef(false)
 
   // Map Initialization
@@ -185,96 +183,127 @@ export default function MapPage() {
     map.on('click', () => setSelectedMoment(null))
 
     return () => {
-      markersRef.current.forEach(m => m.remove());
       map.remove()
       mapRef.current = null
     }
   }, [])
 
-  // Manage Markers
+  // Manage Markers (GeoJSON Symbol Layer)
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map || !mapLoaded || !visibleMoments.length) {
+      if (map && mapLoaded && visibleMoments.length === 0) {
+        // Clear layer if no signals
+        if (map.getSource('signals')) {
+          (map.getSource('signals') as maplibregl.GeoJSONSource).setData({
+            type: 'FeatureCollection',
+            features: []
+          })
+        }
+      }
+      return
+    }
+
+    // ── SVG icon definitions ──
+    const lightningsvg = `<svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 36 36">
+      <circle cx="18" cy="18" r="17" fill="#ef4444" stroke="rgba(239,68,68,0.6)" stroke-width="2"/>
+      <polygon points="20,6 10,20 17,20 16,30 26,16 19,16" fill="#08080f"/>
+    </svg>`
+
+    const calendarSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 36 36">
+      <circle cx="18" cy="18" r="17" fill="#c9a84c" stroke="rgba(201,168,76,0.6)" stroke-width="2"/>
+      <rect x="10" y="12" width="16" height="14" rx="2" fill="none" stroke="#08080f" stroke-width="2"/>
+      <line x1="10" y1="17" x2="26" y2="17" stroke="#08080f" stroke-width="2"/>
+      <line x1="14" y1="9" x2="14" y2="14" stroke="#08080f" stroke-width="2"/>
+      <line x1="22" y1="9" x2="22" y2="14" stroke="#08080f" stroke-width="2"/>
+    </svg>`
+
+    const svgToImage = (svg: string, name: string): Promise<void> => {
+      return new Promise((resolve) => {
+        if (map.hasImage(name)) { resolve(); return }
+        const blob = new Blob([svg], { type: 'image/svg+xml' })
+        const url = URL.createObjectURL(blob)
+        const img = new Image(36, 36)
+        img.onload = () => {
+          map.addImage(name, img)
+          URL.revokeObjectURL(url)
+          resolve()
+        }
+        img.src = url
+      })
+    }
+
+    const buildLayers = async () => {
+      await svgToImage(lightningsvg, 'moment-icon')
+      await svgToImage(calendarSvg, 'event-icon')
+
+      // GeoJSON source
+      const geojson: GeoJSON.FeatureCollection = {
+        type: 'FeatureCollection',
+        features: visibleMoments.map(m => ({
+          type: 'Feature',
+          geometry: { 
+            type: 'Point', 
+            coordinates: [m.lng ?? 0, m.lat ?? 0] 
+          },
+          properties: { id: m.id, type: m.moment_type }
+        }))
+      }
+
+      const source = map.getSource('signals') as maplibregl.GeoJSONSource
+      if (source) {
+        source.setData(geojson)
+      } else {
+        map.addSource('signals', { type: 'geojson', data: geojson })
+
+        map.addLayer({
+          id: 'signal-icons',
+          type: 'symbol',
+          source: 'signals',
+          layout: {
+            'icon-image': ['match', ['get', 'type'], 'event', 'event-icon', 'moment-icon'],
+            'icon-size': 1,
+            'icon-allow-overlap': true,
+            'icon-ignore-placement': true,
+          }
+        })
+      }
+    }
+
+    buildLayers()
+  }, [visibleMoments, mapLoaded])
+
+  // Click & Hover Interaction (WebGL Layer)
   useEffect(() => {
     const map = mapRef.current
     if (!map || !mapLoaded) return
 
-    // Clear existing markers
-    markersRef.current.forEach(m => m.remove());
-    markersRef.current = [];
-
-    visibleMoments.forEach((moment) => {
-      if (!moment.lat || !moment.lng) return
-      
-      const isEvent = moment.moment_type === 'event';
-
-      // Create custom HTML marker element
-      const el = document.createElement('div');
-      el.style.cssText = `
-        width: 36px;
-        height: 36px;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        cursor: pointer;
-        transition: transform 0.2s ease;
-        box-shadow: 0 4px 20px ${isEvent ? 'rgba(201,168,76,0.4)' : 'rgba(239,68,68,0.4)'};
-        background: ${isEvent 
-          ? 'linear-gradient(135deg, #c9a84c, #dfc070)' 
-          : 'linear-gradient(135deg, #ef4444, #f87171)'};
-        border: 2px solid ${isEvent ? 'rgba(201,168,76,0.6)' : 'rgba(239,68,68,0.6)'};
-      `;
-
-      // SVG icon inside
-      el.innerHTML = isEvent
-        ? `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#08080f" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
-            <line x1="16" y1="2" x2="16" y2="6"/>
-            <line x1="8" y1="2" x2="8" y2="6"/>
-            <line x1="3" y1="10" x2="21" y2="10"/>
-          </svg>`
-        : `<svg width="16" height="16" viewBox="0 0 24 24" fill="#08080f" stroke="#08080f" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
-            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
-          </svg>`;
-
-      const marker = new Marker({ element: el, anchor: 'center', draggable: false })
-        .setLngLat([moment.lng, moment.lat])
-        .addTo(map);
-
-      markersRef.current.push(marker);
-    });
-
-    // Clean up previous click handler
-    if (mapClickHandlerRef.current) {
-      map.off('click', mapClickHandlerRef.current)
-    }
-
-    // Store new handler ref
-    mapClickHandlerRef.current = (e: any) => {
-      const clickLng = e.lngLat.lng
-      const clickLat = e.lngLat.lat
-      const THRESHOLD = 0.008
-      const hit = visibleMoments.find((m: any) => 
-        Math.abs(m.lng - clickLng) < THRESHOLD && 
-        Math.abs(m.lat - clickLat) < THRESHOLD
-      )
-      if (hit) {
-        setSelectedMoment(hit)
-        setPopupPos({ x: e.point.x, y: e.point.y })
+    const handleClick = (e: maplibregl.MapMouseEvent) => {
+      const features = map.queryRenderedFeatures(e.point, { layers: ['signal-icons'] })
+      if (features.length > 0) {
+        const props = features[0].properties
+        const hit = visibleMoments.find(m => m.id === props?.id)
+        if (hit) {
+          setSelectedMoment(hit)
+          setPopupPos({ x: e.point.x, y: e.point.y })
+        }
       } else {
         setSelectedMoment(null)
       }
     }
 
-    map.on('click', mapClickHandlerRef.current)
+    const handleMouseMove = (e: maplibregl.MapMouseEvent) => {
+      const features = map.queryRenderedFeatures(e.point, { layers: ['signal-icons'] })
+      map.getCanvas().style.cursor = features.length > 0 ? 'pointer' : ''
+    }
 
-    // Mouse move cursor pointer logic
-    map.on('mousemove', (e) => {
-      const THRESHOLD = 0.008
-      const near = visibleMoments.some((m: any) =>
-        Math.abs(m.lng - e.lngLat.lng) < THRESHOLD &&
-        Math.abs(m.lat - e.lngLat.lat) < THRESHOLD
-      )
-      map.getCanvas().style.cursor = near ? 'pointer' : ''
-    })
+    map.on('click', handleClick)
+    map.on('mousemove', handleMouseMove)
+
+    return () => {
+      map.off('click', handleClick)
+      map.off('mousemove', handleMouseMove)
+    }
   }, [visibleMoments, mapLoaded])
 
   // User Position
