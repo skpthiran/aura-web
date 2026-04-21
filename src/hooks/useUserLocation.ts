@@ -78,5 +78,10 @@ export function useUserLocation(): UseUserLocationReturn {
     }
   }, [])
 
-  return { location, error, loading, isStationary }
+  return useMemo(() => ({ 
+    location, 
+    error, 
+    loading, 
+    isStationary 
+  }), [location, error, loading, isStationary])
 }
