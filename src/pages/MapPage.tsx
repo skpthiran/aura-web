@@ -348,7 +348,10 @@ export default function MapPage() {
   }
 
   return (
-    <div className="relative w-full h-screen bg-[#08080f] overflow-hidden flex flex-col font-sans">
+    <div
+      className="relative flex flex-col bg-[#08080f] overflow-hidden"
+      style={{ height: '100dvh' }}
+    >
 
       {/* ── HEADER ── */}
       <div className="absolute top-0 left-0 right-0 z-20 px-4 lg:px-8 pt-7 pb-4"
@@ -396,7 +399,11 @@ export default function MapPage() {
       </div>
 
       {/* ── MAP ── */}
-      <div ref={mapContainer} className="absolute inset-0 w-full h-full" />
+      <div
+        ref={mapContainer}
+        className="flex-1 w-full"
+        style={{ minHeight: 0 }}
+      />
 
       {/* ── SELECTED MOMENT UI ── */}
       <AnimatePresence>
@@ -547,7 +554,16 @@ export default function MapPage() {
       </AnimatePresence>
 
       {/* ── BOTTOM RADIUS PILLS ── */}
-      <div className="absolute bottom-32 lg:bottom-12 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2 max-w-[90vw] overflow-x-auto pb-2 scrollbar-none">
+      <div
+        className="absolute bottom-0 left-0 right-0 z-[200] flex items-center justify-center gap-2 px-4"
+        style={{
+          paddingBottom: 'calc(env(safe-area-inset-bottom) + 16px)',
+          paddingTop: '12px',
+          background: 'linear-gradient(to top, rgba(8,8,15,0.95) 0%, transparent 100%)',
+          overflowX: 'auto',
+          scrollbarWidth: 'none'
+        }}
+      >
         {RADIUS_OPTIONS.map(opt => (
           <button
             key={opt.label}
