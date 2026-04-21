@@ -38,22 +38,22 @@ export default function MapPage() {
   const navigate = useNavigate()
   usePageTitle('Forum')
   const { location, error: locationError } = useUserLocation()
-  const [mapRadius, setMapRadius] = useState<number | string>(50000) // default 50km
+  const [radius, setRadius] = useState('50 KM')
   const [mapLoaded, setMapLoaded] = useState(false)
   
-  const radiusOptions = [5, 50, 'Province', 'Country']
-  const radiusMap: Record<string | number, number> = {
-    5: 5000,
-    50: 50000,
-    'Province': 150000,
-    'Country': 500000
+  const radiusMap: Record<string, number> = {
+    '5 KM': 5000,
+    '50 KM': 50000,
+    'PROVINCE': 150000,
+    'COUNTRY': 500000,
+    'GLOBAL': 999999999
   }
 
-  const [mapFilter, setMapFilter] = useState<'ALL' | 'MOMENTS' | 'EVENTS'>('ALL')
+  const [filter, setFilter] = useState<'ALL' | 'MOMENTS' | 'EVENTS'>('ALL')
   const [activeSignal, setActiveSignal] = useState<any>(null);
   const [popupPos, setPopupPos] = useState({ x: 0, y: 0 });
 
-  const numericRadius = typeof mapRadius === 'number' ? radiusMap[mapRadius] || mapRadius : radiusMap[mapRadius] || 50000
+  const numericRadius = radiusMap[radius] || 50000
   const [moments, setMoments] = useState<Moment[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -122,14 +122,14 @@ export default function MapPage() {
     
     if ((lat == null || lng == null) && numericRadius < 99999999) continue
 
-    if (numericRadius < 99999999 && location && lat != null && lng != null) {
+    if (numericRadius < 999999999 && location && lat != null && lng != null) {
       const dKm = haversineKm(
         location.latitude, location.longitude,
         lat, lng
       )
       if (dKm > numericRadius / 1000) continue
     }
-    const typeFilter = mapFilter.toLowerCase()
+    const typeFilter = filter.toLowerCase()
     if (typeFilter !== 'all') {
       const momentType = sig.moment_type === 'moment' ? 'moments' : 'events'
       if (typeFilter !== momentType) continue
@@ -150,7 +150,7 @@ export default function MapPage() {
       } catch {}
     }
 
-    if (!location || numericRadius >= 99999999) {
+    if (!location || numericRadius >= 999999999) {
       safeRemove()
       return
     }
@@ -338,7 +338,15 @@ export default function MapPage() {
       userMarkerRef.current.setLngLat([location.longitude, location.latitude])
     }
   }, [location])
-
+  const recenterMap = () => {
+    if (mapRef.current && location) {
+      mapRef.current.flyTo({
+        center: [location.longitude, location.latitude],
+        zoom: 15,
+        duration: 1500
+      })
+    }
+  }
 
 
   const handleJoinMoment = async () => {
@@ -356,46 +364,42 @@ export default function MapPage() {
   }
 
   return (
-    <div className="fixed inset-0 w-full h-[100dvh] overflow-hidden bg-obsidian">
-      {/* Map — Full Bleed */}
-      <div ref={mapContainer} className="absolute inset-0 w-full h-full" />
+    <div className="relative w-full h-screen bg-[#08080f] overflow-hidden flex flex-col">
 
-      {/* TOP LEFT — Search + Type Filter */}
-      <div className="absolute top-[calc(76px+env(safe-area-inset-top))] lg:top-4 left-4 lg:left-[300px] flex flex-col gap-2 z-20 w-[220px] max-w-[calc(100vw-32px)] transition-all duration-500">
-        {/* Search Box */}
-        <div 
-          className="flex items-center gap-3 px-4 py-3 rounded-xl border border-white/20 bg-[#0a0a14]/85 backdrop-blur-md shadow-2xl"
-          style={{ 
-            boxShadow: '0 4px 24px rgba(0,0,0,0.6), 0 0 0 0.5px rgba(255,255,255,0.08)',
-            borderLeft: '2px solid rgba(201,168,76,0.5)'
-          }}
-        >
-          <Search className="w-4 h-4 text-white/60" strokeWidth={1.5} />
-          <input 
-            type="text" 
-            placeholder="SEARCH / COORDINATES" 
-            className="bg-transparent border-none outline-none font-mono text-[9px] text-white w-full uppercase tracking-widest placeholder:text-white/60"
-          />
+      {/* ── HEADER ── */}
+      <div className="absolute top-0 left-0 right-0 z-20 px-8 pt-7 pb-4"
+        style={{ background: 'linear-gradient(to bottom, rgba(8,8,15,0.95) 0%, rgba(8,8,15,0) 100%)' }}>
+        
+        <div className="flex items-baseline gap-4 mb-5">
+          <h1 className="text-white text-[32px] font-bold tracking-[0.08em] uppercase">Forum</h1>
+          <span className="text-white/20 text-[10px] tracking-[0.25em] uppercase">Geospatial Intelligence</span>
         </div>
 
-        {/* ALL / MOMENTS / EVENTS Pills */}
-        <div 
-          className="flex gap-1 p-1.5 rounded-xl border border-white/20 bg-[#0a0a14]/85 backdrop-blur-md shadow-2xl"
-          style={{ 
-            boxShadow: '0 4px 24px rgba(0,0,0,0.6), 0 0 0 0.5px rgba(255,255,255,0.08)',
-            borderLeft: '2px solid rgba(201,168,76,0.5)'
-          }}
-        >
-          {['ALL', 'MOMENTS', 'EVENTS'].map(f => (
+        {/* Search bar */}
+        <div className="relative mb-4">
+          <div className="flex items-center gap-3 px-4 py-3 rounded-xl border border-white/8 bg-white/[0.03] backdrop-blur-md">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+            <input
+              type="text"
+              placeholder="TARGET COORDINATES / EVENT SEARCH"
+              className="flex-1 bg-transparent text-white/50 text-[10px] tracking-[0.18em] uppercase placeholder:text-white/20 outline-none"
+            />
+          </div>
+          <div className="absolute left-0 bottom-0 h-px w-1/3 bg-gradient-to-r from-[#c9a84c]/40 to-transparent" />
+        </div>
+
+        {/* Filter pills */}
+        <div className="flex items-center gap-2">
+          {(['ALL', 'MOMENTS', 'EVENTS'] as const).map(f => (
             <button
               key={f}
-              onClick={() => setMapFilter(f as any)}
-              className={cn(
-                "flex-1 py-2 rounded-lg text-[9px] tracking-widest uppercase transition-all duration-300",
-                mapFilter === f 
-                  ? "bg-gold/20 border border-gold/40 text-gold font-bold" 
-                  : "text-white/55 hover:text-white/80"
-              )}
+              onClick={() => setFilter(f)}
+              className="px-4 py-1.5 rounded-full text-[9px] font-bold tracking-[0.18em] uppercase transition-all duration-200"
+              style={{
+                background: filter === f ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.05)',
+                color: filter === f ? '#08080f' : 'rgba(255,255,255,0.45)',
+                border: filter === f ? 'none' : '1px solid rgba(255,255,255,0.08)',
+              }}
             >
               {f}
             </button>
@@ -403,203 +407,10 @@ export default function MapPage() {
         </div>
       </div>
 
-      {/* TOP RIGHT — Live Indicator */}
-      <div className="absolute top-[calc(76px+env(safe-area-inset-top))] lg:top-4 right-4 flex flex-col items-end gap-2 z-20">
-        <div 
-          className="flex items-center gap-2 px-4 py-2 rounded-xl border border-white/20 bg-[#0a0a14]/85 backdrop-blur-md shadow-2xl"
-          style={{ boxShadow: '0 4px 24px rgba(0,0,0,0.6), 0 0 0 0.5px rgba(255,255,255,0.08)' }}
-        >
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_rgba(52,211,153,0.5)]" />
-          <span className="text-white/75 text-[9px] tracking-[0.2em] uppercase font-bold">Live Radar</span>
-        </div>
-        
-        <button 
-          onClick={() => {
-            if (mapRef.current && location) {
-              mapRef.current.flyTo({ center: [location.longitude, location.latitude], zoom: 15, duration: 1500 })
-            }
-          }}
-          className="w-10 h-10 rounded-xl border border-white/20 bg-[#0a0a14]/85 backdrop-blur-md flex items-center justify-center text-white/55 hover:text-gold transition-colors shadow-2xl"
-          style={{ boxShadow: '0 4px 24px rgba(0,0,0,0.6), 0 0 0 0.5px rgba(255,255,255,0.08)' }}
-        >
-          <Crosshair className="w-4 h-4" strokeWidth={1.5} />
-        </button>
-      </div>
+      {/* ── MAP ── */}
+      <div ref={mapContainer} className="absolute inset-0 w-full h-full" />
 
-      {/* BOTTOM LEFT — Signal Count */}
-      <div className="absolute bottom-[calc(100px+env(safe-area-inset-bottom))] lg:bottom-6 left-4 lg:left-[300px] z-20 transition-all duration-500">
-        <div 
-          className="px-5 py-3 rounded-xl border border-white/20 bg-[#0a0a14]/85 backdrop-blur-md shadow-2xl"
-          style={{ boxShadow: '0 4px 24px rgba(0,0,0,0.6), 0 0 0 0.5px rgba(255,255,255,0.08)' }}
-        >
-          <p className="text-white/60 text-[9px] tracking-[0.2em] uppercase mb-1 font-bold">Signals Intercepted</p>
-          <p className="text-[#c9a84c] text-2xl font-bold tracking-wider text-shadow-glow">{visibleMoments.length}</p>
-        </div>
-      </div>
-
-      {/* BOTTOM RIGHT — Radius Selector */}
-      <div className="absolute bottom-[calc(100px+env(safe-area-inset-bottom))] lg:bottom-6 right-4 z-20">
-        <div 
-          className="flex flex-col gap-1 p-1.5 rounded-xl border border-white/20 bg-[#0a0a14]/85 backdrop-blur-md shadow-2xl w-[90px]"
-          style={{ boxShadow: '0 4px 24px rgba(0,0,0,0.6), 0 0 0 0.5px rgba(255,255,255,0.08)' }}
-        >
-          <p className="text-white/20 text-[8px] tracking-[0.2em] uppercase text-center py-1 font-bold">Radius</p>
-          {radiusOptions.map(r => (
-            <button
-              key={r}
-              onClick={() => setMapRadius(r)}
-              className={cn(
-                "py-2 px-2 rounded-lg text-[9px] tracking-wider uppercase text-center transition-all duration-300",
-                mapRadius === r 
-                  ? "bg-gold/20 border border-gold/35 text-gold font-bold" 
-                  : "text-white/55 hover:text-white/80"
-              )}
-            >
-              {typeof r === 'number' ? `${r} km` : r}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* BOTTOM CENTER — Forum Label (Hidden on mobile) */}
-      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20 hidden sm:flex pb-[env(safe-area-inset-bottom)]">
-        <div 
-          className="flex items-center gap-3 px-6 py-3 rounded-xl border border-white/20 bg-[#0a0a14]/85 backdrop-blur-md shadow-2xl"
-          style={{ boxShadow: '0 4px 24px rgba(0,0,0,0.6), 0 0 0 0.5px rgba(255,255,255,0.08)' }}
-        >
-          <Radar className="w-4 h-4 text-gold animate-pulse" strokeWidth={1.5} />
-          <div className="flex flex-col">
-            <span className="text-white/90 text-[13px] font-bold tracking-[0.25em] uppercase">FORUM</span>
-            <span className="text-white/25 text-[8px] tracking-[0.15em] uppercase font-medium">Geospatial Intelligence</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Location Error Toast */}
-      {locationError && (
-        <div className="absolute top-20 left-1/2 -translate-x-1/2 z-30 flex items-center gap-3 px-4 py-2 rounded-lg bg-crimson/10 border border-crimson/30 backdrop-blur-md">
-          <Shield className="w-3 h-3 text-crimson-bright" />
-          <span className="text-[9px] text-crimson-bright tracking-widest uppercase font-bold">Signal Interference / Position Unavailable</span>
-        </div>
-      )}
-
-      {/* Moment Dossier Overlay */}
-      <AnimatePresence>
-        {selectedMoment && (
-          <div className="absolute inset-0 z-[100] flex items-center justify-center p-4 md:p-12 pointer-events-none">
-            <motion.div
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="absolute inset-0 backdrop-blur-md bg-void/80 pointer-events-auto"
-              onClick={() => setSelectedMoment(null)}
-            />
-            <motion.article
-              initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }}
-              className="relative w-full max-w-2xl bg-[#0A0A0A] border border-white/10 pointer-events-auto flex flex-col overflow-hidden rounded-2xl shadow-2xl max-h-[85dvh]"
-              onClick={e => e.stopPropagation()}
-            >
-              <div className="h-[200px] md:h-[300px] w-full relative shrink-0">
-                <img 
-                  src={`https://picsum.photos/seed/${selectedMoment.id}/1000/600`} 
-                  className="w-full h-full object-cover grayscale contrast-125 opacity-70" 
-                  alt=""
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-[#0A0A0A] via-transparent to-transparent" />
-                <button 
-                  onClick={() => setSelectedMoment(null)}
-                  className="absolute top-4 right-4 w-10 h-10 bg-black/50 backdrop-blur-xl border border-white/10 rounded-full flex items-center justify-center text-white/50 hover:text-white transition-colors"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-                <div className="absolute bottom-6 left-8 right-8">
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="w-1.5 h-1.5 bg-gold rounded-full animate-pulse shadow-[0_0_8px_rgba(201,168,76,0.8)]" />
-                    <span className="text-[9px] text-gold/80 tracking-[0.3em] font-bold uppercase">Signal Dossier</span>
-                  </div>
-                  <h2 className="font-serif text-3xl md:text-5xl text-white tracking-tight leading-none">{selectedMoment.title}</h2>
-                </div>
-              </div>
-
-              <div className="p-8 md:p-10 overflow-y-auto scrollbar-hide">
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-8 mb-10 border-b border-white/5 pb-10">
-                  <div>
-                    <p className="text-[9px] text-white/30 tracking-widest uppercase font-bold mb-2">Range</p>
-                    <p className="font-mono text-lg text-white">
-                      {(() => {
-                        const lat = selectedMoment.lat;
-                        const lng = selectedMoment.lng;
-                        if (location && lat != null && lng != null) {
-                          return haversineKm(location.latitude, location.longitude, lat, lng).toFixed(2);
-                        }
-                        return '---';
-                      })()} <span className="text-xs text-white/30">KM</span>
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-[9px] text-white/30 tracking-widest uppercase font-bold mb-2">Entities</p>
-                    <p className="font-mono text-lg text-white flex items-center gap-2">
-                      <Users className="w-4 h-4 text-gold/60" /> {selectedMoment.participant_count ?? 0}
-                    </p>
-                  </div>
-                  <div className="hidden md:block">
-                    <p className="text-[9px] text-white/30 tracking-widest uppercase font-bold mb-2">Classification</p>
-                    <span className="px-3 py-1 bg-gold/10 border border-gold/30 rounded-full text-[9px] text-gold tracking-widest uppercase font-bold">
-                      {selectedMoment.moment_type}
-                    </span>
-                  </div>
-                </div>
-
-                <p className="text-[11px] text-white/50 font-medium mb-10 leading-relaxed uppercase tracking-[0.15em]">
-                  {selectedMoment.description || "Active signal detected at coordinates. Local fluctuations indicate human gathering patterns. Metadata incomplete."}
-                </p>
-
-                <div className="flex flex-col sm:flex-row gap-4">
-                  <button 
-                    disabled={isJoining || hasJoined}
-                    onClick={handleJoinMoment}
-                    className={cn(
-                      "flex-1 px-8 py-5 text-[11px] tracking-[0.4em] font-black transition-all border rounded-xl shadow-xl",
-                      hasJoined 
-                        ? "bg-gold border-gold text-black scale-105" 
-                        : "bg-white border-white text-black hover:bg-gold-pale hover:scale-[1.02]"
-                    )}
-                  >
-                    {isJoining ? "SYCHRONIZING..." : hasJoined ? "CONNECTION ACTIVE" : "ENGAGE SIGNAL"}
-                  </button>
-                  <Link 
-                    to={`/app/${selectedMoment.moment_type === 'event' ? 'event' : 'moment'}/${selectedMoment.id}`}
-                    className="flex-1 px-8 py-5 text-[11px] tracking-[0.4em] font-black text-white border border-white/10 rounded-xl hover:bg-white/5 transition-all text-center shadow-xl"
-                  >
-                    FULL RECORD
-                  </Link>
-                </div>
-              </div>
-            </motion.article>
-          </div>
-        )}
-      </AnimatePresence>
-
-      {/* Global Sector Scanning */}
-      {loading && moments.length === 0 && (
-        <div className="absolute inset-0 z-[200] bg-obsidian flex items-center justify-center">
-          <div className="flex flex-col items-center gap-6">
-            <div className="w-24 h-[1px] bg-white/5 relative overflow-hidden">
-               <motion.div 
-                 animate={{ left: ['-100%', '100%'] }}
-                 transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
-                 className="absolute top-0 bottom-0 w-1/2 bg-gold shadow-[0_0_15px_rgba(201,168,76,1)]"
-               />
-            </div>
-            <motion.div
-               animate={{ opacity: [0.3, 1, 0.3] }}
-               transition={{ duration: 2, repeat: Infinity }}
-               className="text-gold/40 text-[9px] tracking-[0.8em] font-bold uppercase"
-            >
-              Scanning Sectors
-            </motion.div>
-          </div>
-        </div>
-      )}
-
+      {/* ── POPUP (keep existing activeSignal popup JSX here unchanged) ── */}
       {activeSignal && (
         <div
           className="absolute z-50 pointer-events-auto"
@@ -674,7 +485,7 @@ export default function MapPage() {
               <div className="flex items-center gap-4 mb-4">
                 <div className="flex items-center gap-1.5 text-white/40 text-[10px]">
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-                  <span>{activeSignal.participant_count ?? activeSignal.attendee_count ?? 0} attending</span>
+                  <span>{activeSignal.participant_count ?? 0} attending</span>
                 </div>
                 <div className="flex items-center gap-1.5 text-white/40 text-[10px]">
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
@@ -715,6 +526,50 @@ export default function MapPage() {
           </div>
         </div>
       )}
+
+      {/* ── BOTTOM RADIUS PILLS ── */}
+      <div className="absolute bottom-20 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2">
+        {['5 KM', '50 KM', 'PROVINCE', 'COUNTRY', 'GLOBAL'].map(r => (
+          <button
+            key={r}
+            onClick={() => setRadius(r)}
+            className="px-4 py-2 rounded-full text-[9px] font-bold tracking-[0.15em] uppercase transition-all duration-200"
+            style={{
+              background: radius === r ? '#c9a84c' : 'rgba(8,8,15,0.85)',
+              color: radius === r ? '#08080f' : 'rgba(255,255,255,0.5)',
+              border: radius === r ? 'none' : '1px solid rgba(255,255,255,0.1)',
+              backdropFilter: 'blur(12px)',
+            }}
+          >
+            {r}
+          </button>
+        ))}
+      </div>
+
+      {/* ── STATUS BAR ── */}
+      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-20 flex items-center gap-3">
+        <span className="w-1.5 h-1.5 rounded-full bg-[#c9a84c] animate-pulse" />
+        <span className="text-white/30 text-[9px] tracking-[0.22em] uppercase">
+          {moments.length} Active Signal{moments.length !== 1 ? 's' : ''} · Live Radius: {radius}
+        </span>
+      </div>
+
+      {/* ── RECENTER BUTTON ── */}
+      <button
+        onClick={recenterMap}
+        className="absolute top-7 right-7 z-20 w-10 h-10 rounded-full bg-black/60 backdrop-blur-xl border border-white/10 flex items-center justify-center hover:border-white/20 transition-all"
+      >
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.6)" strokeWidth="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/></svg>
+      </button>
+
+      {/* Location Error Toast */}
+      {locationError && (
+        <div className="absolute top-24 left-1/2 -translate-x-1/2 z-30 flex items-center gap-3 px-4 py-2 rounded-lg bg-red-500/10 border border-red-500/30 backdrop-blur-md">
+          <Shield className="w-3 h-3 text-red-400" />
+          <span className="text-[9px] text-red-400 tracking-widest uppercase font-bold">Signal Interference / Position Unavailable</span>
+        </div>
+      )}
+
     </div>
   )
 }
