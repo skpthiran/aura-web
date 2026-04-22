@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { Moment } from '../types'
 import { supabase } from '../lib/supabase'
 import { useUserLocation } from './useUserLocation'
@@ -10,20 +10,27 @@ export function useNearbyEvents(radiusLabel: string = '50 KM') {
   const [error, setError] = useState<string | null>(null)
   const { location, loading: locationLoading } = useUserLocation()
 
-  const lat = location?.latitude ?? 6.9271
-  const lng = location?.longitude ?? 79.8612
+  // Round to 4 decimal places (~11m precision) to prevent floating point churn
+  const lat = location ? Math.round(location.latitude * 10000) / 10000 : 6.9271
+  const lng = location ? Math.round(location.longitude * 10000) / 10000 : 79.8612
 
-  const fetchEvents = useCallback(async () => {
+  // Track last fetched params to prevent duplicate fetches
+  const lastFetchRef = useRef<string>('')
+
+  const fetchEvents = useCallback(async (fetchLat: number, fetchLng: number, fetchRadius: string) => {
+    const key = `${fetchLat},${fetchLng},${fetchRadius}`
+    if (lastFetchRef.current === key) return
+    lastFetchRef.current = key
+
     setLoading(true)
     setError(null)
     try {
-      const radiusKm = getRadiusValue(radiusLabel)
+      const radiusKm = getRadiusValue(fetchRadius)
       const { data, error: rpcError } = await supabase.rpc('nearby_moments', {
-        user_lat: lat,
-        user_lng: lng,
+        user_lat: fetchLat,
+        user_lng: fetchLng,
         radius_km: radiusKm
       })
-
       if (rpcError) throw rpcError
       const allSignals = (data ?? []) as Moment[]
       setEvents(allSignals.filter(m => m.moment_type === 'event'))
@@ -33,11 +40,17 @@ export function useNearbyEvents(radiusLabel: string = '50 KM') {
     } finally {
       setLoading(false)
     }
-  }, [lat, lng, radiusLabel])
+  }, [])
 
   useEffect(() => {
-    fetchEvents()
-  }, [fetchEvents])
+    if (locationLoading) return
+    fetchEvents(lat, lng, radiusLabel)
+  }, [lat, lng, radiusLabel, locationLoading, fetchEvents])
 
-  return { events, loading: loading || locationLoading, error, refetch: fetchEvents, setEvents }
+  const refetch = useCallback(() => {
+    lastFetchRef.current = '' // clear cache so next call forces a fresh fetch
+    fetchEvents(lat, lng, radiusLabel)
+  }, [lat, lng, radiusLabel, fetchEvents])
+
+  return { events, loading: loading || locationLoading, error, refetch, setEvents }
 }
