@@ -259,7 +259,7 @@ export default function SearchPage() {
                     exit={{ opacity: 0 }}
                     transition={{ delay: i * 0.04 }}
                   >
-                    <Link to={`/app/moment/${m.id}`}>
+                    <Link to={`/app/${m.moment_type === 'event' ? 'event' : 'moment'}/${m.id}`}>
                       <div className={cn(
                         'glass-panel hairline-all rounded-2xl px-4 py-4',
                         'hover:border-white/20 transition-all group cursor-pointer'

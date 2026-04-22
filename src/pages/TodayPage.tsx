@@ -61,7 +61,7 @@ const MomentGridCard: React.FC<MomentGridCardProps> = ({
   }, [moment.expires_at])
 
   return (
-    <Link to={`/app/moment/${moment.id}`}>
+    <Link to={`/app/${moment.moment_type === 'event' ? 'event' : 'moment'}/${moment.id}`}>
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -551,7 +551,7 @@ export default function TodayPage() {
                   onTouchStart={handleTouchStart}
                   onTouchMove={(e) => handleTouchMove(e, moment.id)}
                   onTouchEnd={(e) => handleTouchEnd(e, moment.id)}
-                  onClick={() => navigate(`/app/moment/${moment.id}`)}
+                  onClick={() => navigate(`/app/${isEvent ? 'event' : 'moment'}/${moment.id}`)}
                 >
                   {/* JOIN INDICATOR — shows on swipe right */}
                   <div

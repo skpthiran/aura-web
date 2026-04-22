@@ -274,7 +274,7 @@ export default function ChatPage() {
             </div>
 
             <button
-              onClick={() => navigate(`/app/moment/${selectedChannel.id}`)}
+              onClick={() => navigate(`/app/${selectedChannel.moment_type === 'event' ? 'event' : 'moment'}/${selectedChannel.id}`)}
               className="flex items-center gap-2 px-3 py-2 rounded-xl border border-white/8 bg-white/[0.03] hover:border-[#c9a84c]/25 hover:bg-[#c9a84c]/5 transition-all group"
             >
               <ExternalLink className="w-3.5 h-3.5 text-white/30 group-hover:text-[#c9a84c]/60 transition-colors" />

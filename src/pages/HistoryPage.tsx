@@ -215,83 +215,84 @@ export default function HistoryPage() {
                   const isEvent = item.moment_type === 'event'
                   const isHost = item.creator_id === user?.id
                   return (
-                    <motion.div
-                      key={item.id}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: i * 0.03 }}
-                      className="group relative flex flex-col bg-[#0a0a14]/60 backdrop-blur-md border border-white/10 rounded-3xl
-                        overflow-hidden hover:border-white/20 hover:bg-[#0a0a14]/90 shadow-xl
-                        transition-all duration-500 cursor-pointer h-full"
-                    >
-                      {/* Image Preview */}
-                      <div className="relative h-44 overflow-hidden">
-                        <img 
-                          src={getSignalImage(item.id, item.tags, item.moment_type)}
-                          className="w-full h-full object-cover grayscale opacity-30 
-                            group-hover:grayscale-0 group-hover:opacity-60 group-hover:scale-105 transition-all duration-1000"
-                          alt=""
-                          onError={(e) => {
-                            e.currentTarget.src = `https://picsum.photos/seed/${item.id}/600/400`
-                          }}
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a14] via-transparent to-transparent" />
-                        
-                        <div className="absolute top-4 left-4 flex gap-2">
-                           <span className={cn(
-                             'micro-caps text-[9px] px-2.5 py-1.5 rounded-full border backdrop-blur-md font-bold tracking-widest',
-                             isEvent
-                               ? 'bg-gold/20 border-gold/40 text-gold'
-                               : 'bg-marble/10 border-white/20 text-marble'
-                           )}>
-                            {isEvent ? '◈ EVENT' : '⚡ MOMENT'}
-                          </span>
-                        </div>
-
-                        {isHost && (
-                           <div className="absolute top-4 right-4">
-                             <div className="w-8 h-8 rounded-full bg-gold/10 border border-gold/30 flex items-center justify-center shadow-lg">
-                               <Users className="w-3.5 h-3.5 text-gold" />
-                             </div>
-                           </div>
-                        )}
-                      </div>
-
-                      <div className="p-6 flex-1 flex flex-col">
-                        <div className="mb-4">
-                           <p className="micro-caps text-[9px] text-marble/30 mb-2 tracking-[0.2em]">
-                             {formatExpired(item.expires_at).toUpperCase()}
-                           </p>
-                           <h3 className="font-serif text-xl text-marble/90 group-hover:text-gold transition-colors duration-500 line-clamp-2">
-                             {item.title}
-                           </h3>
-                        </div>
-
-                        {item.description && (
-                          <p className="text-[13px] text-marble/30 line-clamp-2 leading-relaxed mb-6 flex-1 italic">
-                            "{item.description}"
-                          </p>
-                        )}
-
-                        <div className="mt-auto pt-6 border-t border-white/5 flex items-center justify-between">
-                          <div className="flex flex-col gap-1">
-                            <p className="micro-caps text-[8px] text-marble/20 tracking-[0.1em]">EXPIRED ON</p>
-                            <span className="flex items-center gap-2 text-[10px] text-marble/40 font-medium">
-                              <Calendar className="w-3 h-3 text-gold/40" />
-                              {new Date(item.expires_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                    <Link key={item.id} to={`/app/${item.moment_type === 'event' ? 'event' : 'moment'}/${item.id}`} className="block h-full">
+                      <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: i * 0.03 }}
+                        className="group relative flex flex-col bg-[#0a0a14]/60 backdrop-blur-md border border-white/10 rounded-3xl
+                          overflow-hidden hover:border-white/20 hover:bg-[#0a0a14]/90 shadow-xl
+                          transition-all duration-500 cursor-pointer h-full"
+                      >
+                        {/* Image Preview */}
+                        <div className="relative h-44 overflow-hidden">
+                          <img 
+                            src={getSignalImage(item.id, item.tags, item.moment_type)}
+                            className="w-full h-full object-cover grayscale opacity-30 
+                              group-hover:grayscale-0 group-hover:opacity-60 group-hover:scale-105 transition-all duration-1000"
+                            alt=""
+                            onError={(e) => {
+                              e.currentTarget.src = `https://picsum.photos/seed/${item.id}/600/400`
+                            }}
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a14] via-transparent to-transparent" />
+                          
+                          <div className="absolute top-4 left-4 flex gap-2">
+                             <span className={cn(
+                               'micro-caps text-[9px] px-2.5 py-1.5 rounded-full border backdrop-blur-md font-bold tracking-widest',
+                               isEvent
+                                 ? 'bg-gold/20 border-gold/40 text-gold'
+                                 : 'bg-marble/10 border-white/20 text-marble'
+                             )}>
+                              {isEvent ? '◈ EVENT' : '⚡ MOMENT'}
                             </span>
                           </div>
-                          
-                          <div className="flex items-center gap-2">
-                             {isHost ? (
-                               <span className="micro-caps text-[9px] text-gold/60 font-bold bg-gold/10 px-2 py-1 rounded-md">HOST</span>
-                             ) : (
-                               <span className="micro-caps text-[9px] text-marble/40 font-bold bg-white/5 px-2 py-1 rounded-md">VISITOR</span>
-                             )}
+
+                          {isHost && (
+                             <div className="absolute top-4 right-4">
+                               <div className="w-8 h-8 rounded-full bg-gold/10 border border-gold/30 flex items-center justify-center shadow-lg">
+                                 <Users className="w-3.5 h-3.5 text-gold" />
+                               </div>
+                             </div>
+                          )}
+                        </div>
+
+                        <div className="p-6 flex-1 flex flex-col">
+                          <div className="mb-4">
+                             <p className="micro-caps text-[9px] text-marble/30 mb-2 tracking-[0.2em]">
+                               {formatExpired(item.expires_at).toUpperCase()}
+                             </p>
+                             <h3 className="font-serif text-xl text-marble/90 group-hover:text-gold transition-colors duration-500 line-clamp-2">
+                               {item.title}
+                             </h3>
+                          </div>
+
+                          {item.description && (
+                            <p className="text-[13px] text-marble/30 line-clamp-2 leading-relaxed mb-6 flex-1 italic">
+                              "{item.description}"
+                            </p>
+                          )}
+
+                          <div className="mt-auto pt-6 border-t border-white/5 flex items-center justify-between">
+                            <div className="flex flex-col gap-1">
+                              <p className="micro-caps text-[8px] text-marble/20 tracking-[0.1em]">EXPIRED ON</p>
+                              <span className="flex items-center gap-2 text-[10px] text-marble/40 font-medium">
+                                <Calendar className="w-3 h-3 text-gold/40" />
+                                {new Date(item.expires_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                              </span>
+                            </div>
+                            
+                            <div className="flex items-center gap-2">
+                               {isHost ? (
+                                 <span className="micro-caps text-[9px] text-gold/60 font-bold bg-gold/10 px-2 py-1 rounded-md">HOST</span>
+                               ) : (
+                                 <span className="micro-caps text-[9px] text-marble/40 font-bold bg-white/5 px-2 py-1 rounded-md">VISITOR</span>
+                               )}
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    </motion.div>
+                      </motion.div>
+                    </Link>
                   )
                 })}
               </div>

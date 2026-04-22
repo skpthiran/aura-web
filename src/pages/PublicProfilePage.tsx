@@ -243,7 +243,7 @@ export default function PublicProfilePage() {
                     const isExpired = new Date(moment.expires_at) < new Date()
                     const isEvent = moment.moment_type === 'event'
                     return (
-                      <Link key={moment.id} to={`/app/moment/${moment.id}`}>
+                      <Link key={moment.id} to={`/app/${isEvent ? 'event' : 'moment'}/${moment.id}`}>
                         <div className={cn(
                           "relative aspect-square overflow-hidden bg-white/5 cursor-pointer group",
                           "rounded-sm lg:rounded-xl border border-transparent transition-all duration-500",

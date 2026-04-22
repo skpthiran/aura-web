@@ -180,7 +180,7 @@ export default function SignalsPage() {
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: i * 0.04 }}
                     >
-                      <Link to={`/app/moment/${join.moment_id}`}>
+                      <Link to={`/app/${join.moments?.moment_type === 'event' ? 'event' : 'moment'}/${join.moment_id}`}>
                         <div className="group relative bg-[#0a0a14]/60 backdrop-blur-md border border-white/10 rounded-3xl p-5
                           hover:bg-[#0a0a14]/90 hover:border-white/20 transition-all duration-500 cursor-pointer overflow-hidden shadow-xl"
                           style={{ borderLeft: join.moments?.moment_type === 'event' ? '3px solid #d4af37' : '3px solid #ff0800' }}>
