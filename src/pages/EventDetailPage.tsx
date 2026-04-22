@@ -53,9 +53,22 @@ export default function EventDetailPage() {
         .single()
       
       if (error) throw error
-      if (!data) return
-      
-      setEvent(data)
+      if (data) {
+        // Parse PostGIS POINT(lng lat) if needed
+        let lat = data.lat
+        let lng = data.lng
+        
+        if (typeof data.location === 'string' && data.location.startsWith('POINT')) {
+          const match = data.location.match(/POINT\(([-\d.]+) ([-\d.]+)\)/)
+          if (match) {
+            lng = parseFloat(match[1])
+            lat = parseFloat(match[2])
+          }
+        }
+        
+        const enrichedEvent = { ...data, lat, lng }
+        setEvent(enrichedEvent)
+      }
     } catch (err) {
       console.error('Fetch error:', err)
     } finally {
@@ -280,13 +293,20 @@ export default function EventDetailPage() {
               Open Event Chat
             </button>
             <button
-              onClick={handleShare}
-              className="w-full flex items-center justify-center gap-3 py-3.5 rounded-2xl bg-white/[0.025] border border-white/[0.06] text-white/35 text-[10px] tracking-[0.2em] uppercase hover:bg-white/[0.05] hover:border-white/[0.12] hover:text-white/55 transition-all duration-300 group"
-            >
-              {copied ? <Check className="w-4 h-4 text-[#c9a84c]/60" /> : <Share2 className="w-4 h-4 group-hover:text-[#c9a84c]/60 transition-colors" />}
-              {copied ? 'Link Copied' : 'Share Event'}
-            </button>
-          </div>
+               onClick={handleShare}
+               className="w-full flex items-center justify-center gap-3 py-3.5 rounded-2xl bg-white/[0.025] border border-white/[0.06] text-white/35 text-[10px] tracking-[0.2em] uppercase hover:bg-white/[0.05] hover:border-white/[0.12] hover:text-white/55 transition-all duration-300 group"
+             >
+               {copied ? <Check className="w-4 h-4 text-[#c9a84c]/60" /> : <Share2 className="w-4 h-4 group-hover:text-[#c9a84c]/60 transition-colors" />}
+               {copied ? 'Link Copied' : 'Share Event'}
+             </button>
+             <button
+               onClick={() => navigate(`/app/map?lat=${event.lat}&lng=${event.lng}&id=${event.id}`)}
+               className="w-full flex items-center justify-center gap-3 py-3.5 rounded-2xl bg-white/[0.025] border border-white/[0.06] text-white/35 text-[10px] tracking-[0.2em] uppercase hover:bg-white/[0.05] hover:border-white/[0.12] hover:text-white/55 transition-all duration-300 group"
+             >
+               <MapPin className="w-4 h-4 group-hover:text-[#c9a84c]/60 transition-colors" />
+               See on Map
+             </button>
+           </div>
 
         </div>
 

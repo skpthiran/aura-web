@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback, useMemo } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { motion, AnimatePresence } from 'motion/react'
 import maplibregl, { Map as MapLibreMap, Marker } from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
@@ -35,6 +35,7 @@ function haversineKm(
 
 export default function MapPage() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   usePageTitle('Forum')
   const { location, error: locationError } = useUserLocation()
   const [radius, setRadius] = useState<string>('50 KM')
@@ -172,14 +173,22 @@ export default function MapPage() {
   useEffect(() => {
     if (!mapContainer.current || mapRef.current) return
 
+    const focusLat = parseFloat(searchParams.get('lat') || '')
+    const focusLng = parseFloat(searchParams.get('lng') || '')
+    const hasFocus = !isNaN(focusLat) && !isNaN(focusLng)
+
     const map = new MapLibreMap({
       container: mapContainer.current,
       style: MAPTILER_STYLE,
-      center: [79.8612, 6.9271],
-      zoom: 13,
+      center: hasFocus ? [focusLng, focusLat] : [79.8612, 6.9271],
+      zoom: hasFocus ? 16 : 13,
       attributionControl: false,
       renderWorldCopies: false
     })
+
+    if (hasFocus) {
+      hasFlownToUser.current = true
+    }
 
     mapRef.current = map
     map.on('load', () => setMapLoaded(true))
@@ -318,6 +327,20 @@ export default function MapPage() {
       map.off('mousemove', handleMouseMove)
     }
   }, [visibleMoments, mapLoaded])
+
+  // Auto-select focused ID
+  useEffect(() => {
+    const map = mapRef.current
+    const focusId = searchParams.get('id')
+    if (!map || !mapLoaded || !focusId || !visibleMoments.length) return
+
+    const target = visibleMoments.find(m => m.id === focusId)
+    if (target && target.lat && target.lng) {
+      const point = map.project([target.lng, target.lat])
+      setSelectedMoment(target)
+      setPopupPos({ x: point.x, y: point.y })
+    }
+  }, [visibleMoments, mapLoaded, searchParams])
 
   // User Position
   useEffect(() => {

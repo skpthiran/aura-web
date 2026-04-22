@@ -63,10 +63,23 @@ export default function MomentDetailPage() {
         .single()
       
       if (error) throw error
-      if (!data) return
-      
-      setMoment(data)
-      if (data.creator) setCreator(data.creator)
+      if (data) {
+        // Parse PostGIS POINT(lng lat) if needed
+        let lat = data.lat
+        let lng = data.lng
+        
+        if (typeof data.location === 'string' && data.location.startsWith('POINT')) {
+          const match = data.location.match(/POINT\(([-\d.]+) ([-\d.]+)\)/)
+          if (match) {
+            lng = parseFloat(match[1])
+            lat = parseFloat(match[2])
+          }
+        }
+        
+        const enrichedMoment = { ...data, lat, lng }
+        setMoment(enrichedMoment)
+        if (data.creator) setCreator(data.creator)
+      }
     } catch (err) {
       // Error handled by state
     } finally {
@@ -274,6 +287,14 @@ export default function MomentDetailPage() {
           >
             {copied ? <Check className="w-4 h-4 text-[#c9a84c]/60" /> : <Share2 className="w-4 h-4 group-hover:text-[#c9a84c]/60 transition-colors" />}
             {copied ? 'Link Copied' : 'Share Signal'}
+          </button>
+
+          <button
+            onClick={() => navigate(`/app/map?lat=${moment.lat}&lng=${moment.lng}&id=${moment.id}`)}
+            className="w-full flex items-center justify-center gap-3 py-3.5 rounded-2xl bg-white/[0.025] border border-white/[0.06] text-white/35 text-[10px] tracking-[0.2em] uppercase hover:bg-white/[0.05] hover:border-white/[0.12] hover:text-white/55 transition-all duration-300 group mt-3"
+          >
+            <MapPin className="w-4 h-4 group-hover:text-[#c9a84c]/60 transition-colors" />
+            See on Map
           </button>
 
         </div>
