@@ -275,6 +275,12 @@ export default function TodayPage() {
     
     // Only horizontal swipe
     if (Math.abs(dy) > Math.abs(dx)) return;
+
+    // Movement threshold to allow tap events
+    if (Math.abs(dx) < 10) return;
+
+    // Once we are definitely swiping, prevent default scrolling
+    if (e.cancelable) e.preventDefault();
     
     const capped = Math.max(-120, Math.min(120, dx));
     const rotate = capped * 0.08;
@@ -303,6 +309,9 @@ export default function TodayPage() {
     const el = e.currentTarget;
     const dx = e.changedTouches[0].clientX - swipeState.current.startX;
     
+    // If movement is negligible, treat as tap and let navigate handle it
+    if (Math.abs(dx) < 10) return;
+
     el.style.transition = 'transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
     
     const joinIndicator = el.querySelector('[data-join-indicator]') as HTMLElement;
@@ -543,6 +552,8 @@ export default function TodayPage() {
             {nearbyFiltered.filter(m => !rejectedIds.includes(m.id)).map((moment) => {
               const cardImage = moment.image_url || getSignalImage(moment.id, moment.tags, moment.moment_type);
               const isJoined = joinedIds.includes(moment.id);
+              const isEvent = moment.moment_type === 'event';
+
               return (
                 <div
                   key={moment.id}
