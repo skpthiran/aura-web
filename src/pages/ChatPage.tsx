@@ -5,7 +5,7 @@ import { getJoinedMoments, getChatMessages, sendMessage } from '../lib/db/chat'
 import { ChatMessage } from '../types'
 import { MessageSquare, ExternalLink, Send, Calendar, Zap, MessageCircle, ChevronLeft } from 'lucide-react'
 import { cn } from '../lib/utils'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { usePageTitle } from '../hooks/usePageTitle'
 import { getSignalImage } from '../lib/signalImage'
 
@@ -13,6 +13,8 @@ export default function ChatPage() {
   usePageTitle('Agora')
   const { user: currentUser, profile } = useAuth()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const channelParam = searchParams.get('channel')
   
   const [channels, setChannels] = useState<any[]>([])
   const [selectedChannelId, setSelectedChannelId] = useState<string | null>(null)
@@ -30,7 +32,12 @@ export default function ChatPage() {
     getJoinedMoments(currentUser.id)
       .then(data => {
         setChannels(data ?? [])
-        if (data && data.length > 0) {
+        
+        // If we have a channel param, try to select that first
+        if (channelParam) {
+          setSelectedChannelId(channelParam)
+          setShowMobileChat(true)
+        } else if (data && data.length > 0) {
           setSelectedChannelId(data[0].moment_id)
         }
       })

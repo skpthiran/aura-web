@@ -176,7 +176,7 @@ export default function EventDetailPage() {
           {/* ORGANIZER */}
           {event?.creator && (
             <div
-              onClick={() => navigate(`/app/profile/${event.creator_id}`)}
+              onClick={() => navigate(`/app/user/${event.creator_id}`)}
               className="flex items-center gap-4 p-4 rounded-2xl bg-white/[0.025] border border-white/[0.06] mb-6 cursor-pointer hover:border-[#c9a84c]/20 hover:bg-white/[0.04] transition-all group"
             >
               <div className="w-11 h-11 rounded-full overflow-hidden flex-shrink-0 border border-white/10 bg-gradient-to-br from-[#c9a84c]/20 to-transparent flex items-center justify-center">
