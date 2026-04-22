@@ -18,7 +18,6 @@ export function useNearbyMoments(radiusLabel: string = '50 KM') {
     setError(null)
     try {
       const radiusKm = getRadiusValue(radiusLabel)
-      console.log('[useNearbyMoments] fetching — radius:', radiusLabel, '→', radiusKm, 'km', 'at:', lat, lng)
       const { data, error: rpcError } = await supabase.rpc('nearby_moments', {
         user_lat: lat,
         user_lng: lng,

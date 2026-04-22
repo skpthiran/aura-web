@@ -24,7 +24,7 @@ export interface Moment {
   expires_at: string
   is_active: boolean
   created_at: string
-  moment_type: string
+  moment_type: 'moment' | 'event'
   tags: string[]
   lat: number
   lng: number

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ChevronLeft, Users, Clock, MapPin, Calendar, Target, ExternalLink, Shirt, Shield, Lock } from 'lucide-react'
+import { ChevronLeft, Users, Clock, MapPin, Calendar, Target, ExternalLink, Shirt, Shield, Lock, MessageSquare, Share2, Check, Loader } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
 import { joinMoment, leaveMoment } from '../lib/db/moments'
@@ -17,6 +17,7 @@ export default function EventDetailPage() {
   const [loading, setLoading] = useState(true)
   const [joining, setJoining] = useState(false)
   const [isJoined, setIsJoined] = useState(false)
+  const [copied, setCopied] = useState(false)
 
   usePageTitle(event?.title ?? 'Gathering')
 
@@ -25,6 +26,22 @@ export default function EventDetailPage() {
     fetchEvent()
     checkIfJoined()
   }, [id, user])
+
+  useEffect(() => {
+    if (!id) return
+    const channel = supabase
+      .channel(`participants:${id}`)
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'participants',
+        filter: `moment_id=eq.${id}`
+      }, () => {
+        fetchEvent()
+      })
+      .subscribe()
+    return () => { supabase.removeChannel(channel) }
+  }, [id])
 
   const fetchEvent = async () => {
     setLoading(true)
@@ -77,6 +94,19 @@ export default function EventDetailPage() {
     } finally {
       setJoining(false)
     }
+  }
+
+  const handleShare = async () => {
+    const url = window.location.href
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: event?.title, url })
+      } else {
+        await navigator.clipboard.writeText(url)
+        setCopied(true)
+        setTimeout(() => setCopied(false), 2000)
+      }
+    } catch {}
   }
 
   if (loading) return <MomentDetailSkeleton />
@@ -241,6 +271,23 @@ export default function EventDetailPage() {
             </div>
           )}
 
+          <div className="flex flex-col gap-3 mt-6">
+            <button
+              onClick={() => navigate(`/app/chat?channel=${event?.id}`)}
+              className="w-full flex items-center justify-center gap-3 py-3.5 rounded-2xl bg-white/[0.025] border border-white/[0.06] text-white/35 text-[10px] tracking-[0.2em] uppercase hover:bg-white/[0.05] hover:border-white/[0.12] hover:text-white/55 transition-all duration-300 group"
+            >
+              <MessageSquare className="w-4 h-4 group-hover:text-[#c9a84c]/60 transition-colors" />
+              Open Event Chat
+            </button>
+            <button
+              onClick={handleShare}
+              className="w-full flex items-center justify-center gap-3 py-3.5 rounded-2xl bg-white/[0.025] border border-white/[0.06] text-white/35 text-[10px] tracking-[0.2em] uppercase hover:bg-white/[0.05] hover:border-white/[0.12] hover:text-white/55 transition-all duration-300 group"
+            >
+              {copied ? <Check className="w-4 h-4 text-[#c9a84c]/60" /> : <Share2 className="w-4 h-4 group-hover:text-[#c9a84c]/60 transition-colors" />}
+              {copied ? 'Link Copied' : 'Share Event'}
+            </button>
+          </div>
+
         </div>
 
         {/* MOBILE FIXED BOTTOM */}
@@ -252,15 +299,19 @@ export default function EventDetailPage() {
             background: 'linear-gradient(to top, #08080f 60%, rgba(8,8,15,0.9) 80%, transparent)',
           }}>
           {isJoined ? (
-            <button onClick={handleLeave}
-              className="w-full py-4 rounded-2xl border border-white/10 bg-white/[0.03] text-white/40 text-[12px] font-bold tracking-[0.22em] uppercase hover:border-red-500/25 hover:text-red-400/50 transition-all active:scale-[0.98]">
-              ✓ Attending · Tap to Leave
+            <button
+              onClick={handleLeave}
+              disabled={joining}
+              className="w-full py-4 rounded-2xl border border-white/10 bg-white/[0.03] text-white/40 text-[12px] font-bold tracking-[0.22em] uppercase hover:border-red-500/25 hover:text-red-400/50 transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed">
+              {joining ? <Loader className="w-4 h-4 animate-spin mx-auto" /> : '✓ Attending · Tap to Leave'}
             </button>
           ) : (
-            <button onClick={handleJoin}
-              className="w-full py-4 rounded-2xl text-[#08080f] text-[12px] font-black tracking-[0.22em] uppercase transition-all hover:opacity-90 active:scale-[0.98] shadow-2xl shadow-[#c9a84c]/20"
+            <button
+              onClick={handleJoin}
+              disabled={joining}
+              className="w-full py-4 rounded-2xl text-[#08080f] text-[12px] font-black tracking-[0.22em] uppercase transition-all hover:opacity-90 active:scale-[0.98] shadow-2xl shadow-[#c9a84c]/20 disabled:opacity-50 disabled:cursor-not-allowed"
               style={{ background: 'linear-gradient(135deg, #c9a84c 0%, #dfc070 50%, #c9a84c 100%)' }}>
-              Attend Event
+              {joining ? <Loader className="w-4 h-4 animate-spin mx-auto" /> : 'Attend Event'}
             </button>
           )}
         </div>
@@ -268,15 +319,19 @@ export default function EventDetailPage() {
         {/* DESKTOP STICKY BOTTOM */}
         <div className="hidden lg:block sticky bottom-0 px-10 pb-8 pt-5 bg-gradient-to-t from-[#08080f] via-[#08080f]/95 to-transparent">
           {isJoined ? (
-            <button onClick={handleLeave}
-              className="w-full py-4 rounded-2xl border border-white/10 bg-white/[0.03] text-white/35 text-[11px] font-bold tracking-[0.22em] uppercase hover:border-red-500/20 hover:text-red-400/40 transition-all duration-300">
-              ✓ Attending · Tap to Leave
+            <button
+              onClick={handleLeave}
+              disabled={joining}
+              className="w-full py-4 rounded-2xl border border-white/10 bg-white/[0.03] text-white/35 text-[11px] font-bold tracking-[0.22em] uppercase hover:border-red-500/20 hover:text-red-400/40 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed">
+              {joining ? <Loader className="w-4 h-4 animate-spin mx-auto" /> : '✓ Attending · Tap to Leave'}
             </button>
           ) : (
-            <button onClick={handleJoin}
-              className="w-full py-4 rounded-2xl text-[#08080f] text-[12px] font-black tracking-[0.22em] uppercase transition-all hover:opacity-90 active:scale-[0.98] shadow-2xl shadow-[#c9a84c]/20"
+            <button
+              onClick={handleJoin}
+              disabled={joining}
+              className="w-full py-4 rounded-2xl text-[#08080f] text-[12px] font-black tracking-[0.22em] uppercase transition-all hover:opacity-90 active:scale-[0.98] shadow-2xl shadow-[#c9a84c]/20 disabled:opacity-50 disabled:cursor-not-allowed"
               style={{ background: 'linear-gradient(135deg, #c9a84c 0%, #dfc070 50%, #c9a84c 100%)' }}>
-              Attend Event
+              {joining ? <Loader className="w-4 h-4 animate-spin mx-auto" /> : 'Attend Event'}
             </button>
           )}
         </div>

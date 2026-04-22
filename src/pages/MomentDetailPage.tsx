@@ -36,6 +36,22 @@ export default function MomentDetailPage() {
     checkIfJoined()
   }, [id, user])
 
+  useEffect(() => {
+    if (!id) return
+    const channel = supabase
+      .channel(`participants:${id}`)
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'participants',
+        filter: `moment_id=eq.${id}`
+      }, () => {
+        fetchMoment()
+      })
+      .subscribe()
+    return () => { supabase.removeChannel(channel) }
+  }, [id])
+
 
   const fetchMoment = async () => {
     setLoading(true)
@@ -252,6 +268,14 @@ export default function MomentDetailPage() {
             Open Signal Chat
           </button>
 
+          <button
+            onClick={handleShare}
+            className="w-full flex items-center justify-center gap-3 py-3.5 rounded-2xl bg-white/[0.025] border border-white/[0.06] text-white/35 text-[10px] tracking-[0.2em] uppercase hover:bg-white/[0.05] hover:border-white/[0.12] hover:text-white/55 transition-all duration-300 group mt-3"
+          >
+            {copied ? <Check className="w-4 h-4 text-[#c9a84c]/60" /> : <Share2 className="w-4 h-4 group-hover:text-[#c9a84c]/60 transition-colors" />}
+            {copied ? 'Link Copied' : 'Share Signal'}
+          </button>
+
         </div>
 
         {/* MOBILE FIXED BOTTOM BAR */}
@@ -265,15 +289,17 @@ export default function MomentDetailPage() {
           {isJoined ? (
             <button
               onClick={handleLeave}
-              className="w-full py-4 rounded-2xl border border-white/10 bg-white/[0.04] text-white/40 text-[12px] font-bold tracking-[0.22em] uppercase hover:border-red-500/25 hover:text-red-400/50 transition-all active:scale-[0.98]">
-              ✓ Joined · Tap to Leave
+              disabled={joining}
+              className="w-full py-4 rounded-2xl border border-white/10 bg-white/[0.04] text-white/40 text-[12px] font-bold tracking-[0.22em] uppercase hover:border-red-500/25 hover:text-red-400/50 transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed">
+              {joining ? <Loader className="w-4 h-4 animate-spin mx-auto" /> : '✓ Joined · Tap to Leave'}
             </button>
           ) : (
             <button
               onClick={handleJoin}
-              className="w-full py-4 rounded-2xl text-[#08080f] text-[13px] font-black tracking-[0.22em] uppercase transition-all active:scale-[0.97] shadow-2xl shadow-[#c9a84c]/25"
+              disabled={joining}
+              className="w-full py-4 rounded-2xl text-[#08080f] text-[13px] font-black tracking-[0.22em] uppercase transition-all active:scale-[0.97] shadow-2xl shadow-[#c9a84c]/25 disabled:opacity-50 disabled:cursor-not-allowed"
               style={{ background: 'linear-gradient(135deg, #c9a84c 0%, #dfc070 50%, #c9a84c 100%)' }}>
-              Join Signal
+              {joining ? <Loader className="w-4 h-4 animate-spin mx-auto" /> : 'Join Signal'}
             </button>
           )}
         </div>
@@ -283,15 +309,17 @@ export default function MomentDetailPage() {
           {isJoined ? (
             <button
               onClick={handleLeave}
-              className="w-full py-4 rounded-2xl border border-white/10 bg-white/[0.03] text-white/35 text-[11px] font-bold tracking-[0.22em] uppercase hover:border-red-500/20 hover:text-red-400/40 transition-all duration-300">
-              ✓ Joined · Tap to Leave
+              disabled={joining}
+              className="w-full py-4 rounded-2xl border border-white/10 bg-white/[0.03] text-white/35 text-[11px] font-bold tracking-[0.22em] uppercase hover:border-red-500/20 hover:text-red-400/40 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed">
+              {joining ? <Loader className="w-4 h-4 animate-spin mx-auto" /> : '✓ Joined · Tap to Leave'}
             </button>
           ) : (
             <button
               onClick={handleJoin}
-              className="w-full py-4 rounded-2xl text-[#08080f] text-[12px] font-black tracking-[0.22em] uppercase transition-all hover:opacity-90 active:scale-[0.98] shadow-2xl shadow-[#c9a84c]/20"
+              disabled={joining}
+              className="w-full py-4 rounded-2xl text-[#08080f] text-[12px] font-black tracking-[0.22em] uppercase transition-all hover:opacity-90 active:scale-[0.98] shadow-2xl shadow-[#c9a84c]/20 disabled:opacity-50 disabled:cursor-not-allowed"
               style={{ background: 'linear-gradient(135deg, #c9a84c 0%, #dfc070 50%, #c9a84c 100%)' }}>
-              Join Moment
+              {joining ? <Loader className="w-4 h-4 animate-spin mx-auto" /> : 'Join Moment'}
             </button>
           )}
         </div>
