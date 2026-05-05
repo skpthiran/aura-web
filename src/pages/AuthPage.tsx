@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { useNavigate } from "react-router-dom";
 import { Sparkles, ArrowRight, Loader2, AlertCircle } from "lucide-react";
@@ -6,7 +6,14 @@ import { useAuth } from "../contexts/AuthContext";
 
 export default function AuthPage() {
   const navigate = useNavigate();
-  const { signIn, signUp } = useAuth();
+  const { signIn, signUp, user } = useAuth();
+
+  // Handle successful login redirect reactively to avoid race conditions
+  useEffect(() => {
+    if (user) {
+      navigate('/app/today', { replace: true });
+    }
+  }, [user, navigate]);
   
   const [mode, setMode] = useState<'signin' | 'signup'>('signin');
   const [loading, setLoading] = useState(false);
@@ -26,7 +33,7 @@ export default function AuthPage() {
     try {
       if (mode === 'signin') {
         await signIn(email, password);
-        navigate('/app/today');
+        // Navigation is handled by the useEffect when user state updates
       } else {
         await signUp(email, password, fullName);
         setSuccess('Check your email to confirm your account.');
