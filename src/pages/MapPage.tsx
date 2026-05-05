@@ -300,7 +300,14 @@ export default function MapPage() {
     const map = mapRef.current
     if (!map || !mapLoaded) return
 
+    map.on('styleimagemissing', (e) => {
+      if (e.id) {
+        map.addImage(e.id, { width: 1, height: 1, data: new Uint8Array(4) })
+      }
+    })
+
     const handleClick = (e: maplibregl.MapMouseEvent) => {
+      if (!map.getLayer('signal-icons')) return
       const features = map.queryRenderedFeatures(e.point, { layers: ['signal-icons'] })
       if (features.length > 0) {
         const props = features[0].properties
@@ -315,6 +322,7 @@ export default function MapPage() {
     }
 
     const handleMouseMove = (e: maplibregl.MapMouseEvent) => {
+      if (!map.getLayer('signal-icons')) return
       const features = map.queryRenderedFeatures(e.point, { layers: ['signal-icons'] })
       map.getCanvas().style.cursor = features.length > 0 ? 'pointer' : ''
     }

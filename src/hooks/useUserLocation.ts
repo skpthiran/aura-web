@@ -55,7 +55,11 @@ export function useUserLocation(): UseUserLocationReturn {
     }
 
     const handleError = (err: GeolocationPositionError) => {
-      setError(err.message)
+      if (err.code === err.PERMISSION_DENIED) {
+        setError('Location access denied. Please enable location permissions in your browser.')
+      } else {
+        setError(err.message)
+      }
       setLoading(false)
     }
 
