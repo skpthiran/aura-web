@@ -290,7 +290,7 @@
 
   .premium-border-card {
     position: relative;
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.14);
   }
 
   .premium-border-card::before {
@@ -299,7 +299,7 @@
     inset: 0;
     border-radius: inherit;
     padding: 1px;
-    background: linear-gradient(140deg, rgba(212, 175, 55, 0.6), rgba(255, 255, 255, 0.05), rgba(139, 0, 0, 0.5));
+    background: linear-gradient(140deg, rgba(212, 175, 55, 0.72), rgba(255, 255, 255, 0.14), rgba(139, 0, 0, 0.58));
     -webkit-mask:
       linear-gradient(#fff 0 0) content-box,
       linear-gradient(#fff 0 0);
@@ -363,7 +363,7 @@
     position: absolute;
     inset: -30%;
     background: conic-gradient(from 0deg, transparent 0deg, rgba(212, 175, 55, 0.44) 55deg, transparent 95deg);
-    animation: aura-radar 3.8s linear infinite;
+    animation: aura-radar 5.8s linear infinite;
     transform-origin: center;
     opacity: 0.7;
   }

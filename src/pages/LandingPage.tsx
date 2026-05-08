@@ -305,7 +305,7 @@ export default function LandingPage(): ReactElement {
             {AMBIENT_CHIPS.map((chip) => (
               <motion.div
                 key={chip.label}
-                className="floating-chip absolute hidden rounded-full border border-white/15 bg-black/45 px-3 py-1 text-[10px] uppercase tracking-[0.16em] text-white/75 sm:block"
+                className="floating-chip absolute hidden rounded-full border border-white/15 bg-black/45 px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-white/75 sm:block"
                 style={{ left: `${chip.x}%`, top: `${chip.y}%` }}
                 animate={prefersReducedMotion ? undefined : { y: [0, -8, 0], opacity: [0.45, 0.9, 0.45] }}
                 transition={{ duration: 4.5, delay: chip.delay, repeat: Infinity, ease: 'easeInOut' }}
@@ -485,10 +485,10 @@ export default function LandingPage(): ReactElement {
                 {!prefersReducedMotion && <div className="absolute inset-0 card-noise opacity-30" />}
 
                 <div className="pointer-events-none absolute left-4 top-4 flex gap-2">
-                  <span className="floating-chip rounded-full border border-white/15 bg-black/40 px-3 py-1 text-[10px] uppercase tracking-[0.15em] text-white/80">
+                  <span className="floating-chip rounded-full border border-white/15 bg-black/40 px-3 py-1 text-[11px] uppercase tracking-[0.15em] text-white/80">
                     {card.stats[0]}
                   </span>
-                  <span className="floating-chip rounded-full border border-gold/30 bg-gold/10 px-3 py-1 text-[10px] uppercase tracking-[0.15em] text-gold">
+                  <span className="floating-chip rounded-full border border-gold/30 bg-gold/10 px-3 py-1 text-[11px] uppercase tracking-[0.15em] text-gold">
                     {card.stats[1]}
                   </span>
                 </div>
@@ -539,7 +539,7 @@ export default function LandingPage(): ReactElement {
             <motion.div
               className="absolute left-5 h-[14px] w-[14px] rounded-full border border-gold/65 bg-gold/45 shadow-[0_0_18px_rgba(212,175,55,0.7)] md:left-7"
               style={{ top: pulseTravelTop, x: '-50%' }}
-              animate={prefersReducedMotion ? undefined : { scale: [1, 1.35, 1] }}
+              animate={prefersReducedMotion ? undefined : { scale: [1, 1.15, 1] }}
               transition={{ duration: 1.9, repeat: Infinity, ease: 'easeInOut' }}
             />
 
@@ -593,7 +593,7 @@ export default function LandingPage(): ReactElement {
                 <div className="absolute inset-0 opacity-0 transition group-hover:opacity-100">
                   <div className="absolute inset-0 bg-gradient-to-br from-gold/15 via-transparent to-crimson/12" />
                 </div>
-                <div className="absolute right-4 top-4 rounded-full border border-white/10 bg-black/35 px-2.5 py-1 text-[10px] uppercase tracking-[0.16em] text-white/55">
+                <div className="absolute right-4 top-4 rounded-full border border-white/10 bg-black/35 px-2.5 py-1 text-[11px] uppercase tracking-[0.16em] text-white/55">
                   {feature.meta}
                 </div>
                 <div className="relative z-10 pt-7">
