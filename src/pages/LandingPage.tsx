@@ -1,697 +1,702 @@
-import { type ReactElement, useEffect, useMemo, useRef, useState } from 'react'
+import { type ReactElement, useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { motion, useScroll, useTransform } from 'motion/react'
 import {
+  Activity,
   ArrowRight,
-  CalendarClock,
+  Clock,
+  Compass,
+  Eye,
+  Flame,
+  Map,
   MapPin,
-  Radar,
-  Sparkles,
-  Timer,
+  Terminal,
   Users,
-  Waves,
   Zap,
   type LucideIcon,
 } from 'lucide-react'
-import {
-  motion,
-  useMotionTemplate,
-  useReducedMotion,
-  useScroll,
-  useSpring,
-  useTransform,
-} from 'motion/react'
 
-import eventBg from '../assets/event-bg.png'
-import momentBg from '../assets/moment-bg.png'
+import { cn } from '../lib/utils'
 
-type ProductCard = {
-  title: 'Moments' | 'Events'
-  subtitle: string
-  description: string
-  image: string
-  chips: readonly string[]
-  stats: readonly string[]
+type FloatingCapsule = {
+  text: string
+  x: string
+  y: string
+  delay: number
+  colorClass: string
 }
 
-type FeatureCard = {
+type LayerCard = {
+  id: number
+  name: string
+  z: number
+  colorClass: string
   icon: LucideIcon
-  title: string
-  description: string
-  meta: string
 }
 
-type FlowStep = {
-  id: string
+type SignalMode = {
   title: string
+  image: string
+  examples: readonly string[]
   description: string
-}
-
-type Pillar = {
-  title: string
-  description: string
-  motif: string
-}
-
-type AmbientChip = {
-  label: string
-  x: number
-  y: number
+  overlayClass: string
+  accentBarClass: string
   delay: number
 }
 
-const PRODUCT_CARDS: readonly ProductCard[] = [
+type ProcessStep = {
+  title: string
+  icon: LucideIcon
+}
+
+type PsychologyBlock = {
+  title: string
+  description: string
+  icon: LucideIcon
+  colorClass: string
+}
+
+const HERO_BG = 'https://images.unsplash.com/photo-1477959858617-67f85cf4f1df?q=80&w=2622&auto=format&fit=crop'
+const CITY_BG = 'https://images.unsplash.com/photo-1519501025264-65ba15a82390?q=80&w=2564&auto=format&fit=crop'
+const NIGHT_WALK = 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?q=80&w=2000&auto=format&fit=crop'
+const EVENT_BG = 'https://images.unsplash.com/photo-1516961642265-531546e84af2?q=80&w=2000&auto=format&fit=crop'
+const PULSE_MAP = 'https://images.unsplash.com/photo-1524661135-423995f22d0b?q=80&w=2000&auto=format&fit=crop'
+
+const FLOATING_CAPSULES: readonly FloatingCapsule[] = [
+  { text: 'Rooftop session · 2.1km', x: '15%', y: '30%', delay: 0.2, colorClass: 'from-amber-500 to-amber-700' },
+  { text: 'Late-night walk · 800m', x: '75%', y: '45%', delay: 0.4, colorClass: 'from-cyan-400 to-cyan-600' },
+  { text: 'Vinyl drop · 48m left', x: '20%', y: '65%', delay: 0.6, colorClass: 'from-violet-500 to-violet-700' },
+  { text: '12 joined nearby', x: '70%', y: '75%', delay: 0.8, colorClass: 'from-crimson-500 to-crimson-700' },
+]
+
+const LAYER_CARDS: readonly LayerCard[] = [
+  { id: 1, name: 'Expiry', z: 160, colorClass: 'border-crimson-500/30 bg-crimson-500/5', icon: Clock },
+  { id: 2, name: 'Events', z: 120, colorClass: 'border-violet-500/30 bg-violet-500/5', icon: Flame },
+  { id: 3, name: 'Moments', z: 80, colorClass: 'border-cyan-500/30 bg-cyan-500/5', icon: Zap },
+  { id: 4, name: 'Places', z: 40, colorClass: 'border-amber-500/30 bg-amber-500/5', icon: MapPin },
+  { id: 5, name: 'People', z: 0, colorClass: 'border-white/10 bg-white/5', icon: Users },
+]
+
+const SIGNAL_MODES: readonly SignalMode[] = [
   {
     title: 'Moments',
-    subtitle: 'Ephemeral social pulse',
-    description: 'Signals for spontaneous plans that appear fast, gather nearby people, then disappear.',
-    image: momentBg,
-    chips: ['Live Radius', 'Fast Join', 'Expires Soon'],
-    stats: ['26 joined', '48m left', '2.1 km'],
+    image: NIGHT_WALK,
+    examples: ['Gym session?', 'Coffee in 20?', 'Night walk?'],
+    description: 'Short-lived spontaneous signals that vanish after a few hours.',
+    overlayClass: 'bg-amber-500/10',
+    accentBarClass: 'bg-amber-500',
+    delay: 0,
   },
   {
     title: 'Events',
-    subtitle: 'Structured city gravity',
-    description: 'Intent-led gatherings with schedule, capacity, and rich context for committed nights.',
-    image: eventBg,
-    chips: ['Scheduled', 'Capacity', 'Intent-Led'],
-    stats: ['72 spots', 'Tonight 11:30', 'Rooftop district'],
+    image: EVENT_BG,
+    examples: ['Open mic night', 'Campus meetup', 'Rooftop music'],
+    description: 'Structured gatherings with time, place, capacity, and intent.',
+    overlayClass: 'bg-violet-500/10',
+    accentBarClass: 'bg-violet-500',
+    delay: 0.2,
+  },
+  {
+    title: 'Pulse Map',
+    image: PULSE_MAP,
+    examples: ['Live heatmap', 'Trending spots', 'Active regions'],
+    description: 'A live layered map showing what is happening around you.',
+    overlayClass: 'bg-cyan-500/10',
+    accentBarClass: 'bg-cyan-500',
+    delay: 0.4,
   },
 ]
 
-const FLOW_STEPS: readonly FlowStep[] = [
-  {
-    id: '01',
-    title: 'Drop a Signal',
-    description: 'Set radius, tone, and timing. Aura lights up your location instantly.',
-  },
-  {
-    id: '02',
-    title: 'People Nearby Discover It',
-    description: 'Neighbors catch the pulse in real time and step into the same moment.',
-  },
-  {
-    id: '03',
-    title: 'The Moment Happens Before It Expires',
-    description: 'Signals fade by design, leaving energy in the city, not noise in a feed.',
-  },
+const PROCESS_STEPS: readonly ProcessStep[] = [
+  { title: 'Drop a Signal', icon: MapPin },
+  { title: 'The Radius Opens', icon: Compass },
+  { title: 'Nearby People Join', icon: Users },
+  { title: 'The Moment Fades', icon: Clock },
 ]
 
-const FEATURE_CARDS: readonly FeatureCard[] = [
-  {
-    icon: Zap,
-    title: 'Live Signals',
-    description: 'Publish now, pulse instantly, and sync attention with what is happening this minute.',
-    meta: 'real-time broadcast',
-  },
-  {
-    icon: MapPin,
-    title: 'Hyperlocal Discovery',
-    description: 'Aura filters by proximity so your map reveals social gravity near you, not everywhere.',
-    meta: 'distance-aware feed',
-  },
-  {
-    icon: Users,
-    title: 'Capacity Control',
-    description: 'Define intimate limits, build right-sized groups, and keep gatherings intentional.',
-    meta: 'intentional groups',
-  },
-  {
-    icon: Timer,
-    title: 'Expiring by Design',
-    description: 'Moments naturally disappear to reward timing and protect momentum.',
-    meta: 'scarcity engine',
-  },
-  {
-    icon: Sparkles,
-    title: 'Live Participant Proof',
-    description: 'See join energy in motion before deciding where to move tonight.',
-    meta: 'social confidence',
-  },
-  {
-    icon: Radar,
-    title: 'City Signal Layer',
-    description: 'A cinematic map layer translating hidden activity into visible opportunities.',
-    meta: 'urban telemetry',
-  },
-]
-
-const PILLARS: readonly Pillar[] = [
+const PSYCHOLOGY_BLOCKS: readonly PsychologyBlock[] = [
   {
     title: 'Presence',
-    description: 'What matters is what is alive right now.',
-    motif: 'P',
+    description: 'People care about what is happening right now.',
+    icon: Eye,
+    colorClass: 'bg-cyan-500',
   },
   {
     title: 'Proximity',
-    description: 'Real people near you, not infinite distance scrolling.',
-    motif: 'R',
+    description: 'Nearby things feel more possible to attend.',
+    icon: Map,
+    colorClass: 'bg-amber-500',
   },
   {
     title: 'Scarcity',
-    description: 'Signals disappear, so moments feel urgent and real.',
-    motif: 'S',
+    description: 'Disappearing signals create genuine urgency.',
+    icon: Zap,
+    colorClass: 'bg-crimson-500',
+  },
+  {
+    title: 'Belonging',
+    description: 'Small groups feel more real than massive feeds.',
+    icon: Users,
+    colorClass: 'bg-violet-500',
   },
 ]
 
-const PARTICLE_COUNT = 18
-const PARTICLE_X_STEP = 19
-const PARTICLE_Y_STEP = 31
-const PARTICLE_RANGE = 100
-const PARTICLE_OFFSET = 1
-
-const AMBIENT_CHIPS: readonly AmbientChip[] = [
-  { label: 'live now', x: 12, y: 72, delay: 0.2 },
-  { label: '2.1 km', x: 76, y: 22, delay: 0.9 },
-  { label: '26 joined', x: 82, y: 61, delay: 1.5 },
-  { label: '48m left', x: 18, y: 30, delay: 1.1 },
-]
-
-export default function LandingPage(): ReactElement {
-  const prefersReducedMotion = useReducedMotion()
-  const [mouse, setMouse] = useState<{ x: number; y: number }>({ x: 0, y: 0 })
+function Navbar(): ReactElement {
+  const [scrolled, setScrolled] = useState<boolean>(false)
 
   useEffect(() => {
-    if (prefersReducedMotion) {
-      return undefined
-    }
-
-    const handleMouseMove = (event: MouseEvent): void => {
-      const centerX = window.innerWidth / 2
-      const centerY = window.innerHeight / 2
-      setMouse({
-        x: ((event.clientX - centerX) / centerX) * 24,
-        y: ((event.clientY - centerY) / centerY) * 24,
-      })
-    }
-
-    window.addEventListener('mousemove', handleMouseMove)
-    return () => window.removeEventListener('mousemove', handleMouseMove)
-  }, [prefersReducedMotion])
-
-  const smoothX = useSpring(mouse.x, { stiffness: 110, damping: 22, mass: 0.85 })
-  const smoothY = useSpring(mouse.y, { stiffness: 110, damping: 22, mass: 0.85 })
-
-  const farX = useTransform(smoothX, (value) => value * 0.15)
-  const farY = useTransform(smoothY, (value) => value * 0.15)
-  const midX = useTransform(smoothX, (value) => value * 0.4)
-  const midY = useTransform(smoothY, (value) => value * 0.4)
-  const frontX = useTransform(smoothX, (value) => value * 0.75)
-  const frontY = useTransform(smoothY, (value) => value * 0.75)
-
-  const farTransform = useMotionTemplate`translate3d(${farX}px, ${farY}px, 0)`
-  const midTransform = useMotionTemplate`translate3d(${midX}px, ${midY}px, 0)`
-  const frontTransform = useMotionTemplate`translate3d(${frontX}px, ${frontY}px, 0)`
-
-  const timelineRef = useRef<HTMLDivElement | null>(null)
-  const { scrollYProgress } = useScroll({ target: timelineRef, offset: ['start end', 'end start'] })
-  const timelineScaleY = useTransform(scrollYProgress, [0.1, 0.95], [0.06, 1])
-  const pulseTravel = useTransform(scrollYProgress, [0.05, 0.95], [0, 100])
-  const pulseTravelTop = useMotionTemplate`calc(${pulseTravel}% - 7px)`
-
-  const particles = useMemo(
-    () =>
-      Array.from({ length: PARTICLE_COUNT }, (_, index) => {
-        const x = ((index * PARTICLE_X_STEP) % PARTICLE_RANGE) + PARTICLE_OFFSET
-        const y = ((index * PARTICLE_Y_STEP) % PARTICLE_RANGE) + PARTICLE_OFFSET
-        const delay = (index % 6) * 0.45
-        const duration = 5 + (index % 5)
-        return { x, y, delay, duration }
-      }),
-    [],
-  )
+    const handleScroll = (): void => setScrolled(window.scrollY > 50)
+    window.addEventListener('scroll', handleScroll)
+    return () => window.removeEventListener('scroll', handleScroll)
+  }, [])
 
   return (
-    <div className="relative min-h-screen overflow-x-clip bg-void text-marble">
-      <div className="pointer-events-none absolute inset-0 cinematic-map opacity-95" />
-      <div className="pointer-events-none absolute inset-0 city-grid-bg opacity-28" />
-      <div className="pointer-events-none absolute inset-0 noise-texture opacity-40" />
-      <div className="pointer-events-none absolute inset-0 city-photo-veil opacity-55" />
+    <motion.nav
+      initial={{ y: -100 }}
+      animate={{ y: 0 }}
+      transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+      className={cn(
+        'fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 md:px-12 py-4 transition-all duration-500',
+        scrolled ? 'glass-panel bg-obsidian/80 border-b border-white/5' : 'bg-transparent',
+      )}
+    >
+      <div className="flex items-center space-x-2">
+        <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-amber-500 to-crimson-600 flex items-center justify-center">
+          <Activity className="w-4 h-4 text-white" />
+        </div>
+        <span className="font-serif font-bold text-xl tracking-wide">Aura</span>
+      </div>
 
-      <nav className="fixed inset-x-4 top-4 z-50 mx-auto flex max-w-6xl items-center justify-between rounded-full border border-white/12 bg-black/45 px-4 py-3 backdrop-blur-xl md:px-6">
-        <Link to="/" className="flex items-center gap-3">
-          <span className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-gold/50 bg-gold/10 font-serif text-sm text-gold">
-            A
-          </span>
-          <span className="font-serif text-sm tracking-[0.24em] text-white/90">AURA</span>
+      <div className="hidden md:flex items-center space-x-8 text-sm font-medium tracking-widest uppercase text-white/50">
+        <a href="#layers" className="hover:text-white transition-colors text-glow-amber">
+          40.7128° N
+        </a>
+        <a href="#modes" className="hover:text-white transition-colors text-glow-cyan">
+          74.0060° W
+        </a>
+        <a href="#showcase" className="hover:text-white transition-colors">
+          Signals
+        </a>
+      </div>
+
+      <div className="flex items-center space-x-6">
+        <Link to="/auth" className="text-sm font-medium text-white/70 hover:text-white transition-colors">
+          Sign In
         </Link>
+        <Link
+          to="/auth"
+          className="px-5 py-2.5 bg-white text-black font-semibold text-sm rounded-full hover:scale-105 transition-transform"
+        >
+          Enter Aura
+        </Link>
+      </div>
+    </motion.nav>
+  )
+}
 
-        <div className="flex items-center gap-2">
+function Hero(): ReactElement {
+  const { scrollY } = useScroll()
+  const y1 = useTransform(scrollY, [0, 1000], [0, 200])
+  const opacity = useTransform(scrollY, [0, 600], [1, 0])
+
+  return (
+    <section className="relative h-screen w-full overflow-hidden flex items-center justify-center bg-obsidian">
+      <motion.div style={{ y: y1 }} className="absolute inset-0 z-0 select-none pointer-events-none">
+        <img src={HERO_BG} alt="City night map" className="w-full h-full object-cover opacity-30 mix-blend-screen" />
+        <div className="absolute inset-0 bg-gradient-to-t from-obsidian via-obsidian/60 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-b from-obsidian/80 via-transparent to-transparent" />
+        <div className="absolute inset-0 bg-noise" />
+      </motion.div>
+
+      {FLOATING_CAPSULES.map((capsule) => (
+        <motion.div
+          key={capsule.text}
+          initial={{ opacity: 0, y: 30, scale: 0.9 }}
+          animate={{ opacity: 1, y: [0, -10, 0], scale: 1 }}
+          transition={{
+            opacity: { delay: capsule.delay, duration: 1 },
+            y: { repeat: Infinity, duration: 4, ease: 'easeInOut', delay: capsule.delay },
+          }}
+          className="absolute z-10 hidden md:flex items-center space-x-3 glass-panel px-4 py-2 rounded-full border border-white/10 shadow-[0_0_30px_rgba(0,0,0,0.5)]"
+          style={{ left: capsule.x, top: capsule.y }}
+        >
+          <div className={cn('w-2.5 h-2.5 rounded-full bg-gradient-to-r', capsule.colorClass)} />
+          <span className="text-xs font-medium tracking-wide uppercase text-white/80">{capsule.text}</span>
+        </motion.div>
+      ))}
+
+      <motion.div style={{ opacity }} className="relative z-20 text-center max-w-5xl px-6 flex flex-col items-center mt-12">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 1.2, ease: 'easeOut' }}
+        >
+          <h1 className="font-serif text-6xl md:text-8xl lg:text-[110px] leading-[0.9] tracking-tighter mb-6 text-glow-amber">
+            Tonight Is
+            <br />
+            <span className="italic font-light opacity-90">Already Moving.</span>
+          </h1>
+        </motion.div>
+
+        <motion.p
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 1, delay: 0.3 }}
+          className="text-lg md:text-xl text-white/60 max-w-2xl font-light mb-12 leading-relaxed"
+        >
+          Aura reveals the live moments, hidden gatherings, and nearby signals happening around you — before they
+          fade.
+        </motion.p>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 1, delay: 0.5 }}
+          className="flex flex-col sm:flex-row items-center gap-6"
+        >
           <Link
             to="/auth"
-            className="rounded-full px-4 py-2 text-xs font-medium uppercase tracking-[0.16em] text-white/70 transition hover:text-white"
-          >
-            Sign In
-          </Link>
-          <Link
-            to="/auth"
-            className="rounded-full border border-gold/50 bg-gold/90 px-4 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-black transition hover:bg-gold-pale"
+            className="px-8 py-4 bg-white text-black rounded-full font-semibold text-sm uppercase tracking-widest hover:scale-105 transition-all shadow-[0_0_40px_rgba(255,255,255,0.2)]"
           >
             Enter Aura
           </Link>
-        </div>
-      </nav>
-
-      <main>
-        <section className="section-fade-bottom relative isolate flex min-h-screen items-center overflow-hidden px-5 pb-16 pt-32 md:px-10">
-          <div className="pointer-events-none absolute inset-0">
-            <motion.div
-              className="absolute inset-[-14%] city-photo-veil opacity-40"
-              style={{ transform: farTransform }}
-            />
-            <motion.div className="absolute inset-0 city-grid-bg opacity-20" style={{ transform: farTransform }} />
-
-            <motion.div
-              className="absolute -left-28 top-14 h-96 w-96 rounded-full bg-gold/25 blur-[120px]"
-              style={{ transform: midTransform }}
-            />
-            <motion.div
-              className="absolute -right-24 bottom-0 h-[26rem] w-[26rem] rounded-full bg-crimson/25 blur-[130px]"
-              style={{ transform: midTransform }}
-            />
-            <motion.div
-              className="absolute left-[35%] top-[20%] h-[24rem] w-[24rem] rounded-full bg-white/[0.08] blur-[110px]"
-              style={{ transform: midTransform }}
-            />
-
-            <motion.div className="absolute inset-0" style={{ transform: frontTransform }}>
-              <div className="absolute left-[10%] top-[16%] h-44 w-44 rounded-full border border-gold/20 opacity-35" />
-              <div className="absolute right-[8%] top-[18%] h-56 w-56 rounded-full border border-gold/15 opacity-35" />
-              <div className="absolute bottom-[14%] left-[14%] h-36 w-36 rounded-full border border-gold/20 opacity-35" />
-              <div className="absolute left-[8%] top-[64%] h-px w-48 bg-gradient-to-r from-transparent via-gold/40 to-transparent" />
-              <div className="absolute right-[10%] top-[58%] h-px w-56 bg-gradient-to-r from-transparent via-gold/40 to-transparent" />
-            </motion.div>
-
-            {!prefersReducedMotion && (
-              <>
-                <div className="absolute inset-0 signal-trails opacity-45" />
-                <div className="absolute inset-0 map-trace-lines opacity-40" />
-              </>
-            )}
-
-            {particles.map((particle) => (
-              <motion.span
-                key={`${particle.x}-${particle.y}`}
-                className="absolute h-1 w-1 rounded-full bg-gold/70 shadow-[0_0_10px_rgba(212,175,55,0.8)]"
-                style={{ left: `${particle.x}%`, top: `${particle.y}%` }}
-                animate={
-                  prefersReducedMotion
-                    ? undefined
-                    : { opacity: [0.2, 0.9, 0.2], scale: [0.85, 1.25, 0.85], y: [0, -6, 0] }
-                }
-                transition={{ duration: particle.duration, delay: particle.delay, repeat: Infinity, ease: 'easeInOut' }}
-              />
-            ))}
-
-            {AMBIENT_CHIPS.map((chip) => (
-              <motion.div
-                key={chip.label}
-                className="floating-chip absolute hidden rounded-full border border-white/15 bg-black/45 px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-white/75 sm:block"
-                style={{ left: `${chip.x}%`, top: `${chip.y}%` }}
-                animate={prefersReducedMotion ? undefined : { y: [0, -8, 0], opacity: [0.45, 0.9, 0.45] }}
-                transition={{ duration: 4.5, delay: chip.delay, repeat: Infinity, ease: 'easeInOut' }}
-              >
-                {chip.label}
-              </motion.div>
-            ))}
-          </div>
-
-          <div className="relative mx-auto grid w-full max-w-6xl gap-16 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
-            <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.85, ease: 'easeOut' }}
-              className="space-y-8"
-            >
-              <div className="inline-flex items-center gap-2 rounded-full border border-gold/30 bg-gold/10 px-4 py-2 text-[11px] uppercase tracking-[0.2em] text-gold/85">
-                <span className="pulse-dot h-1.5 w-1.5 rounded-full bg-gold" />
-                Live city signals
-              </div>
-
-              <h1 className="max-w-2xl font-serif text-[2.8rem] leading-[1.02] text-white text-shadow-glow md:text-[4rem] lg:text-[6.5rem]">
-                The City Has Hidden Signals.
-              </h1>
-
-              <p className="max-w-xl text-base leading-relaxed text-white/70 md:text-lg">
-                Aura reveals spontaneous moments, intimate gatherings, and live events happening around
-                you — before they disappear.
-              </p>
-
-              <div className="flex flex-wrap items-center gap-4">
-                <motion.div whileHover={{ y: -3 }} whileTap={{ scale: 0.98 }}>
-                  <Link
-                    to="/auth"
-                    className="group inline-flex items-center gap-2 rounded-full border border-gold/60 bg-gold px-6 py-3 text-sm font-semibold uppercase tracking-[0.14em] text-black transition hover:bg-gold-pale"
-                  >
-                    Enter Aura
-                    <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-                  </Link>
-                </motion.div>
-
-                <motion.div whileHover={{ y: -3 }} whileTap={{ scale: 0.98 }}>
-                  <Link
-                    to="/auth"
-                    className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/5 px-6 py-3 text-sm font-semibold uppercase tracking-[0.14em] text-white/80 transition hover:border-gold/50 hover:text-white"
-                  >
-                    <Waves className="h-4 w-4 text-gold" />
-                    See the Pulse
-                  </Link>
-                </motion.div>
-              </div>
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, y: 40 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.95, delay: 0.18, ease: 'easeOut' }}
-              className="relative mx-auto w-full max-w-md"
-            >
-              <motion.div
-                className="float-drift gradient-border spotlight-hover relative rounded-[2rem] bg-black/45 p-3 shadow-[0_20px_100px_rgba(0,0,0,0.55)] backdrop-blur-xl"
-                whileHover={{ y: -6 }}
-              >
-                <div className="absolute -inset-10 bg-gold/15 blur-[85px]" />
-
-                <div className="relative overflow-hidden rounded-[1.6rem] border border-white/12 bg-card/85 p-4">
-                  <div className="absolute inset-0 city-grid-bg opacity-[0.16]" />
-                  {!prefersReducedMotion && <div className="absolute inset-0 signal-trails opacity-30" />}
-
-                  <div className="relative mb-4 flex items-center justify-between text-[11px] uppercase tracking-[0.16em] text-white/55">
-                    <span>Live Signal</span>
-                    <span className="rounded-full border border-gold/40 bg-gold/15 px-2 py-1 text-gold">2.1 km</span>
-                  </div>
-
-                  <div className="relative rounded-2xl border border-white/12 bg-black/45 p-4">
-                    <div className="mb-3 flex items-start justify-between gap-3">
-                      <div>
-                        <p className="font-serif text-lg text-white">Rooftop Vinyl Drop</p>
-                        <p className="text-sm text-white/60">Midnight set near River Loop</p>
-                      </div>
-                      <div className="inline-flex items-center gap-2 rounded-lg bg-gold/15 px-2 py-1 text-xs font-medium text-gold">
-                        <span className="pulse-dot h-1.5 w-1.5 rounded-full bg-gold" />
-                        LIVE
-                      </div>
-                    </div>
-
-                    <div className="mb-4 grid grid-cols-3 gap-2 text-center text-xs text-white/65">
-                      <motion.div className="glass-depth rounded-xl p-2" whileHover={{ y: -2 }}>
-                        <Users className="mx-auto mb-1 h-4 w-4 text-gold" />
-                        26 Joined
-                      </motion.div>
-                      <motion.div className="glass-depth rounded-xl p-2" whileHover={{ y: -2 }}>
-                        <Timer className="mx-auto mb-1 h-4 w-4 text-gold" />
-                        48m left
-                      </motion.div>
-                      <motion.div className="glass-depth rounded-xl p-2" whileHover={{ y: -2 }}>
-                        <CalendarClock className="mx-auto mb-1 h-4 w-4 text-gold" />
-                        Radius 3km
-                      </motion.div>
-                    </div>
-
-                    <div className="relative h-32 overflow-hidden rounded-xl border border-white/12 bg-black/60">
-                      <div className="absolute inset-0 city-grid-bg opacity-25" />
-                      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(212,175,55,0.28),transparent_52%)]" />
-                      {!prefersReducedMotion && <div className="radar-sweep absolute inset-0" />}
-
-                      <motion.div
-                        className="signal-ring absolute left-1/2 top-1/2 h-16 w-16 -translate-x-1/2 -translate-y-1/2 rounded-full border border-gold/50"
-                        animate={prefersReducedMotion ? undefined : { scale: [0.9, 1.7], opacity: [0.8, 0] }}
-                        transition={{ duration: 2.4, repeat: Infinity, ease: 'easeOut' }}
-                      />
-                      <div className="absolute left-1/2 top-1/2 h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-gold shadow-[0_0_18px_rgba(212,175,55,0.95)]" />
-                    </div>
-                  </div>
-                </div>
-              </motion.div>
-
-              <motion.div
-                className="floating-chip glass-panel absolute -left-7 top-10 rounded-2xl border border-gold/20 px-3 py-2 text-xs text-white/75"
-                animate={prefersReducedMotion ? undefined : { y: [0, -8, 0] }}
-                transition={{ duration: 4.5, repeat: Infinity, ease: 'easeInOut' }}
-              >
-                <div className="flex items-center gap-2">
-                  <MapPin className="h-3.5 w-3.5 text-gold" />
-                  Soho rooftop · 2.1km
-                </div>
-              </motion.div>
-
-              <motion.div
-                className="floating-chip glass-panel absolute -right-3 top-[46%] rounded-2xl border border-gold/20 px-3 py-2 text-xs text-white/75"
-                animate={prefersReducedMotion ? undefined : { y: [0, 8, 0] }}
-                transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut' }}
-              >
-                Pulse rising · +9 in 3m
-              </motion.div>
-
-              <motion.div
-                className="floating-chip glass-panel absolute -bottom-6 right-0 rounded-2xl border border-gold/20 px-3 py-2 text-xs text-white/75"
-                animate={prefersReducedMotion ? undefined : { y: [0, 7, 0] }}
-                transition={{ duration: 5.2, repeat: Infinity, ease: 'easeInOut' }}
-              >
-                Join window closes soon
-              </motion.div>
-            </motion.div>
-          </div>
-        </section>
-
-        <section className="section-fade-both relative mx-auto max-w-6xl px-5 py-24 md:px-10">
-          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_28%,rgba(212,175,55,0.13),transparent_42%),radial-gradient(circle_at_86%_65%,rgba(139,0,0,0.15),transparent_44%)]" />
-
-          <div className="mb-12 text-center">
-            <p className="micro-caps mb-3 text-gold/80">Product Experience</p>
-            <h2 className="font-serif text-4xl text-white sm:text-5xl">Two signal formats. One living city layer.</h2>
-          </div>
-
-          <div className="grid gap-6 lg:grid-cols-2">
-            {PRODUCT_CARDS.map((card, index) => (
-              <motion.article
-                key={card.title}
-                initial={{ opacity: 0, y: 28 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, amount: 0.25 }}
-                transition={{ delay: index * 0.12, duration: 0.7 }}
-                whileHover="hover"
-                className="light-sweep group premium-border-card relative overflow-hidden rounded-[2rem] bg-black/45 p-7"
-              >
-                <motion.div
-                  className="absolute inset-0 bg-cover bg-center opacity-75"
-                  style={{ backgroundImage: `url(${card.image})` }}
-                  variants={{
-                    hover: { scale: 1.12, x: index === 0 ? -7 : 7, y: -5 },
-                  }}
-                  transition={{ duration: 0.9, ease: 'easeOut' }}
-                />
-                <div className="absolute inset-0 bg-gradient-to-br from-black/75 via-black/40 to-black/85" />
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_78%_24%,rgba(212,175,55,0.23),transparent_42%)]" />
-                {!prefersReducedMotion && <div className="absolute inset-0 card-noise opacity-30" />}
-
-                <div className="pointer-events-none absolute left-4 top-4 flex gap-2">
-                  <span className="floating-chip rounded-full border border-white/15 bg-black/40 px-3 py-1 text-[11px] uppercase tracking-[0.15em] text-white/80">
-                    {card.stats[0]}
-                  </span>
-                  <span className="floating-chip rounded-full border border-gold/30 bg-gold/10 px-3 py-1 text-[11px] uppercase tracking-[0.15em] text-gold">
-                    {card.stats[1]}
-                  </span>
-                </div>
-
-                <div className="relative z-10 flex h-full min-h-80 flex-col justify-between">
-                  <div>
-                    <p className="micro-caps mb-3 text-gold/80">{card.title}</p>
-                    <p className="mb-3 text-xs uppercase tracking-[0.16em] text-white/55">{card.subtitle}</p>
-                    <h3 className="mb-3 max-w-md font-serif text-3xl leading-tight text-white">{card.description}</h3>
-                  </div>
-
-                  <div className="space-y-4">
-                    <div className="flex flex-wrap gap-2">
-                      {card.chips.map((chip) => (
-                        <span
-                          key={chip}
-                          className="rounded-full border border-white/15 bg-black/45 px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-white/75"
-                        >
-                          {chip}
-                        </span>
-                      ))}
-                    </div>
-                    <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-black/45 px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-white/70">
-                      <span className="h-1.5 w-1.5 rounded-full bg-gold pulse-dot" />
-                      {card.stats[2]}
-                    </div>
-                  </div>
-                </div>
-              </motion.article>
-            ))}
-          </div>
-        </section>
-
-        <section ref={timelineRef} className="section-fade-both relative mx-auto max-w-5xl px-5 py-24 md:px-10">
-          <div className="pointer-events-none absolute inset-0 map-trace-lines opacity-35" />
-
-          <div className="mb-12 text-center">
-            <p className="micro-caps mb-3 text-gold/80">Live Pulse / How It Works</p>
-            <h2 className="font-serif text-4xl text-white sm:text-5xl">Signal moves. People move.</h2>
-          </div>
-
-          <div className="relative mx-auto max-w-3xl">
-            <div className="absolute left-5 top-4 h-[calc(100%-2rem)] w-px bg-white/10 md:left-7" />
-            <motion.div
-              className="absolute left-5 top-4 h-[calc(100%-2rem)] w-px origin-top bg-gradient-to-b from-gold via-gold/50 to-transparent shadow-[0_0_22px_rgba(212,175,55,0.35)] md:left-7"
-              style={{ scaleY: timelineScaleY }}
-            />
-            <motion.div
-              className="absolute left-5 h-[14px] w-[14px] rounded-full border border-gold/65 bg-gold/45 shadow-[0_0_18px_rgba(212,175,55,0.7)] md:left-7"
-              style={{ top: pulseTravelTop, x: '-50%' }}
-              animate={prefersReducedMotion ? undefined : { scale: [1, 1.15, 1] }}
-              transition={{ duration: 1.9, repeat: Infinity, ease: 'easeInOut' }}
-            />
-
-            <div className="space-y-10">
-              {FLOW_STEPS.map((step, index) => (
-                <motion.article
-                  key={step.id}
-                  initial={{ opacity: 0, x: -16 }}
-                  whileInView={{ opacity: 1, x: 0 }}
-                  viewport={{ once: true, amount: 0.45 }}
-                  transition={{ delay: index * 0.14, duration: 0.6 }}
-                  whileHover={{ y: -3 }}
-                  className="relative pl-16 md:pl-20"
-                >
-                  <motion.div
-                    className="absolute left-0 top-2 flex h-10 w-10 items-center justify-center rounded-full border border-gold/45 bg-black text-sm font-semibold text-gold md:left-2 md:h-11 md:w-11"
-                    whileHover={prefersReducedMotion ? undefined : { scale: 1.1 }}
-                  >
-                    {step.id}
-                  </motion.div>
-                  <div className="glass-depth spotlight-hover rounded-3xl border border-white/12 bg-white/[0.055] p-6 backdrop-blur-md">
-                    <h3 className="mb-2 font-serif text-2xl text-white">{step.title}</h3>
-                    <p className="text-white/72">{step.description}</p>
-                  </div>
-                </motion.article>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        <section className="section-fade-both relative mx-auto max-w-6xl px-5 py-24 md:px-10">
-          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_22%_32%,rgba(212,175,55,0.12),transparent_40%),radial-gradient(circle_at_78%_62%,rgba(255,255,255,0.05),transparent_42%)]" />
-
-          <div className="mb-12 text-center">
-            <p className="micro-caps mb-3 text-gold/80">Features</p>
-            <h2 className="font-serif text-4xl text-white sm:text-5xl">Signal intelligence built for nights that matter.</h2>
-          </div>
-
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {FEATURE_CARDS.map((feature, index) => (
-              <motion.article
-                key={feature.title}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, amount: 0.2 }}
-                transition={{ delay: index * 0.08, duration: 0.6 }}
-                whileHover={{ y: -6 }}
-                className="feature-card spotlight-hover premium-border-card group relative overflow-hidden rounded-3xl bg-white/[0.04] p-6 backdrop-blur-xl"
-              >
-                <div className="absolute inset-0 card-noise opacity-25" />
-                <div className="absolute inset-0 opacity-0 transition group-hover:opacity-100">
-                  <div className="absolute inset-0 bg-gradient-to-br from-gold/15 via-transparent to-crimson/12" />
-                </div>
-                <div className="absolute right-4 top-4 rounded-full border border-white/10 bg-black/35 px-2.5 py-1 text-[11px] uppercase tracking-[0.16em] text-white/55">
-                  {feature.meta}
-                </div>
-                <div className="relative z-10 pt-7">
-                  <motion.div
-                    className="mb-4 inline-flex rounded-2xl border border-gold/35 bg-gold/12 p-3 text-gold"
-                    animate={prefersReducedMotion ? undefined : { y: [0, -2, 0] }}
-                    transition={{ duration: 3.4 + (index % 2) * 0.5, repeat: Infinity, ease: 'easeInOut' }}
-                  >
-                    <feature.icon className="h-5 w-5" />
-                  </motion.div>
-                  <h3 className="mb-3 font-serif text-2xl text-white">{feature.title}</h3>
-                  <p className="text-sm leading-relaxed text-white/72">{feature.description}</p>
-                </div>
-              </motion.article>
-            ))}
-          </div>
-        </section>
-
-        <section className="section-fade-both relative mx-auto max-w-6xl px-5 py-24 md:px-10">
-          <div className="absolute inset-0 rounded-[2rem] bg-[radial-gradient(circle_at_50%_0%,rgba(212,175,55,0.2),transparent_45%),radial-gradient(circle_at_10%_70%,rgba(139,0,0,0.18),transparent_42%)]" />
-
-          <div className="relative rounded-[2rem] border border-white/12 bg-black/35 p-8 text-center backdrop-blur-xl md:p-14">
-            <p className="micro-caps mb-3 text-gold/80">Why Aura Feels Different</p>
-            <h2 className="mx-auto mb-8 max-w-3xl font-serif text-4xl text-white sm:text-5xl">
-              Not another feed. A reason to leave the house.
-            </h2>
-            <p className="mx-auto mb-10 max-w-3xl text-white/72">
-              Aura is built around presence, proximity, scarcity, and real-world social energy.
-            </p>
-
-            <div className="grid gap-4 md:grid-cols-3">
-              {PILLARS.map((pillar, index) => (
-                <motion.div
-                  key={pillar.title}
-                  initial={{ opacity: 0, y: 16 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true, amount: 0.35 }}
-                  transition={{ delay: index * 0.1, duration: 0.55 }}
-                  className="premium-border-card relative overflow-hidden rounded-2xl bg-white/[0.05] p-5 text-left"
-                >
-                  <div className="absolute -right-3 -top-8 font-serif text-7xl text-white/[0.06]">{pillar.motif}</div>
-                  <p className="micro-caps mb-2 text-gold">{pillar.title}</p>
-                  <p className="text-sm text-white/75">{pillar.description}</p>
-                  <div className="mt-4 h-px w-16 bg-gradient-to-r from-gold/75 to-transparent" />
-                </motion.div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        <section className="section-fade-top relative overflow-hidden px-5 py-28 text-center md:px-10">
-          <div className="pointer-events-none absolute inset-0 city-photo-veil opacity-28" />
-          <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-            <div className="signal-ring h-56 w-56 rounded-full border border-gold/30" />
-            <div className="signal-ring absolute h-80 w-80 rounded-full border border-gold/20 [animation-delay:0.7s]" />
-            <div className="signal-ring absolute h-[28rem] w-[28rem] rounded-full border border-gold/10 [animation-delay:1.3s]" />
-            <div className="absolute h-56 w-56 rounded-full bg-gold/10 blur-[70px]" />
-          </div>
-          {!prefersReducedMotion && <div className="pointer-events-none absolute inset-0 signal-trails opacity-35" />}
-
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, amount: 0.5 }}
-            transition={{ duration: 0.7 }}
-            className="relative z-10 mx-auto max-w-3xl"
+          <Link
+            to="/auth"
+            className="px-8 py-4 glass-panel text-white rounded-full font-semibold text-sm uppercase tracking-widest hover:bg-white/5 transition-all flex items-center space-x-2"
           >
-            <h2 className="mb-6 font-serif text-5xl leading-tight text-white sm:text-6xl">
-              Your city is already moving.
-              <br />
-              Catch the signal before it fades.
-            </h2>
-            <p className="mx-auto mb-8 max-w-xl text-white/72">
-              Enter the hidden live layer and move with people, not algorithms.
-            </p>
-            <Link
-              to="/auth"
-              className="inline-flex items-center gap-2 rounded-full border border-gold/55 bg-gold px-8 py-4 text-sm font-semibold uppercase tracking-[0.14em] text-black transition hover:bg-gold-pale"
-            >
-              Enter Aura
-              <ArrowRight className="h-4 w-4" />
-            </Link>
-          </motion.div>
-        </section>
-      </main>
+            <span>Explore Pulse</span>
+            <ArrowRight className="w-4 h-4" />
+          </Link>
+        </motion.div>
+      </motion.div>
+    </section>
+  )
+}
 
-      <footer className="hairline-t px-5 py-8 md:px-10">
-        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-3 text-sm text-white/60 md:flex-row">
-          <div className="flex items-center gap-2">
-            <span className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-gold/50 bg-gold/10 font-serif text-[11px] text-gold">
-              A
-            </span>
-            <span className="font-serif tracking-[0.2em] text-white/80">AURA</span>
-          </div>
-          <p>All signals expire.</p>
-          <p>© {new Date().getFullYear()}</p>
+function LayersSection(): ReactElement {
+  const containerRef = useRef<HTMLElement | null>(null)
+  const { scrollYProgress } = useScroll({
+    target: containerRef,
+    offset: ['start end', 'end start'],
+  })
+
+  const rotateX = useTransform(scrollYProgress, [0, 1], [50, 65])
+  const rotateZ = useTransform(scrollYProgress, [0, 1], [-20, -35])
+
+  return (
+    <section
+      id="layers"
+      ref={containerRef}
+      className="relative py-32 md:py-48 px-6 md:px-12 max-w-7xl mx-auto overflow-hidden"
+    >
+      <div className="grid md:grid-cols-2 gap-20 items-center">
+        <div className="relative z-10 space-y-8">
+          <motion.div
+            initial={{ opacity: 0, x: -50 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true, margin: '-100px' }}
+            transition={{ duration: 0.8 }}
+          >
+            <h2 className="font-serif text-5xl md:text-6xl lg:text-7xl leading-none">
+              The city has
+              <br />
+              <span className="italic text-amber-500">layers you can’t see.</span>
+            </h2>
+          </motion.div>
+          <motion.p
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.8, delay: 0.2 }}
+            className="text-lg md:text-xl text-white/50 leading-relaxed max-w-md font-light"
+          >
+            Behind every street, rooftop, café, campus, and late-night corner, something is happening. Aura turns
+            those invisible signals into live moments you can actually join.
+          </motion.p>
         </div>
-      </footer>
+
+        <div className="relative h-[400px] md:h-[600px] [perspective:1000px] flex items-center justify-center">
+          <motion.div style={{ rotateX, rotateZ, transformStyle: 'preserve-3d' }} className="relative w-full max-w-sm aspect-square">
+            {LAYER_CARDS.map((layer, index) => (
+              <motion.div
+                key={layer.id}
+                initial={{ opacity: 0, y: 50 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 1, delay: index * 0.15 }}
+                style={{ transform: `translateZ(${layer.z}px)` }}
+                className={cn(
+                  'absolute inset-0 rounded-2xl glass-panel border shadow-2xl flex items-center justify-center backdrop-blur-md',
+                  layer.colorClass,
+                )}
+              >
+                <div className="flex items-center space-x-2 opacity-50">
+                  <layer.icon className="w-5 h-5" />
+                  <span className="font-mono text-sm uppercase tracking-widest">{layer.name}</span>
+                </div>
+              </motion.div>
+            ))}
+
+            <div
+              className="absolute top-1/2 left-1/2 w-0.5 h-[200px] bg-gradient-to-b from-crimson-500 via-cyan-500 to-white/20 -translate-x-1/2 -translate-y-1/2"
+              style={{ transform: 'translateZ(80px) rotateX(90deg)' }}
+            />
+          </motion.div>
+        </div>
+      </div>
+    </section>
+  )
+}
+
+function SignalsComparison(): ReactElement {
+  return (
+    <section className="py-24 md:py-32 px-6 max-w-7xl mx-auto border-t border-white/5">
+      <div className="text-center mb-24">
+        <h2 className="font-serif text-5xl md:text-6xl mb-6">
+          Signals, <span className="italic opacity-50">Not Posts.</span>
+        </h2>
+      </div>
+
+      <div className="grid md:grid-cols-2 gap-12 lg:gap-24 items-center">
+        <motion.div
+          initial={{ opacity: 0, filter: 'blur(10px)' }}
+          whileInView={{ opacity: 1, filter: 'blur(0px)' }}
+          viewport={{ once: true }}
+          className="relative bg-zinc-900/40 border border-zinc-800 rounded-3xl p-8 flex flex-col grayscale opacity-60"
+        >
+          <div className="absolute top-0 right-8 -translate-y-1/2 bg-zinc-800 px-4 py-1 rounded-full text-xs font-mono tracking-widest">
+            OLD SOCIAL FEEDS
+          </div>
+          <div className="space-y-6">
+            {[1, 2, 3].map((item) => (
+              <div key={item} className="space-y-3">
+                <div className="flex items-center space-x-3">
+                  <div className="w-8 h-8 rounded-full bg-zinc-800" />
+                  <div className="space-y-2 flex-1">
+                    <div className="w-24 h-2 bg-zinc-800 rounded" />
+                    <div className="w-16 h-2 bg-zinc-800/50 rounded" />
+                  </div>
+                </div>
+                <div className="w-full h-32 bg-zinc-800 rounded-xl" />
+              </div>
+            ))}
+          </div>
+          <div className="mt-8 flex justify-between font-mono text-[10px] uppercase tracking-widest text-zinc-500">
+            <span>Endless scrolling</span>
+            <span>Algorithm noise</span>
+            <span>Passive</span>
+          </div>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, x: 50 }}
+          whileInView={{ opacity: 1, x: 0 }}
+          viewport={{ once: true }}
+          className="relative glass-panel rounded-3xl p-8 flex flex-col"
+        >
+          <div className="absolute top-0 right-8 -translate-y-1/2 bg-amber-500 text-black px-4 py-1 rounded-full text-xs font-mono tracking-widest font-bold shadow-[0_0_20px_rgba(255,170,0,0.5)]">
+            AURA SIGNALS
+          </div>
+
+          <div className="relative h-[480px] w-full rounded-2xl overflow-hidden bg-midnight border border-white/10 p-6 flex flex-col justify-end">
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-amber-500/10 via-transparent to-transparent opacity-50" />
+
+            <div className="absolute top-1/2 left-1/2 w-32 h-32 -translate-x-1/2 -translate-y-1/2">
+              <motion.div
+                animate={{ scale: [1, 2, 2], opacity: [0.8, 0, 0] }}
+                transition={{ duration: 2, repeat: Infinity, ease: 'easeOut' }}
+                className="absolute inset-0 rounded-full border border-amber-500/50"
+              />
+              <motion.div
+                animate={{ scale: [1, 2, 2], opacity: [0.8, 0, 0] }}
+                transition={{ duration: 2, repeat: Infinity, delay: 0.5, ease: 'easeOut' }}
+                className="absolute inset-0 rounded-full border border-amber-500/30"
+              />
+              <div className="absolute top-1/2 left-1/2 w-4 h-4 bg-amber-500 rounded-full -translate-x-1/2 -translate-y-1/2 shadow-[0_0_20px_#ffaa00]" />
+            </div>
+
+            <motion.div initial={{ y: 20 }} animate={{ y: 0 }} className="relative z-10 glass-panel rounded-xl p-4 border-amber-500/20">
+              <div className="flex justify-between items-start mb-3">
+                <span className="text-xl font-serif">Late Night Drive</span>
+                <span className="text-xs font-mono text-amber-500 bg-amber-500/10 px-2 py-1 rounded-sm">22m left</span>
+              </div>
+              <div className="flex -space-x-2 mb-4">
+                {[1, 2, 3, 4].map((item) => (
+                  <div key={item} className="w-6 h-6 rounded-full bg-white/20 border border-black" />
+                ))}
+                <div className="w-6 h-6 rounded-full bg-white/5 border border-white/20 flex items-center justify-center text-[8px]">
+                  +3
+                </div>
+              </div>
+              <Link
+                to="/auth"
+                className="block w-full py-2 text-center bg-white text-black text-xs font-bold uppercase tracking-widest rounded-lg"
+              >
+                Get Started
+              </Link>
+            </motion.div>
+          </div>
+
+          <div className="mt-8 flex justify-between font-mono text-[10px] uppercase tracking-widest text-amber-500/80">
+            <span>Happening now</span>
+            <span>Nearby</span>
+            <span>Actionable</span>
+          </div>
+        </motion.div>
+      </div>
+    </section>
+  )
+}
+
+function ModesSection(): ReactElement {
+  return (
+    <section id="modes" className="py-24 md:py-48 px-6 max-w-screen-2xl mx-auto">
+      <div className="grid lg:grid-cols-3 gap-8">
+        {SIGNAL_MODES.map((mode) => (
+          <motion.div
+            key={mode.title}
+            initial={{ opacity: 0, y: 50 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: '-100px' }}
+            transition={{ duration: 0.8, delay: mode.delay }}
+            className="group relative h-[600px] md:h-[700px] rounded-[32px] overflow-hidden"
+          >
+            <div
+              className="absolute inset-0 bg-cover bg-center transition-transform duration-1000 group-hover:scale-110"
+              style={{ backgroundImage: `url(${mode.image})` }}
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-obsidian via-obsidian/40 to-transparent" />
+            <div className={cn('absolute inset-0 mix-blend-overlay', mode.overlayClass)} />
+
+            <div className="absolute inset-0 flex flex-col justify-end p-8 md:p-12">
+              <div className="space-y-6">
+                <div className="flex flex-wrap gap-2">
+                  {mode.examples.map((example) => (
+                    <span
+                      key={example}
+                      className="text-xs font-mono px-3 py-1 glass-panel rounded-full uppercase tracking-widest text-white/80"
+                    >
+                      {example}
+                    </span>
+                  ))}
+                </div>
+                <h3 className="font-serif text-4xl md:text-5xl">{mode.title}</h3>
+                <p className="text-white/60 font-light leading-relaxed max-w-sm">{mode.description}</p>
+                <div className="pt-4 opacity-0 group-hover:opacity-100 transition-opacity duration-500 transform translate-y-4 group-hover:translate-y-0">
+                  <div className={cn('w-12 h-1', mode.accentBarClass)} />
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        ))}
+      </div>
+    </section>
+  )
+}
+
+function ProcessSection(): ReactElement {
+  return (
+    <section className="py-32 border-y border-white/5 bg-obsidian relative overflow-hidden">
+      <div className="absolute top-1/2 left-0 w-full h-px bg-white/10 -translate-y-1/2" />
+      <div className="max-w-7xl mx-auto px-6 relative z-10">
+        <div className="text-center mb-24">
+          <h2 className="font-serif text-4xl md:text-5xl">How Aura Moves</h2>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-12 md:gap-0">
+          {PROCESS_STEPS.map((step, index) => (
+            <motion.div
+              key={step.title}
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: index * 0.2, duration: 0.8 }}
+              className="relative flex flex-col items-center text-center"
+            >
+              <div className="w-16 h-16 rounded-full bg-obsidian border-2 border-white/20 flex items-center justify-center mb-6 relative z-10 group hover:border-amber-500 transition-colors duration-500">
+                <div className="absolute inset-0 rounded-full bg-amber-500/20 blur-md opacity-0 group-hover:opacity-100 transition-opacity" />
+                <step.icon className="w-6 h-6 text-white/50 group-hover:text-white transition-colors" />
+              </div>
+
+              <div className="text-xs font-mono text-amber-500/50 mb-3 tracking-widest">0{index + 1}</div>
+              <h4 className="font-serif text-xl md:text-2xl">{step.title}</h4>
+            </motion.div>
+          ))}
+        </div>
+      </div>
+
+      <motion.div
+        initial={{ scaleX: 0 }}
+        whileInView={{ scaleX: 1 }}
+        viewport={{ once: true }}
+        transition={{ duration: 2, ease: 'easeInOut' }}
+        className="absolute top-1/2 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-amber-500 to-transparent -translate-y-1/2 origin-left blur-sm opacity-50"
+      />
+    </section>
+  )
+}
+
+function PsychologySection(): ReactElement {
+  return (
+    <section className="py-32 px-6 max-w-5xl mx-auto">
+      <div className="mb-20">
+        <h2 className="font-serif text-5xl md:text-6xl max-w-2xl">
+          Built on
+          <br />
+          <span className="italic text-white/50">Human Instinct.</span>
+        </h2>
+      </div>
+
+      <div className="grid md:grid-cols-2 gap-6">
+        {PSYCHOLOGY_BLOCKS.map((block, index) => (
+          <motion.div
+            key={block.title}
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: index * 0.1, duration: 0.8 }}
+            className="group relative glass-panel p-10 md:p-12 rounded-[32px] overflow-hidden"
+          >
+            <div
+              className={cn(
+                'absolute -top-20 -right-20 w-64 h-64 rounded-full blur-[80px] opacity-10 group-hover:opacity-30 transition-opacity duration-700',
+                block.colorClass,
+              )}
+            />
+
+            <block.icon className="w-8 h-8 opacity-50 mb-8" />
+            <h3 className="font-serif text-3xl mb-4">{block.title}</h3>
+            <p className="text-white/50 font-light text-lg">{block.description}</p>
+          </motion.div>
+        ))}
+      </div>
+    </section>
+  )
+}
+
+function LiveShowcase(): ReactElement {
+  return (
+    <section id="showcase" className="py-24 px-6 md:px-12 max-w-[1600px] mx-auto">
+      <div className="glass-panel rounded-[40px] p-2 md:p-8 overflow-hidden relative">
+        <div className="absolute inset-0 bg-noise opacity-20 pointer-events-none" />
+
+        <div className="bg-obsidian w-full rounded-[32px] min-h-[600px] md:min-h-[800px] border border-white/5 relative overflow-hidden flex flex-col">
+          <div className="px-8 py-6 border-b border-white/5 flex items-center justify-between z-10 glass-panel">
+            <div className="flex items-center space-x-4">
+              <div className="w-3 h-3 rounded-full bg-crimson-500 animate-pulse" />
+              <span className="font-mono text-xs uppercase tracking-widest">Live City Board</span>
+            </div>
+            <div className="font-mono text-xs text-white/40">NYC · DATASTREAM ACTIVE</div>
+          </div>
+
+          <div className="flex-1 relative">
+            <img
+              src={CITY_BG}
+              alt="City map"
+              className="absolute inset-0 w-full h-full object-cover opacity-20 sepia-[0.3] hue-rotate-[180deg]"
+            />
+
+            <motion.div
+              animate={{ y: [0, -10, 0] }}
+              transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut' }}
+              className="absolute top-1/4 left-1/4 glass-panel p-4 rounded-2xl max-w-[240px] border-cyan-500/20"
+            >
+              <div className="flex items-center space-x-2 text-cyan-400 mb-2">
+                <Terminal className="w-3 h-3" />
+                <span className="text-[10px] uppercase font-mono tracking-widest">Radius: 2km</span>
+              </div>
+              <div className="font-serif text-lg mb-1">Popup Art Show</div>
+              <div className="w-full bg-white/10 h-1 mt-3 rounded-full overflow-hidden">
+                <div className="w-3/4 h-full bg-cyan-400" />
+              </div>
+            </motion.div>
+
+            <motion.div
+              animate={{ y: [0, 10, 0] }}
+              transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut', delay: 1 }}
+              className="absolute bottom-1/4 right-1/4 glass-panel p-4 rounded-2xl max-w-[240px] border-amber-500/20"
+            >
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex -space-x-1">
+                  <div className="w-5 h-5 rounded-full bg-zinc-700 border border-obsidian" />
+                  <div className="w-5 h-5 rounded-full bg-zinc-600 border border-obsidian" />
+                  <div className="w-5 h-5 rounded-full bg-zinc-500 border border-obsidian" />
+                </div>
+                <span className="text-[10px] font-mono text-amber-500">8/12 FULL</span>
+              </div>
+              <div className="font-serif text-lg">Jazz at the Cellar</div>
+              <div className="text-xs text-white/40 mt-1 uppercase tracking-wide">Fading in 14m</div>
+            </motion.div>
+
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 border border-white/5 rounded-full flex items-center justify-center">
+              <div className="w-64 h-64 border border-white/10 rounded-full flex items-center justify-center">
+                <div className="w-32 h-32 border border-white/20 rounded-full relative">
+                  <div className="absolute inset-0 border-t-2 border-amber-500 rounded-full animate-spin [animation-duration:3s]" />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  )
+}
+
+function FinalCTA(): ReactElement {
+  return (
+    <section className="relative h-screen flex border-t border-white/5 overflow-hidden items-center justify-center bg-obsidian">
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] border border-white/5 rounded-full scale-[1.5] md:scale-[2.5] opacity-50" />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] border border-white/10 rounded-full scale-[1.5] md:scale-[2.5]" />
+
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-amber-900/10 via-obsidian to-obsidian" />
+
+      <div className="relative z-10 text-center max-w-4xl px-6 flex flex-col items-center">
+        <h2 className="font-serif text-5xl md:text-8xl leading-none mb-8">
+          The feed is dead.
+          <br />
+          <span className="italic text-white/50">The city is alive.</span>
+        </h2>
+        <p className="text-lg md:text-xl text-white/40 font-light mb-12 max-w-xl">
+          Step into the hidden layer of what’s happening around you.
+        </p>
+        <Link
+          to="/auth"
+          className="relative group px-12 py-5 bg-white text-black font-semibold uppercase tracking-widest text-sm rounded-full overflow-hidden transition-transform hover:scale-105"
+        >
+          <div className="absolute inset-0 bg-gradient-to-r from-amber-300 to-amber-500 opacity-0 group-hover:opacity-10 transition-opacity" />
+          <span className="relative z-10">Get Started</span>
+        </Link>
+      </div>
+    </section>
+  )
+}
+
+function Footer(): ReactElement {
+  return (
+    <footer className="py-12 text-center border-t border-white/5 glass-panel">
+      <div className="flex items-center justify-center space-x-2 text-white/30 text-sm font-mono tracking-widest uppercase">
+        <Activity className="w-3 h-3" />
+        <span>Aura — All signals fade.</span>
+      </div>
+    </footer>
+  )
+}
+
+export default function LandingPage(): ReactElement {
+  return (
+    <div className="bg-obsidian text-white min-h-screen selection:bg-amber-500/30">
+      <Navbar />
+      <main>
+        <Hero />
+        <LayersSection />
+        <SignalsComparison />
+        <ModesSection />
+        <ProcessSection />
+        <PsychologySection />
+        <LiveShowcase />
+        <FinalCTA />
+      </main>
+      <Footer />
     </div>
   )
 }
