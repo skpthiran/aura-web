@@ -1,407 +1,548 @@
-import { useEffect, useRef, useState } from 'react'
+import { type ReactElement, useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { motion, useScroll, useTransform } from 'motion/react'
-import { MapPin, Zap, Users, Calendar, ArrowRight, Play } from 'lucide-react'
+import {
+  ArrowRight,
+  CalendarClock,
+  MapPin,
+  Radar,
+  Sparkles,
+  Timer,
+  Users,
+  Waves,
+  Zap,
+  type LucideIcon,
+} from 'lucide-react'
+import {
+  motion,
+  useMotionTemplate,
+  useReducedMotion,
+  useScroll,
+  useSpring,
+  useTransform,
+} from 'motion/react'
 
-const FEATURES = [
+import eventBg from '../assets/event-bg.png'
+import momentBg from '../assets/moment-bg.png'
+
+type ProductCard = {
+  title: 'Moments' | 'Events'
+  description: string
+  image: string
+  chips: readonly string[]
+}
+
+type FeatureCard = {
+  icon: LucideIcon
+  title: string
+  description: string
+}
+
+type FlowStep = {
+  id: string
+  title: string
+  description: string
+}
+
+type Pillar = {
+  title: string
+  description: string
+}
+
+const PRODUCT_CARDS: readonly ProductCard[] = [
+  {
+    title: 'Moments',
+    description: 'Short-lived signals for spontaneous plans.',
+    image: momentBg,
+    chips: ['Live Radius', 'Fast Join', 'Expires Soon'],
+  },
+  {
+    title: 'Events',
+    description: 'Structured gatherings with time, place, capacity, and intent.',
+    image: eventBg,
+    chips: ['Scheduled', 'Capacity', 'Intent-Led'],
+  },
+]
+
+const FLOW_STEPS: readonly FlowStep[] = [
+  {
+    id: '01',
+    title: 'Drop a Signal',
+    description: 'Set radius, tone, and timing. Aura lights up your location instantly.',
+  },
+  {
+    id: '02',
+    title: 'People Nearby Discover It',
+    description: 'Neighbors catch the pulse in real time and step into the same moment.',
+  },
+  {
+    id: '03',
+    title: 'The Moment Happens Before It Expires',
+    description: 'Signals fade by design, leaving energy in the city, not noise in a feed.',
+  },
+]
+
+const FEATURE_CARDS: readonly FeatureCard[] = [
   {
     icon: Zap,
     title: 'Live Signals',
-    desc: 'Create spontaneous moments that pulse on the map in real-time. Expiring in hours, not days.',
+    description: 'Publish now, pulse instantly, and sync attention with what is happening this minute.',
   },
   {
     icon: MapPin,
     title: 'Hyperlocal Discovery',
-    desc: "Find what's happening within 5KM of you right now. The city reveals itself.",
+    description: 'Aura filters by proximity so your map reveals social gravity near you, not everywhere.',
   },
   {
     icon: Users,
     title: 'Capacity Control',
-    desc: 'Set intimate limits. Waitlists form automatically when demand exceeds capacity.',
+    description: 'Define intimate limits, build right-sized groups, and keep gatherings intentional.',
   },
   {
-    icon: Calendar,
-    title: 'Curated Events',
-    desc: 'Host structured gatherings with dress codes, age gates, and venue details.',
+    icon: Timer,
+    title: 'Expiring by Design',
+    description: 'Moments naturally disappear to reward timing and protect momentum.',
+  },
+  {
+    icon: Sparkles,
+    title: 'Social Proof / Participants',
+    description: 'See live join energy so you know a signal is real before you move.',
+  },
+  {
+    icon: Radar,
+    title: 'Real-time Map Layer',
+    description: 'A city-scale pulse board that translates hidden activity into visible opportunities.',
   },
 ]
 
-const STATS = [
-  { value: 'Real-time', label: 'Signal Updates' },
-  { value: 'Hyperlocal', label: 'Discovery Radius' },
-  { value: 'Ephemeral', label: 'By Design' },
-  { value: 'Intimate', label: 'Capacity Limits' },
+const PILLARS: readonly Pillar[] = [
+  {
+    title: 'Presence',
+    description: 'What matters is what is alive right now.',
+  },
+  {
+    title: 'Proximity',
+    description: 'Real people near you, not infinite distance scrolling.',
+  },
+  {
+    title: 'Scarcity',
+    description: 'Signals disappear, so moments feel urgent and real.',
+  },
 ]
 
-export default function LandingPage() {
-  const containerRef = useRef<HTMLDivElement>(null)
-  const { scrollYProgress } = useScroll({ target: containerRef })
-  const heroOpacity = useTransform(scrollYProgress, [0, 0.25], [1, 0])
-  const heroY = useTransform(scrollYProgress, [0, 0.25], [0, -60])
-  const [mousePos, setMousePos] = useState({ x: 0, y: 0 })
+const PARTICLE_COUNT = 12 // total ambient particles in hero background
+const PARTICLE_X_STEP = 17 // x-axis spread increment to avoid clustering
+const PARTICLE_Y_STEP = 29 // y-axis spread increment to offset x pattern
+const PARTICLE_RANGE = 100 // percentage-based coordinate range
+const PARTICLE_OFFSET = 1 // keeps particles from clipping against edges
+
+export default function LandingPage(): ReactElement {
+  const prefersReducedMotion = useReducedMotion()
+  const [mouse, setMouse] = useState<{ x: number; y: number }>({ x: 0, y: 0 })
 
   useEffect(() => {
-    const handle = (e: MouseEvent) => {
-      setMousePos({
-        x: (e.clientX / window.innerWidth - 0.5) * 30,
-        y: (e.clientY / window.innerHeight - 0.5) * 30,
+    if (prefersReducedMotion) {
+      return undefined
+    }
+
+    const handleMouseMove = (event: MouseEvent): void => {
+      const centerX = window.innerWidth / 2
+      const centerY = window.innerHeight / 2
+      setMouse({
+        x: ((event.clientX - centerX) / centerX) * 24,
+        y: ((event.clientY - centerY) / centerY) * 24,
       })
     }
-    window.addEventListener('mousemove', handle)
-    return () => window.removeEventListener('mousemove', handle)
-  }, [])
+
+    window.addEventListener('mousemove', handleMouseMove)
+    return () => window.removeEventListener('mousemove', handleMouseMove)
+  }, [prefersReducedMotion])
+
+  const smoothX = useSpring(mouse.x, { stiffness: 120, damping: 20, mass: 0.8 })
+  const smoothY = useSpring(mouse.y, { stiffness: 120, damping: 20, mass: 0.8 })
+  const orbTransform = useMotionTemplate`translate3d(${smoothX}px, ${smoothY}px, 0)`
+
+  const timelineRef = useRef<HTMLDivElement | null>(null)
+  const { scrollYProgress } = useScroll({ target: timelineRef, offset: ['start end', 'end start'] })
+  const timelineGlow = useTransform(scrollYProgress, [0, 1], ['0%', '100%'])
+  const timelineClip = useMotionTemplate`inset(0 0 ${timelineGlow} 0)`
+
+  const particles = useMemo(
+    () =>
+      Array.from({ length: PARTICLE_COUNT }, (_, index) => {
+        const x = ((index * PARTICLE_X_STEP) % PARTICLE_RANGE) + PARTICLE_OFFSET
+        const y = ((index * PARTICLE_Y_STEP) % PARTICLE_RANGE) + PARTICLE_OFFSET
+        const delay = (index % 6) * 0.5
+        const duration = 5 + (index % 5)
+        return { x, y, delay, duration }
+      }),
+    [],
+  )
 
   return (
-    <div ref={containerRef} className="min-h-screen bg-black text-white overflow-x-hidden">
-      {/* ── NAV ── */}
-      <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-8 py-5"
-        style={{ background: 'linear-gradient(to bottom, rgba(0,0,0,0.8) 0%, transparent 100%)' }}>
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full border border-[#C9A84C]/60
-            flex items-center justify-center"
-            style={{ background: 'rgba(201,168,76,0.08)' }}>
-            <span className="font-serif text-base text-[#C9A84C] leading-none">A</span>
-          </div>
-          <span className="font-serif text-lg tracking-[0.2em] text-white/90">AURA</span>
-        </div>
-        <div className="flex items-center gap-3">
-          <Link to="/auth">
-            <button className="text-sm text-white/50 hover:text-white transition-colors px-3 py-2">
-              Sign In
-            </button>
+    <div className="relative min-h-screen overflow-x-clip bg-void text-marble">
+      <div className="pointer-events-none absolute inset-0 cinematic-map opacity-95" />
+      <div className="pointer-events-none absolute inset-0 city-grid-bg opacity-35" />
+      <div className="pointer-events-none absolute inset-0 noise-texture opacity-45" />
+
+      <nav className="fixed inset-x-4 top-4 z-50 mx-auto flex max-w-6xl items-center justify-between rounded-full border border-white/10 bg-black/45 px-4 py-3 backdrop-blur-xl md:px-6">
+        <Link to="/" className="flex items-center gap-3">
+          <span className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-gold/50 bg-gold/10 font-serif text-sm text-gold">
+            A
+          </span>
+          <span className="font-serif text-sm tracking-[0.24em] text-white/90">AURA</span>
+        </Link>
+
+        <div className="flex items-center gap-2">
+          <Link
+            to="/auth"
+            className="rounded-full px-4 py-2 text-xs font-medium uppercase tracking-[0.16em] text-white/70 transition hover:text-white"
+          >
+            Sign In
           </Link>
-          <Link to="/auth">
-            <button className="text-sm px-5 py-2.5 rounded-full font-medium
-              transition-all duration-300 whitespace-nowrap"
-              style={{ background: 'white', color: 'black' }}
-              onMouseEnter={e => {
-                (e.currentTarget as HTMLElement).style.background = '#C9A84C'
-                ;(e.currentTarget as HTMLElement).style.color = '#0a0a0f'
-              }}
-              onMouseLeave={e => {
-                (e.currentTarget as HTMLElement).style.background = 'white'
-                ;(e.currentTarget as HTMLElement).style.color = 'black'
-              }}>
-              Get Started
-            </button>
+          <Link
+            to="/auth"
+            className="rounded-full border border-gold/50 bg-gold/90 px-4 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-black transition hover:bg-gold-pale"
+          >
+            Enter Aura
           </Link>
         </div>
       </nav>
 
-      {/* ── HERO ── */}
-      <section className="relative min-h-screen flex flex-col items-center
-        justify-center text-center px-6 overflow-hidden">
-
-        {/* Parallax orbs */}
-        <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute rounded-full blur-[120px] opacity-20"
-            style={{
-              width: '600px', height: '600px',
-              background: '#C9A84C',
-              top: '10%', left: '50%',
-              transform: `translate(calc(-50% + ${mousePos.x}px), ${mousePos.y}px)`,
-              transition: 'transform 0.8s ease-out',
-            }} />
-          <div className="absolute rounded-full blur-[100px] opacity-10"
-            style={{
-              width: '400px', height: '400px',
-              background: '#7C3AED',
-              bottom: '15%', right: '10%',
-              transform: `translate(${-mousePos.x * 0.5}px, ${-mousePos.y * 0.5}px)`,
-              transition: 'transform 1s ease-out',
-            }} />
-          <div className="absolute rounded-full blur-[80px] opacity-8"
-            style={{
-              width: '300px', height: '300px',
-              background: '#C9A84C',
-              bottom: '20%', left: '5%',
-              transform: `translate(${mousePos.x * 0.3}px, ${mousePos.y * 0.3}px)`,
-              transition: 'transform 1.2s ease-out',
-            }} />
-        </div>
-
-        {/* Subtle grid */}
-        <div className="absolute inset-0 pointer-events-none opacity-[0.03]"
-          style={{
-            backgroundImage: 'linear-gradient(rgba(255,255,255,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.5) 1px, transparent 1px)',
-            backgroundSize: '60px 60px',
-          }} />
-
-        <motion.div style={{ opacity: heroOpacity, y: heroY }}
-          className="relative z-10 flex flex-col items-center">
-
-          {/* Pre-badge */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-            className="flex items-center gap-2 mb-8 px-4 py-2 rounded-full border"
-            style={{ borderColor: 'rgba(201,168,76,0.3)', background: 'rgba(201,168,76,0.06)' }}>
-            <div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
-            <span className="text-xs tracking-[0.2em] uppercase text-[#C9A84C]/80">
-              Live in your city
-            </span>
-          </motion.div>
-
-          {/* Headline */}
-          <motion.h1
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.1 }}
-            className="font-serif leading-[1.05] mb-6"
-            style={{ fontSize: 'clamp(3rem, 9vw, 7.5rem)', maxWidth: '900px' }}>
-            The City Has
-            <br />
-            <span style={{ color: '#C9A84C' }}>Hidden Signals.</span>
-          </motion.h1>
-
-          {/* Subheadline */}
-          <motion.p
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, delay: 0.25 }}
-            className="text-white/45 text-lg leading-relaxed mb-10"
-            style={{ maxWidth: '520px' }}>
-            Aura surfaces ephemeral moments — intimate gatherings, spontaneous
-            meetups, curated events — all expiring within hours. Be there or miss it.
-          </motion.p>
-
-          {/* CTAs */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.4 }}
-            className="flex items-center gap-4 flex-wrap justify-center">
-            <Link to="/auth">
-              <button className="flex items-center gap-2.5 px-8 py-4 rounded-full
-                font-medium text-sm transition-all duration-300 group"
-                style={{ background: 'white', color: 'black' }}
-                onMouseEnter={e => {
-                  (e.currentTarget as HTMLElement).style.background = '#C9A84C'
-                  ;(e.currentTarget as HTMLElement).style.transform = 'translateY(-2px)'
-                  ;(e.currentTarget as HTMLElement).style.boxShadow = '0 20px 60px rgba(201,168,76,0.3)'
+      <main>
+        <section className="relative isolate flex min-h-screen items-center overflow-hidden px-5 pb-16 pt-32 md:px-10">
+          <div className="pointer-events-none absolute inset-0">
+            <motion.div
+              className="city-orb absolute -left-24 top-20 h-80 w-80 rounded-full bg-gold/20 blur-[90px]"
+              style={{ transform: orbTransform }}
+            />
+            <motion.div
+              className="city-orb absolute bottom-10 right-0 h-72 w-72 rounded-full bg-crimson/20 blur-[110px]"
+              style={{ transform: orbTransform }}
+            />
+            <div className="signal-ring absolute left-[10%] top-[22%] h-32 w-32 rounded-full border border-gold/40" />
+            <div className="signal-ring absolute right-[14%] top-[20%] h-40 w-40 rounded-full border border-gold/30 [animation-delay:1.1s]" />
+            <div className="signal-ring absolute bottom-[16%] left-[22%] h-28 w-28 rounded-full border border-gold/35 [animation-delay:1.7s]" />
+            {particles.map((particle) => (
+              <motion.span
+                key={`${particle.x}-${particle.y}`}
+                className="absolute h-1 w-1 rounded-full bg-gold/70"
+                style={{ left: `${particle.x}%`, top: `${particle.y}%` }}
+                animate={{ opacity: [0.2, 0.85, 0.2], scale: [0.8, 1.2, 0.8] }}
+                transition={{
+                  duration: particle.duration,
+                  delay: particle.delay,
+                  repeat: Infinity,
+                  ease: 'easeInOut',
                 }}
-                onMouseLeave={e => {
-                  (e.currentTarget as HTMLElement).style.background = 'white'
-                  ;(e.currentTarget as HTMLElement).style.transform = 'translateY(0)'
-                  ;(e.currentTarget as HTMLElement).style.boxShadow = 'none'
-                }}>
-                Enter Aura
-                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-              </button>
-            </Link>
-            <Link to="/auth">
-              <button className="flex items-center gap-2 px-6 py-4 rounded-full
-                text-sm text-white/50 hover:text-white transition-colors border"
-                style={{ borderColor: 'rgba(255,255,255,0.12)' }}>
-                <Play className="w-3.5 h-3.5" />
-                See how it works
-              </button>
-            </Link>
-          </motion.div>
+              />
+            ))}
+          </div>
 
-          {/* Social proof */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.7 }}
-            className="mt-12 flex items-center gap-3 text-sm text-white/25">
-            <div className="flex -space-x-2">
-              {['A','B','C','D'].map((l, i) => (
-                <div key={l} className="w-7 h-7 rounded-full border-2 border-black
-                  flex items-center justify-center text-xs font-serif text-white/60"
-                  style={{ background: `hsl(${i * 60 + 200}, 30%, 20%)` }}>
-                  {l}
+          <div className="relative mx-auto grid w-full max-w-6xl gap-16 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, ease: 'easeOut' }}
+              className="space-y-8"
+            >
+              <div className="inline-flex items-center gap-2 rounded-full border border-gold/30 bg-gold/10 px-4 py-2 text-[11px] uppercase tracking-[0.2em] text-gold/85">
+                <span className="h-1.5 w-1.5 rounded-full bg-gold pulse-dot" />
+                Live city signals
+              </div>
+
+              <h1 className="max-w-2xl font-serif text-[2.8rem] leading-[1.02] text-white text-shadow-glow md:text-[4rem] lg:text-[6.5rem]">
+                The City Has Hidden Signals.
+              </h1>
+
+              <p className="max-w-xl text-base leading-relaxed text-white/70 md:text-lg">
+                Aura reveals spontaneous moments, intimate gatherings, and live events happening around
+                you — before they disappear.
+              </p>
+
+              <div className="flex flex-wrap items-center gap-4">
+                <motion.div whileHover={{ y: -3 }} whileTap={{ scale: 0.98 }}>
+                  <Link
+                    to="/auth"
+                    className="group inline-flex items-center gap-2 rounded-full border border-gold/60 bg-gold px-6 py-3 text-sm font-semibold uppercase tracking-[0.14em] text-black transition hover:bg-gold-pale"
+                  >
+                    Enter Aura
+                    <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+                  </Link>
+                </motion.div>
+
+                <motion.div whileHover={{ y: -3 }} whileTap={{ scale: 0.98 }}>
+                  <Link
+                    to="/auth"
+                    className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/5 px-6 py-3 text-sm font-semibold uppercase tracking-[0.14em] text-white/80 transition hover:border-gold/50 hover:text-white"
+                  >
+                    <Waves className="h-4 w-4 text-gold" />
+                    See the Pulse
+                  </Link>
+                </motion.div>
+              </div>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 40 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.9, delay: 0.2, ease: 'easeOut' }}
+              className="relative mx-auto w-full max-w-md"
+            >
+              <motion.div
+                className="float-drift gradient-border rounded-[2rem] bg-black/45 p-3 shadow-[0_20px_80px_rgba(0,0,0,0.45)] backdrop-blur-xl"
+                whileHover={{ y: -6 }}
+              >
+                <div className="overflow-hidden rounded-[1.6rem] border border-white/10 bg-card/85 p-4">
+                  <div className="mb-4 flex items-center justify-between text-[11px] uppercase tracking-[0.16em] text-white/55">
+                    <span>Live Signal</span>
+                    <span className="rounded-full border border-gold/40 bg-gold/15 px-2 py-1 text-gold">2.1 km</span>
+                  </div>
+
+                  <div className="rounded-2xl border border-white/10 bg-black/40 p-4">
+                    <div className="mb-3 flex items-start justify-between gap-3">
+                      <div>
+                        <p className="font-serif text-lg text-white">Rooftop Vinyl Drop</p>
+                        <p className="text-sm text-white/60">Midnight set near River Loop</p>
+                      </div>
+                      <div className="rounded-lg bg-gold/15 px-2 py-1 text-xs font-medium text-gold">LIVE</div>
+                    </div>
+
+                    <div className="mb-4 grid grid-cols-3 gap-2 text-center text-xs text-white/65">
+                      <div className="rounded-xl border border-white/10 bg-white/5 p-2">
+                        <Users className="mx-auto mb-1 h-4 w-4 text-gold" />
+                        26 Joined
+                      </div>
+                      <div className="rounded-xl border border-white/10 bg-white/5 p-2">
+                        <Timer className="mx-auto mb-1 h-4 w-4 text-gold" />
+                        48m left
+                      </div>
+                      <div className="rounded-xl border border-white/10 bg-white/5 p-2">
+                        <CalendarClock className="mx-auto mb-1 h-4 w-4 text-gold" />
+                        Radius 3km
+                      </div>
+                    </div>
+
+                    <div className="relative h-28 overflow-hidden rounded-xl border border-white/10 bg-black/60">
+                      <div className="absolute inset-0 city-grid-bg opacity-25" />
+                      <motion.div
+                        className="signal-ring absolute left-1/2 top-1/2 h-16 w-16 -translate-x-1/2 -translate-y-1/2 rounded-full border border-gold/50"
+                        animate={{ scale: [0.9, 1.5], opacity: [0.8, 0] }}
+                        transition={{ duration: 2.2, repeat: Infinity, ease: 'easeOut' }}
+                      />
+                      <div className="absolute left-1/2 top-1/2 h-2 w-2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-gold shadow-[0_0_18px_rgba(212,175,55,0.95)]" />
+                    </div>
+                  </div>
                 </div>
+              </motion.div>
+
+              <motion.div
+                className="glass-panel absolute -left-8 top-12 rounded-2xl border border-gold/20 px-3 py-2 text-xs text-white/70"
+                animate={{ y: [0, -8, 0] }}
+                transition={{ duration: 4.5, repeat: Infinity, ease: 'easeInOut' }}
+              >
+                <div className="flex items-center gap-2">
+                  <MapPin className="h-3.5 w-3.5 text-gold" />
+                  Soho rooftop · 2.1km
+                </div>
+              </motion.div>
+
+              <motion.div
+                className="glass-panel absolute -bottom-6 right-0 rounded-2xl border border-gold/20 px-3 py-2 text-xs text-white/70"
+                animate={{ y: [0, 8, 0] }}
+                transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut' }}
+              >
+                9 people joined in the last 3 min
+              </motion.div>
+            </motion.div>
+          </div>
+        </section>
+
+        <section className="relative mx-auto max-w-6xl px-5 py-20 md:px-10">
+          <div className="mb-12 text-center">
+            <p className="micro-caps mb-3 text-gold/80">Product Experience</p>
+            <h2 className="font-serif text-4xl text-white sm:text-5xl">Two signal formats. One living city layer.</h2>
+          </div>
+
+          <div className="grid gap-6 lg:grid-cols-2">
+            {PRODUCT_CARDS.map((card, index) => (
+              <motion.article
+                key={card.title}
+                initial={{ opacity: 0, y: 28 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, amount: 0.25 }}
+                transition={{ delay: index * 0.12, duration: 0.7 }}
+                whileHover={{ y: -6 }}
+                className="light-sweep group relative overflow-hidden rounded-[2rem] border border-white/15 bg-black/40 p-7"
+              >
+                <motion.div
+                  className="absolute inset-0 bg-cover bg-center opacity-60"
+                  style={{ backgroundImage: `url(${card.image})` }}
+                  whileHover={{ scale: 1.08 }}
+                  transition={{ duration: 0.8, ease: 'easeOut' }}
+                />
+                <div className="absolute inset-0 bg-gradient-to-br from-black/70 via-black/45 to-black/80" />
+                <div className="absolute inset-0 rounded-[2rem] ring-1 ring-gold/25" />
+
+                <div className="relative z-10 flex h-full min-h-72 flex-col justify-between">
+                  <div>
+                    <p className="micro-caps mb-4 text-gold/80">{card.title}</p>
+                    <h3 className="mb-3 font-serif text-3xl text-white">{card.description}</h3>
+                  </div>
+
+                  <div className="flex flex-wrap gap-2">
+                    {card.chips.map((chip) => (
+                      <span
+                        key={chip}
+                        className="rounded-full border border-white/15 bg-black/40 px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-white/70"
+                      >
+                        {chip}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </motion.article>
+            ))}
+          </div>
+        </section>
+
+        <section ref={timelineRef} className="relative mx-auto max-w-5xl px-5 py-20 md:px-10">
+          <div className="mb-12 text-center">
+            <p className="micro-caps mb-3 text-gold/80">Live Pulse / How It Works</p>
+            <h2 className="font-serif text-4xl text-white sm:text-5xl">Signal moves. People move.</h2>
+          </div>
+
+          <div className="relative mx-auto max-w-3xl">
+            <div className="absolute left-5 top-4 h-[calc(100%-2rem)] w-px bg-white/10 md:left-7" />
+            <motion.div
+              className="absolute left-5 top-4 h-[calc(100%-2rem)] w-px bg-gradient-to-b from-gold via-gold/40 to-transparent md:left-7"
+              style={{ clipPath: timelineClip }}
+            />
+
+            <div className="space-y-10">
+              {FLOW_STEPS.map((step, index) => (
+                <motion.article
+                  key={step.id}
+                  initial={{ opacity: 0, x: -16 }}
+                  whileInView={{ opacity: 1, x: 0 }}
+                  viewport={{ once: true, amount: 0.45 }}
+                  transition={{ delay: index * 0.14, duration: 0.6 }}
+                  className="relative pl-16 md:pl-20"
+                >
+                  <div className="absolute left-0 top-2 flex h-10 w-10 items-center justify-center rounded-full border border-gold/45 bg-black text-sm font-semibold text-gold md:left-2 md:h-11 md:w-11">
+                    {step.id}
+                  </div>
+                  <div className="rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur-md">
+                    <h3 className="mb-2 font-serif text-2xl text-white">{step.title}</h3>
+                    <p className="text-white/70">{step.description}</p>
+                  </div>
+                </motion.article>
               ))}
             </div>
-            <span>Join the network · Invite only</span>
-          </motion.div>
-        </motion.div>
+          </div>
+        </section>
 
-        {/* Scroll indicator */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 1.2 }}
-          className="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2">
-          <span className="text-xs tracking-[0.2em] uppercase text-white/20">Scroll</span>
-          <div className="w-px h-12 bg-gradient-to-b from-white/20 to-transparent" />
-        </motion.div>
-      </section>
+        <section className="relative mx-auto max-w-6xl px-5 py-20 md:px-10">
+          <div className="mb-12 text-center">
+            <p className="micro-caps mb-3 text-gold/80">Features</p>
+            <h2 className="font-serif text-4xl text-white sm:text-5xl">Signal intelligence built for nights that matter.</h2>
+          </div>
 
-      {/* ── STATS ── */}
-      <section className="py-20 px-8"
-        style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-        <div className="max-w-5xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-8">
-          {STATS.map((s, i) => (
-            <motion.div key={s.label}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: i * 0.1 }}
-              className="text-center">
-              <p className="font-serif text-3xl md:text-4xl mb-2"
-                style={{ color: '#C9A84C' }}>{s.value}</p>
-              <p className="text-xs tracking-[0.15em] uppercase text-white/30">{s.label}</p>
-            </motion.div>
-          ))}
-        </div>
-      </section>
-
-      {/* ── FEATURES ── */}
-      <section className="py-24 px-8"
-        style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-        <div className="max-w-5xl mx-auto">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="text-center mb-16">
-            <p className="text-xs tracking-[0.25em] uppercase mb-4"
-              style={{ color: '#C9A84C' }}>How it works</p>
-            <h2 className="font-serif text-4xl md:text-6xl text-white/90">
-              Designed for the<br />
-              <em>present moment</em>
-            </h2>
-          </motion.div>
-
-          <div className="grid md:grid-cols-2 gap-4">
-            {FEATURES.map((f, i) => (
-              <motion.div key={f.title}
-                initial={{ opacity: 0, y: 24 }}
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {FEATURE_CARDS.map((feature, index) => (
+              <motion.article
+                key={feature.title}
+                initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.1 }}
-                className="group p-8 rounded-3xl border transition-all duration-500 cursor-default"
-                style={{
-                  borderColor: 'rgba(255,255,255,0.07)',
-                  background: 'rgba(255,255,255,0.02)',
-                }}
-                onMouseEnter={e => {
-                  (e.currentTarget as HTMLElement).style.borderColor = 'rgba(201,168,76,0.25)'
-                  ;(e.currentTarget as HTMLElement).style.background = 'rgba(201,168,76,0.04)'
-                  ;(e.currentTarget as HTMLElement).style.transform = 'translateY(-4px)'
-                }}
-                onMouseLeave={e => {
-                  (e.currentTarget as HTMLElement).style.borderColor = 'rgba(255,255,255,0.07)'
-                  ;(e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.02)'
-                  ;(e.currentTarget as HTMLElement).style.transform = 'translateY(0)'
-                }}>
-                <div className="w-12 h-12 rounded-2xl flex items-center justify-center mb-6"
-                  style={{ background: 'rgba(201,168,76,0.1)', border: '1px solid rgba(201,168,76,0.2)' }}>
-                  <f.icon className="w-5 h-5" style={{ color: '#C9A84C' }} />
+                viewport={{ once: true, amount: 0.2 }}
+                transition={{ delay: index * 0.08, duration: 0.6 }}
+                whileHover={{ y: -5 }}
+                className="feature-card group relative overflow-hidden rounded-3xl border border-white/12 bg-white/[0.035] p-6 backdrop-blur-xl"
+              >
+                <div className="absolute inset-0 opacity-0 transition group-hover:opacity-100">
+                  <div className="absolute inset-0 bg-gradient-to-br from-gold/10 via-transparent to-crimson/10" />
                 </div>
-                <h3 className="font-serif text-xl text-white/90 mb-3">{f.title}</h3>
-                <p className="text-white/40 text-sm leading-relaxed">{f.desc}</p>
-              </motion.div>
+                <div className="relative z-10">
+                  <div className="mb-4 inline-flex rounded-2xl border border-gold/35 bg-gold/12 p-3 text-gold">
+                    <feature.icon className="h-5 w-5" />
+                  </div>
+                  <h3 className="mb-3 font-serif text-2xl text-white">{feature.title}</h3>
+                  <p className="text-sm leading-relaxed text-white/70">{feature.description}</p>
+                </div>
+              </motion.article>
             ))}
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* ── HOW IT WORKS ── */}
-      <section className="py-24 px-8"
-        style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-        <div className="max-w-3xl mx-auto">
+        <section className="relative mx-auto max-w-6xl px-5 py-20 md:px-10">
+          <div className="rounded-[2rem] border border-white/10 bg-black/35 p-8 text-center backdrop-blur-xl md:p-14">
+            <p className="micro-caps mb-3 text-gold/80">Why Aura Feels Different</p>
+            <h2 className="mx-auto mb-8 max-w-3xl font-serif text-4xl text-white sm:text-5xl">
+              Not another feed. A reason to leave the house.
+            </h2>
+            <p className="mx-auto mb-10 max-w-3xl text-white/70">
+              Aura is built around presence, proximity, scarcity, and real-world social energy.
+            </p>
+
+            <div className="grid gap-4 md:grid-cols-3">
+              {PILLARS.map((pillar, index) => (
+                <motion.div
+                  key={pillar.title}
+                  initial={{ opacity: 0, y: 16 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true, amount: 0.35 }}
+                  transition={{ delay: index * 0.1, duration: 0.55 }}
+                  className="rounded-2xl border border-white/10 bg-white/5 p-5"
+                >
+                  <p className="micro-caps mb-2 text-gold">{pillar.title}</p>
+                  <p className="text-sm text-white/75">{pillar.description}</p>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section className="relative overflow-hidden px-5 py-28 text-center md:px-10">
+          <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+            <div className="signal-ring h-56 w-56 rounded-full border border-gold/30" />
+            <div className="signal-ring absolute h-80 w-80 rounded-full border border-gold/20 [animation-delay:0.7s]" />
+            <div className="signal-ring absolute h-[28rem] w-[28rem] rounded-full border border-gold/10 [animation-delay:1.3s]" />
+          </div>
+
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="text-center mb-16">
-            <p className="text-xs tracking-[0.25em] uppercase mb-4"
-              style={{ color: '#C9A84C' }}>The flow</p>
-            <h2 className="font-serif text-4xl md:text-5xl text-white/90">
-              Three steps.<br />One city.
+            viewport={{ once: true, amount: 0.5 }}
+            transition={{ duration: 0.7 }}
+            className="relative z-10 mx-auto max-w-3xl"
+          >
+            <h2 className="mb-6 font-serif text-5xl leading-tight text-white sm:text-6xl">
+              Your city is already moving.
+              <br />
+              Catch the signal before it fades.
             </h2>
-          </motion.div>
-
-          <div className="flex flex-col gap-0">
-            {[
-              { num: '01', title: 'Drop a Signal', desc: 'Choose a type, set a radius, define capacity. Your signal goes live on the map instantly.' },
-              { num: '02', title: 'People Find You', desc: 'Nearby users see your signal in the Pulse feed and on the live map. They join or waitlist.' },
-              { num: '03', title: 'It Happens', desc: 'Chat with joined participants. The signal expires automatically — leaving only the memory.' },
-            ].map((step, i) => (
-              <motion.div key={step.num}
-                initial={{ opacity: 0, x: -20 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.15 }}
-                className="flex gap-8 py-10"
-                style={{ borderBottom: i < 2 ? '1px solid rgba(255,255,255,0.06)' : 'none' }}>
-                <span className="font-serif text-5xl shrink-0 leading-none"
-                  style={{ color: 'rgba(201,168,76,0.25)' }}>{step.num}</span>
-                <div>
-                  <h3 className="font-serif text-xl text-white/90 mb-2">{step.title}</h3>
-                  <p className="text-white/40 text-sm leading-relaxed">{step.desc}</p>
-                </div>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── CTA SECTION ── */}
-      <section className="py-32 px-8 text-center relative overflow-hidden"
-        style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-        <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute rounded-full blur-[150px] opacity-15"
-            style={{
-              width: '700px', height: '400px',
-              background: '#C9A84C',
-              top: '50%', left: '50%',
-              transform: 'translate(-50%, -50%)',
-            }} />
-        </div>
-        <div className="relative z-10 max-w-2xl mx-auto">
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}>
-            <p className="text-xs tracking-[0.25em] uppercase mb-6"
-              style={{ color: '#C9A84C' }}>Ready?</p>
-            <h2 className="font-serif mb-6"
-              style={{ fontSize: 'clamp(2.5rem, 6vw, 5rem)', lineHeight: 1.05 }}>
-              Your city is<br />waiting.
-            </h2>
-            <p className="text-white/40 text-lg mb-10">
-              Signals are live right now. Join before they expire.
-            </p>
-            <Link to="/auth">
-              <button className="px-10 py-5 rounded-full text-base font-medium
-                transition-all duration-300"
-                style={{ background: '#C9A84C', color: '#0a0a0f' }}
-                onMouseEnter={e => {
-                  (e.currentTarget as HTMLElement).style.transform = 'translateY(-3px)'
-                  ;(e.currentTarget as HTMLElement).style.boxShadow = '0 30px 80px rgba(201,168,76,0.4)'
-                }}
-                onMouseLeave={e => {
-                  (e.currentTarget as HTMLElement).style.transform = 'translateY(0)'
-                  ;(e.currentTarget as HTMLElement).style.boxShadow = 'none'
-                }}>
-                Enter Aura →
-              </button>
+            <Link
+              to="/auth"
+              className="inline-flex items-center gap-2 rounded-full border border-gold/55 bg-gold px-8 py-4 text-sm font-semibold uppercase tracking-[0.14em] text-black transition hover:bg-gold-pale"
+            >
+              Enter Aura
+              <ArrowRight className="h-4 w-4" />
             </Link>
           </motion.div>
-        </div>
-      </section>
+        </section>
+      </main>
 
-      {/* ── FOOTER ── */}
-      <footer className="py-10 px-8 flex items-center justify-between"
-        style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-        <div className="flex items-center gap-2.5">
-          <div className="w-6 h-6 rounded-full border border-[#C9A84C]/40
-            flex items-center justify-center"
-            style={{ background: 'rgba(201,168,76,0.06)' }}>
-            <span className="font-serif text-xs text-[#C9A84C]">A</span>
+      <footer className="hairline-t px-5 py-8 md:px-10">
+        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-3 text-sm text-white/60 md:flex-row">
+          <div className="flex items-center gap-2">
+            <span className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-gold/50 bg-gold/10 font-serif text-[11px] text-gold">
+              A
+            </span>
+            <span className="font-serif tracking-[0.2em] text-white/80">AURA</span>
           </div>
-          <span className="font-serif text-sm tracking-[0.15em] text-white/40">AURA</span>
+          <p>All signals expire.</p>
+          <p>© {new Date().getFullYear()}</p>
         </div>
-        <p className="text-xs text-white/20">
-          © {new Date().getFullYear()} Aura. All signals expire.
-        </p>
       </footer>
-
     </div>
   )
 }
