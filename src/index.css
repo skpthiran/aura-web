@@ -228,6 +228,145 @@
   .city-orb {
     will-change: transform;
   }
+
+  .city-photo-veil {
+    background-image:
+      linear-gradient(180deg, rgba(5, 4, 10, 0.72), rgba(0, 0, 0, 0.78)),
+      radial-gradient(circle at 82% 22%, rgba(255, 255, 255, 0.14), transparent 35%),
+      radial-gradient(circle at 18% 78%, rgba(139, 0, 0, 0.16), transparent 42%),
+      url('./assets/event-bg.png'),
+      url('./assets/moment-bg.png');
+    background-size: cover, cover, cover, 140% 140%, 130% 130%;
+    background-position: center, center, center, 64% 32%, 40% 65%;
+    background-blend-mode: normal, screen, soft-light, overlay, multiply;
+    filter: saturate(0.72) brightness(0.42) contrast(1.08);
+  }
+
+  .signal-trails {
+    background-image:
+      linear-gradient(116deg, transparent 15%, rgba(212, 175, 55, 0.26) 48%, transparent 82%),
+      linear-gradient(72deg, transparent 20%, rgba(255, 255, 255, 0.1) 46%, transparent 70%);
+    background-size: 210% 100%, 185% 100%;
+    background-position: -100% 0, 140% 0;
+    animation: aura-trails 14s linear infinite;
+  }
+
+  .map-trace-lines {
+    background-image:
+      radial-gradient(circle at 10% 18%, rgba(212, 175, 55, 0.22) 2px, transparent 3px),
+      radial-gradient(circle at 82% 68%, rgba(255, 255, 255, 0.18) 1.5px, transparent 3px),
+      linear-gradient(120deg, transparent 28%, rgba(255, 255, 255, 0.1) 50%, transparent 74%),
+      linear-gradient(58deg, transparent 30%, rgba(212, 175, 55, 0.18) 50%, transparent 72%);
+    background-size: 36% 36%, 30% 30%, 100% 100%, 100% 100%;
+    background-position: 12% 24%, 80% 72%, center, center;
+    mask-image: radial-gradient(circle at center, black 20%, transparent 85%);
+    -webkit-mask-image: radial-gradient(circle at center, black 20%, transparent 85%);
+  }
+
+  .card-noise {
+    background-image:
+      radial-gradient(rgba(255, 255, 255, 0.1) 0.5px, transparent 0.8px),
+      radial-gradient(rgba(255, 255, 255, 0.06) 0.5px, transparent 0.8px);
+    background-size: 14px 14px, 22px 22px;
+    background-position: 0 0, 11px 11px;
+  }
+
+  .glass-depth {
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background:
+      linear-gradient(155deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02)),
+      rgba(0, 0, 0, 0.34);
+    backdrop-filter: blur(14px);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.12),
+      0 12px 34px rgba(0, 0, 0, 0.22);
+  }
+
+  .floating-chip {
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.14),
+      0 10px 28px rgba(0, 0, 0, 0.26);
+  }
+
+  .premium-border-card {
+    position: relative;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  .premium-border-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1px;
+    background: linear-gradient(140deg, rgba(212, 175, 55, 0.6), rgba(255, 255, 255, 0.05), rgba(139, 0, 0, 0.5));
+    -webkit-mask:
+      linear-gradient(#fff 0 0) content-box,
+      linear-gradient(#fff 0 0);
+    mask:
+      linear-gradient(#fff 0 0) content-box,
+      linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+    opacity: 0.8;
+  }
+
+  .spotlight-hover {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+  }
+
+  .spotlight-hover::after {
+    content: '';
+    position: absolute;
+    inset: -35%;
+    background: radial-gradient(circle at var(--x, 50%) var(--y, 50%), rgba(212, 175, 55, 0.24), transparent 42%);
+    opacity: 0;
+    transition: opacity 260ms ease;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .spotlight-hover:hover::after {
+    opacity: 1;
+  }
+
+  .section-fade-top::before,
+  .section-fade-bottom::after,
+  .section-fade-both::before,
+  .section-fade-both::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    width: 100%;
+    height: 110px;
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  .section-fade-top::before,
+  .section-fade-both::before {
+    top: 0;
+    background: linear-gradient(180deg, rgba(0, 0, 0, 0.72), transparent);
+  }
+
+  .section-fade-bottom::after,
+  .section-fade-both::after {
+    bottom: 0;
+    background: linear-gradient(0deg, rgba(0, 0, 0, 0.72), transparent);
+  }
+
+  .radar-sweep::before {
+    content: '';
+    position: absolute;
+    inset: -30%;
+    background: conic-gradient(from 0deg, transparent 0deg, rgba(212, 175, 55, 0.44) 55deg, transparent 95deg);
+    animation: aura-radar 3.8s linear infinite;
+    transform-origin: center;
+    opacity: 0.7;
+  }
 }
 
 @keyframes aura-ring {
@@ -278,11 +417,31 @@
   }
 }
 
+@keyframes aura-trails {
+  0% {
+    background-position: -100% 0, 140% 0;
+  }
+  100% {
+    background-position: 170% 0, -120% 0;
+  }
+}
+
+@keyframes aura-radar {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .signal-ring,
   .pulse-dot,
   .float-drift,
-  .light-sweep::after {
+  .light-sweep::after,
+  .signal-trails,
+  .radar-sweep::before {
     animation: none !important;
   }
 }
