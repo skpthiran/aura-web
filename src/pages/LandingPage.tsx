@@ -129,6 +129,12 @@ const PILLARS: readonly Pillar[] = [
   },
 ]
 
+const PARTICLE_COUNT = 12 // total ambient particles in hero background
+const PARTICLE_X_STEP = 17 // x-axis spread increment to avoid clustering
+const PARTICLE_Y_STEP = 29 // y-axis spread increment to offset x pattern
+const PARTICLE_RANGE = 100 // percentage-based coordinate range
+const PARTICLE_OFFSET = 1 // keeps particles from clipping against edges
+
 export default function LandingPage(): ReactElement {
   const prefersReducedMotion = useReducedMotion()
   const [mouse, setMouse] = useState<{ x: number; y: number }>({ x: 0, y: 0 })
@@ -158,12 +164,13 @@ export default function LandingPage(): ReactElement {
   const timelineRef = useRef<HTMLDivElement | null>(null)
   const { scrollYProgress } = useScroll({ target: timelineRef, offset: ['start end', 'end start'] })
   const timelineGlow = useTransform(scrollYProgress, [0, 1], ['0%', '100%'])
+  const timelineClip = useMotionTemplate`inset(0 0 ${timelineGlow} 0)`
 
   const particles = useMemo(
     () =>
-      Array.from({ length: 18 }, (_, index) => {
-        const x = ((index * 17) % 100) + 1
-        const y = ((index * 29) % 100) + 1
+      Array.from({ length: PARTICLE_COUNT }, (_, index) => {
+        const x = ((index * PARTICLE_X_STEP) % PARTICLE_RANGE) + PARTICLE_OFFSET
+        const y = ((index * PARTICLE_Y_STEP) % PARTICLE_RANGE) + PARTICLE_OFFSET
         const delay = (index % 6) * 0.5
         const duration = 5 + (index % 5)
         return { x, y, delay, duration }
@@ -224,7 +231,7 @@ export default function LandingPage(): ReactElement {
                 transition={{
                   duration: particle.duration,
                   delay: particle.delay,
-                  repeat: Number.POSITIVE_INFINITY,
+                  repeat: Infinity,
                   ease: 'easeInOut',
                 }}
               />
@@ -243,7 +250,7 @@ export default function LandingPage(): ReactElement {
                 Live city signals
               </div>
 
-              <h1 className="max-w-2xl font-serif text-5xl leading-[0.95] text-white text-shadow-glow sm:text-6xl lg:text-8xl">
+              <h1 className="max-w-2xl font-serif text-[2.8rem] leading-[1.02] text-white text-shadow-glow md:text-[4rem] lg:text-[6.5rem]">
                 The City Has Hidden Signals.
               </h1>
 
@@ -320,7 +327,7 @@ export default function LandingPage(): ReactElement {
                       <motion.div
                         className="signal-ring absolute left-1/2 top-1/2 h-16 w-16 -translate-x-1/2 -translate-y-1/2 rounded-full border border-gold/50"
                         animate={{ scale: [0.9, 1.5], opacity: [0.8, 0] }}
-                        transition={{ duration: 2.2, repeat: Number.POSITIVE_INFINITY, ease: 'easeOut' }}
+                        transition={{ duration: 2.2, repeat: Infinity, ease: 'easeOut' }}
                       />
                       <div className="absolute left-1/2 top-1/2 h-2 w-2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-gold shadow-[0_0_18px_rgba(212,175,55,0.95)]" />
                     </div>
@@ -331,7 +338,7 @@ export default function LandingPage(): ReactElement {
               <motion.div
                 className="glass-panel absolute -left-8 top-12 rounded-2xl border border-gold/20 px-3 py-2 text-xs text-white/70"
                 animate={{ y: [0, -8, 0] }}
-                transition={{ duration: 4.5, repeat: Number.POSITIVE_INFINITY, ease: 'easeInOut' }}
+                transition={{ duration: 4.5, repeat: Infinity, ease: 'easeInOut' }}
               >
                 <div className="flex items-center gap-2">
                   <MapPin className="h-3.5 w-3.5 text-gold" />
@@ -342,7 +349,7 @@ export default function LandingPage(): ReactElement {
               <motion.div
                 className="glass-panel absolute -bottom-6 right-0 rounded-2xl border border-gold/20 px-3 py-2 text-xs text-white/70"
                 animate={{ y: [0, 8, 0] }}
-                transition={{ duration: 5, repeat: Number.POSITIVE_INFINITY, ease: 'easeInOut' }}
+                transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut' }}
               >
                 9 people joined in the last 3 min
               </motion.div>
@@ -408,7 +415,7 @@ export default function LandingPage(): ReactElement {
             <div className="absolute left-5 top-4 h-[calc(100%-2rem)] w-px bg-white/10 md:left-7" />
             <motion.div
               className="absolute left-5 top-4 h-[calc(100%-2rem)] w-px bg-gradient-to-b from-gold via-gold/40 to-transparent md:left-7"
-              style={{ clipPath: useMotionTemplate`inset(0 0 ${timelineGlow} 0)` }}
+              style={{ clipPath: timelineClip }}
             />
 
             <div className="space-y-10">

@@ -135,6 +135,7 @@
       linear-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 1px),
       linear-gradient(90deg, rgba(255, 255, 255, 0.08) 1px, transparent 1px);
     background-size: 56px 56px;
+    -webkit-mask-image: radial-gradient(circle at center, rgba(0, 0, 0, 0.95), transparent 82%);
     mask-image: radial-gradient(circle at center, rgba(0, 0, 0, 0.95), transparent 82%);
   }
 
@@ -157,23 +158,32 @@
     padding: 1px;
     border-radius: inherit;
     background: linear-gradient(145deg, rgba(212, 175, 55, 0.7), rgba(212, 175, 55, 0.08) 42%, rgba(255, 255, 255, 0.25));
+    -webkit-mask:
+      linear-gradient(#fff 0 0) content-box,
+      linear-gradient(#fff 0 0);
     mask:
       linear-gradient(#fff 0 0) content-box,
       linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
     mask-composite: exclude;
     pointer-events: none;
   }
 
   .light-sweep {
     position: relative;
+    /* Tunable sweep geometry for premium card highlight animation */
+    --aura-sweep-inset-y: -12%;
+    --aura-sweep-start-x: -55%;
+    --aura-sweep-width: 40%;
+    --aura-sweep-skew: -18deg;
   }
 
   .light-sweep::after {
     content: '';
     position: absolute;
-    inset: -12% auto -12% -55%;
-    width: 40%;
-    transform: skewX(-18deg);
+    inset: var(--aura-sweep-inset-y) auto var(--aura-sweep-inset-y) var(--aura-sweep-start-x);
+    width: var(--aura-sweep-width);
+    transform: skewX(var(--aura-sweep-skew));
     background: linear-gradient(110deg, transparent, rgba(255, 255, 255, 0.26), transparent);
     animation: aura-sweep 4.8s ease-in-out infinite;
     pointer-events: none;
@@ -186,9 +196,13 @@
     border-radius: inherit;
     border: 1px solid transparent;
     background: linear-gradient(130deg, rgba(212, 175, 55, 0.5), rgba(255, 255, 255, 0.05), rgba(139, 0, 0, 0.45)) border-box;
+    -webkit-mask:
+      linear-gradient(#fff 0 0) padding-box,
+      linear-gradient(#fff 0 0);
     mask:
       linear-gradient(#fff 0 0) padding-box,
       linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
     mask-composite: exclude;
     opacity: 0;
     transition: opacity 240ms ease;
