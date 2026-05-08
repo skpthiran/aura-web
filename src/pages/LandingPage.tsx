@@ -156,7 +156,7 @@ function Navbar(): ReactElement {
       animate={{ y: 0 }}
       transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
       className={cn(
-        'fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 md:px-12 py-4 transition-all duration-500',
+        'fixed left-0 right-0 top-0 z-50 flex items-center justify-between px-6 py-4 transition-all duration-500 md:px-12',
         scrolled ? 'glass-panel bg-obsidian/80 border-b border-white/5' : 'bg-transparent',
       )}
     >
@@ -316,7 +316,7 @@ function LayersSection(): ReactElement {
         </div>
 
         <div className="relative h-[400px] md:h-[600px] [perspective:1000px] flex items-center justify-center">
-          <motion.div style={{ rotateX, rotateZ, transformStyle: 'preserve-3d' }} className="relative w-full max-w-sm aspect-square">
+          <motion.div style={{ rotateX, rotateZ }} className="relative w-full max-w-sm aspect-square [transform-style:preserve-3d]">
             {LAYER_CARDS.map((layer, index) => (
               <motion.div
                 key={layer.id}
@@ -482,7 +482,7 @@ function ModesSection(): ReactElement {
                 </div>
                 <h3 className="font-serif text-4xl md:text-5xl">{mode.title}</h3>
                 <p className="text-white/60 font-light leading-relaxed max-w-sm">{mode.description}</p>
-                <div className="pt-4 opacity-0 group-hover:opacity-100 transition-opacity duration-500 transform translate-y-4 group-hover:translate-y-0">
+                <div className="pt-4 opacity-0 group-hover:opacity-100 transition-opacity duration-500 translate-y-4 group-hover:translate-y-0">
                   <div className={cn('w-12 h-1', mode.accentBarClass)} />
                 </div>
               </div>
@@ -631,7 +631,10 @@ function LiveShowcase(): ReactElement {
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 border border-white/5 rounded-full flex items-center justify-center">
               <div className="w-64 h-64 border border-white/10 rounded-full flex items-center justify-center">
                 <div className="w-32 h-32 border border-white/20 rounded-full relative">
-                  <div className="absolute inset-0 border-t-2 border-amber-500 rounded-full animate-spin [animation-duration:3s]" />
+                  <div
+                    className="absolute inset-0 border-t-2 border-amber-500 rounded-full animate-spin"
+                    style={{ animationDuration: '3s' }}
+                  />
                 </div>
               </div>
             </div>
