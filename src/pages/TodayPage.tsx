@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'motion/react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { Radio, Users, Loader, MapPin, Zap, Search, ArrowRight, Clock, Compass, Check, X, ChevronDown, ChevronUp, Lock } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
@@ -18,7 +18,6 @@ import { calculateDistance } from '../lib/utils'
 import { SignalCardSkeleton, SkeletonBlock } from '../components/Skeleton'
 import JoinedOverlay from '../components/JoinedOverlay'
 import { getRejectedIds, addRejectedId } from '../lib/cardState'
-import { useNavigate } from 'react-router-dom'
 import { RADIUS_OPTIONS, DEFAULT_RADIUS, getRadiusValue } from '../lib/radius'
 
 interface MomentGridCardProps {
