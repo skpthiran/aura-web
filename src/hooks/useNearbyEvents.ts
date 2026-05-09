@@ -29,7 +29,7 @@ export function useNearbyEvents(radiusLabel: string = '50 KM') {
       const { data, error: rpcError } = await supabase.rpc('nearby_moments', {
         lat: fetchLat,
         lng: fetchLng,
-        radius_meters: radiusKm
+        radius_meters: radiusKm === 0 ? 40075000 : radiusKm * 1000
       })
       if (rpcError) throw rpcError
       const allSignals = (data ?? []) as Moment[]
