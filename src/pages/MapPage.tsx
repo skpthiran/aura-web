@@ -57,9 +57,9 @@ export default function MapPage() {
     setLoading(true)
     const radiusValue = getRadiusValue(radius)
     const { data, error } = await supabase.rpc('nearby_moments', {
-      user_lat: location.latitude,
-      user_lng: location.longitude,
-      radius_km: radiusValue
+      lat: location.latitude,
+      lng: location.longitude,
+      radius_meters: radiusValue
     });
     
     if (error) {

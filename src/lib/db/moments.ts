@@ -7,9 +7,9 @@ export async function getNearbyMoments(
   radiusKm: number = 50
 ): Promise<Moment[]> {
   const { data, error } = await supabase.rpc('nearby_moments', {
-    user_lat: lat,
-    user_lng: lng,
-    radius_km: radiusKm
+    lat,
+    lng,
+    radius_meters: radiusKm
   })
   if (error) throw error
   return (data ?? []) as Moment[]
@@ -18,9 +18,9 @@ export async function getNearbyMoments(
 export async function getAllActiveMoments(): Promise<Moment[]> {
   // Use 0 radius for Global search as defined in the new RPC
   const { data, error } = await supabase.rpc('nearby_moments', {
-    user_lat: 0,
-    user_lng: 0,
-    radius_km: 0 // Global
+    lat: 0,
+    lng: 0,
+    radius_meters: 0 // Global
   })
   
   if (error) throw error
