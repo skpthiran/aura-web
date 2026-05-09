@@ -43,7 +43,7 @@ export default function ChatPage() {
       })
       .catch(console.error)
       .finally(() => setLoadingChannels(false))
-  }, [currentUser])
+  }, [currentUser, channelParam])
 
   // Poll for messages
   useEffect(() => {
