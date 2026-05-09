@@ -46,6 +46,16 @@ create table public.moments (
   created_at timestamptz default now() not null
 );
 
+alter table public.moments
+  add column if not exists start_time  timestamptz,
+  add column if not exists end_time    timestamptz,
+  add column if not exists venue       text,
+  add column if not exists is_private  boolean default false,
+  add column if not exists dresscode   text,
+  add column if not exists age_min     int4,
+  add column if not exists age_max     int4,
+  add column if not exists image_url   text;
+
 create index moments_location_idx on public.moments using gist(location);
 create index moments_expires_at_idx on public.moments(expires_at);
 create index moments_is_active_idx on public.moments(is_active);
@@ -235,6 +245,14 @@ returns table (
   moment_type text,
   tags text[],
   created_at timestamptz,
+  start_time timestamptz,
+  end_time timestamptz,
+  venue text,
+  is_private boolean,
+  dresscode text,
+  age_min int4,
+  age_max int4,
+  image_url text,
   distance_meters float,
   participant_count bigint,
   lat float,
@@ -253,6 +271,14 @@ begin
     m.moment_type,
     m.tags,
     m.created_at,
+    m.start_time,
+    m.end_time,
+    m.venue,
+    m.is_private,
+    m.dresscode,
+    m.age_min,
+    m.age_max,
+    m.image_url,
     st_distance(m.location, st_point(lng, lat)::geography) as distance_meters,
     count(p.id) filter (where p.status = 'joined') as participant_count,
     st_y(m.location::geometry) as lat,
