@@ -197,7 +197,7 @@ export default function TodayPage() {
         addToast({
           title: newMoment.title,
           description: `New ${newMoment.moment_type === 'event' ? 'event' : 'signal'} detected nearby.`,
-          link: `/app/moment/${newMoment.id}`,
+          link: `/app/${newMoment.moment_type === 'event' ? 'event' : 'moment'}/${newMoment.id}`,
           type: 'signal'
         })
       }
