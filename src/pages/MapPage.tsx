@@ -59,7 +59,7 @@ export default function MapPage() {
     const { data, error } = await supabase.rpc('nearby_moments', {
       lat: location.latitude,
       lng: location.longitude,
-      radius_meters: radiusValue
+      radius_meters: radiusValue === 0 ? 40075000 : radiusValue * 1000
     });
     
     if (error) {
